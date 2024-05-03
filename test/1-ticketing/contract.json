@@ -1,0 +1,12 @@
+{
+    "ext_id"           : {"contract" : "ticketing contract"}, 
+    "contract_name"    : "Wastewater Site 1",
+    "payment_instr"    : {"id" : "627ecace-e780-11ee-b69b-f311fd81fcb4"},
+    "funding_instr"    : {"bank": "mercury", "account" : "61396d72-e780-11ee-b69b-137ed758771c"},
+    "service_fee_pct"  : 0.025,
+    "service_fee_amt"  : 5.00,
+    "advance_pct"      : 0.80,
+    "late_fee_pct"     : 0.22,
+    "transact_logic"   : {"var" : "ticket_amt"},
+    "is_active"        : true
+}

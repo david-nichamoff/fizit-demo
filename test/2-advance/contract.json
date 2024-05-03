@@ -1,0 +1,12 @@
+{
+    "ext_id"           : {}, 
+    "contract_name"    : "Advance 2024-03-15",
+    "payment_instr"    : {"id" : "627ecace-e780-11ee-b69b-f311fd81fcb4"},
+    "funding_instr"    : {"mercury" : "61396d72-e780-11ee-b69b-137ed758771c"},
+    "service_fee_pct"  : 0.00,
+    "service_fee_amt"  : 0.00,
+    "advance_pct"      : 1.00,
+    "late_fee_pct"     : 0.22,
+    "transact_logic"   : {"var" : "invoice_amt"},
+    "is_active"        : true
+}

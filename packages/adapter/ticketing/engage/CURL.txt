@@ -1,0 +1,41 @@
+curl -X POST  --location 'https://devapi.engage-m.com/invoicev1/invoiceGroup/974/assignEngageTicket' --header 'x-api-key: M59MJFQXnE9l3vh9NlSpw1R3CxQzYIz037Nkjg2b' --header 'businessID: 11' --data 'engage_ticket=%5b%22150939746477419%22%5d'
+
+curl --location 'https://devapi.engage-m.com/invoicev1/invoiceGroup' --header 'x-api-key: M59MJFQXnE9l3vh9NlSpw1R3CxQzYIz037Nkjg2b' --header 'businessID: 11' 
+
+curl --header 'x-api-key: M59MJFQXnE9l3vh9NlSpw1R3CxQzYIz037Nkjg2b' --header 'businessID: 11' --data 'engage_ticket=["150939746477419"]' https://devapi.engage-m.com/invoicev1/invoiceGroup/974/assignEngageTicket
+
+curl --header "Content-Type: application/json" --header 'x-api-key: M59MJFQXnE9l3vh9NlSpw1R3CxQzYIz037Nkjg2b' --header 'businessID: 11' --data '{"engage_ticket":["150939746477419"]}' https://devapi.engage-m.com/invoicev1/invoiceGroup/974/assignEngageTicket
+
+curl --location 'https://devapi.engage-m.com/v2/tickets/881073/tali' --header 'x-api-key: M59MJFQXnE9l3vh9NlSpw1R3CxQzYIz037Nkjg2b' --header 'businessID: 11'
+
+curl --header 'x-api-key: M59MJFQXnE9l3vh9NlSpw1R3CxQzYIz037Nkjg2b' --header 'businessID: 11' https://devapi.engage-m.com/invoicev1/invoiceGroup/976 --request "DELETE"
+
+curl --location 'https://devapi.engage-m.com/v2/tickets?approvedate_date=2024-02-05' --header 'x-api-key: M59MJFQXnE9l3vh9NlSpw1R3CxQzYIz037Nkjg2b' --header 'businessID: 11'
+
+
+curl --location 'https://devapi.engage-m.com/invoicev1/invoiceGroup/978' --header 'x-api-key: M59MJFQXnE9l3vh9NlSpw1R3CxQzYIz037Nkjg2b' --header 'businessID: 11'
+
+curl -X PUT  --location 'https://devapi.engage-m.com/invoicev1/invoiceGroup/985/sourceSubmit' --header 'x-api-key: M59MJFQXnE9l3vh9NlSpw1R3CxQzYIz037Nkjg2b' --header 'businessID: 11' --data 'source_business_id=11'
+
+curl --location 'https://devapi.engage-m.com/v2/tickets/881073/pdf' --header 'x-api-key: M59MJFQXnE9l3vh9NlSpw1R3CxQzYIz037Nkjg2b' --header 'businessID: 11'
+
+
+curl -s -X POST 'https://api.numbersprotocol.io/api/v3/assets/' \
+     -H "Authorization: token 74526ed6d6ee01113b0ddf20abdb023ba0268830" \
+     -F 'asset_file=@/tmp/demo.jpg' \
+     -F 'meta={
+        "proof": {
+            "hash": "",
+            "mimeType": "",
+            "timestamp": ""
+        },
+        "information": [
+            {
+                "provider": "Capture API",
+                "name": "version",
+                "value": "v3"
+            }
+        ]
+     }' \
+     -F 'caption=This is an example caption.' \
+     -F 'headline=This is an example headline.'

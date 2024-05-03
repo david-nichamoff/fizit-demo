@@ -1,0 +1,298 @@
+[
+	{
+		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [],
+		"name": "FEE_PCT",
+		"outputs": [
+			{
+				"internalType": "int256",
+				"name": "",
+				"type": "int256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "FUNDED_PCT",
+		"outputs": [
+			{
+				"internalType": "int256",
+				"name": "",
+				"type": "int256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "buyer",
+				"type": "address"
+			},
+			{
+				"components": [
+					{
+						"internalType": "string",
+						"name": "invoice_no",
+						"type": "string"
+					},
+					{
+						"internalType": "int256",
+						"name": "submitted_dt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "due_dt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "invoice_amt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "paid_amt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "paid_dt",
+						"type": "int256"
+					},
+					{
+						"internalType": "string",
+						"name": "nid",
+						"type": "string"
+					}
+				],
+				"internalType": "struct Engage.Invoice",
+				"name": "invoice_",
+				"type": "tuple"
+			}
+		],
+		"name": "addInvoice",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "seller",
+				"type": "address"
+			},
+			{
+				"components": [
+					{
+						"internalType": "string",
+						"name": "ticket_no",
+						"type": "string"
+					},
+					{
+						"internalType": "int256",
+						"name": "approved_dt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "init_paid_dt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "init_paid_amt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "res_paid_dt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "res_paid_amt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "ticket_amt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "fee_amt",
+						"type": "int256"
+					},
+					{
+						"internalType": "string",
+						"name": "adj_reason",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "nid",
+						"type": "string"
+					}
+				],
+				"internalType": "struct Engage.Ticket",
+				"name": "ticket_",
+				"type": "tuple"
+			}
+		],
+		"name": "addTicket",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "buyer",
+				"type": "address"
+			}
+		],
+		"name": "getInvoices",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "string",
+						"name": "invoice_no",
+						"type": "string"
+					},
+					{
+						"internalType": "int256",
+						"name": "submitted_dt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "due_dt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "invoice_amt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "paid_amt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "paid_dt",
+						"type": "int256"
+					},
+					{
+						"internalType": "string",
+						"name": "nid",
+						"type": "string"
+					}
+				],
+				"internalType": "struct Engage.Invoice[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "seller",
+				"type": "address"
+			}
+		],
+		"name": "getTickets",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "string",
+						"name": "ticket_no",
+						"type": "string"
+					},
+					{
+						"internalType": "int256",
+						"name": "approved_dt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "init_paid_dt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "init_paid_amt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "res_paid_dt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "res_paid_amt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "ticket_amt",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "fee_amt",
+						"type": "int256"
+					},
+					{
+						"internalType": "string",
+						"name": "adj_reason",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "nid",
+						"type": "string"
+					}
+				],
+				"internalType": "struct Engage.Ticket[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+]

@@ -1,0 +1,38 @@
+# Ignore virtual environment ide files
+.venv/
+.vscode/
+.idea/
+
+# Ignore Python bytecode files
+*.pyc
+__pycache__
+
+# Ignore system-specific or temporary files
+.DS_Store
+Thumbs.db
+
+# ignore artifacts
+artifacts/
+
+# ignore migrations
+app/migrations
+
+# ignore local settings ** use template
+project/settings.py
+
+# ignore truffle except for the contract and test files
+truffle/node_modules
+truffle/migrations
+truffle/truffle-config.js
+truffle/package-lock.json
+truffle/package.json
+
+config/private_keys.json
+config/public_env.json
+
+# ignore various other files
+db.sqlite3
+manage.py
+package.json
+package-lock.json
+schema.yml

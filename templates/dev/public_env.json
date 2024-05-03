@@ -1,0 +1,8 @@
+{
+    "ava_rpc"       : "https://subnets.avacloud.io/f8b4d7c7-e374-4d79-abdd-e2e3ba007481",
+    "mercury_url"   : "https://api-sandbox.mercury.com/api/v1",
+    "numbers_url"   : "https://api.numbersprotocol.io/api/v3/assets",
+    "wallet_addr"   : "0xf0F2442f2B8541EFcd4235b2933Bd7b2098bCA0c",
+    "contract_addr" : "0xf0Bf1f2ce1733b90d03A7dA1620C92E75F5310bb",
+    "gas_limit"     : 2000000
+}

@@ -1,0 +1,50 @@
+[
+    {
+        "settle_due_dt": "2024-05-15",
+        "transact_min_dt": "2024-03-01",
+        "transact_max_dt": "2024-04-01",
+        "ext_id": {
+            "ref_no": 9597
+        }
+    },
+    {
+        "settle_due_dt": "2024-06-15",
+        "transact_min_dt": "2024-04-01",
+        "transact_max_dt": "2024-05-01",
+        "ext_id": {
+            "ref_no": 3757
+        }
+    },
+    {
+        "settle_due_dt": "2024-07-15",
+        "transact_min_dt": "2024-05-01",
+        "transact_max_dt": "2024-06-01",
+        "ext_id": {
+            "ref_no": 6255
+        }
+    },
+    {
+        "settle_due_dt": "2024-08-15",
+        "transact_min_dt": "2024-06-01",
+        "transact_max_dt": "2024-07-01",
+        "ext_id": {
+            "ref_no": 1080
+        }
+    },
+    {
+        "settle_due_dt": "2024-09-15",
+        "transact_min_dt": "2024-07-01",
+        "transact_max_dt": "2024-08-01",
+        "ext_id": {
+            "ref_no": 9166
+        }
+    },
+    {
+        "settle_due_dt": "2024-10-15",
+        "transact_min_dt": "2024-08-01",
+        "transact_max_dt": "2024-09-01",
+        "ext_id": {
+            "ref_no": 6419
+        }
+    }
+]

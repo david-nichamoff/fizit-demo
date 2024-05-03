@@ -1,0 +1,78 @@
+import requests
+import json
+import env_var
+import uuid
+
+env_var = env_var.get_env()
+
+def get_accounts():
+    try:
+        response = requests.get(env_var["mercury_url"] + '/accounts', auth=(env_var["mercury_token"], ''))
+        response.raise_for_status()
+        account_data = json.loads(response.text)['accounts']
+
+        accounts = []
+        for account in account_data:
+            accounts.append({'account_id': account['id'], 'account_name' : account['name'], 'available_balance' : account['availableBalance']})
+        return accounts
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching accounts: {e}")
+        return []
+
+def get_recipients():
+    try:
+        response = requests.get(env_var["mercury_url"] + '/recipients', auth=(env_var["mercury_token"], ''))
+        response.raise_for_status()
+        recipient_data = json.loads(response.text)['recipients']
+
+        recipients = []
+        for recipient in recipient_data:
+            recipients.append({'recipient_id':recipient['id'],'recipient_name':recipient['name']})
+        return recipients
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching recipients: {e}")
+        return []
+
+def make_payment(account_id, recipient_id, amount):
+    idem = str(uuid.uuid1())
+    url = f"{env_var["mercury_url"]}/account/{account_id}/request-send-money"
+    payload = { "recipientId" : recipient_id, "amount" : float(amount), "paymentMethod" : "ach", "idempotencyKey" : idem }
+
+    try:
+        response = requests.post(url, auth=(env_var["mercury_token"], ''), json=payload)
+        response.raise_for_status()
+        return True, None
+    except requests.exceptions.RequestException as e:
+        return False, f"Error: {e}"
+    except requests.exceptions.HTTPError as e:
+        status_code = e.response.status_code
+        error_message = e.response.json().get('message') if e.response.headers['Content-Type'] == 'application/json' else str(e)
+        return False, f"HTTP Error {status_code}: {error_message}"
+    except Exception as e:
+        return False, f"Unexpected Error: {e}"
+
+def get_deposits(account_id, date_from):
+
+    deposits = []
+
+    url = f"{env_var["mercury_url"]}/account/{account_id}/transactions"
+    payload = { "limit" : 500  }
+    response = requests.get(url, auth=(env_var['mercury_token'],''), json=payload)
+    print(url)
+    print (response.text)
+
+    for deposit in json.loads(response.text['transactions']):
+        if deposit['amount'] > 0 and deposit['createdAt'] >= date_from:
+            deposits.append({'deposit_id' : deposit['id'], 'counterparty' : deposit['counterpartyName'], 
+                             'amount' : deposit['amount'], 'date' : deposit['createdAt']})
+
+    return deposits
+
+def get_deposit(account_id, deposit_id):
+    url = env_var["mercury_url"] + '/account/' + str(account_id) + '/transactions/' + str(deposit_id)
+    response = requests.get(url, auth=(env_var['mercury_token'],''))
+
+    deposit = {'deposit_id' : deposit['id'], 'counterparty' : deposit['counterpartyName'], 
+                             'amount' : deposit['amount'], 'date' : deposit['createdAt']}
+
+    return deposit
