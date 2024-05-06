@@ -1,4 +1,4 @@
-from web3 import Web3
+from web3 import Web3,HTTPProvider
 from web3.middleware import geth_poa_middleware
 
 import env_var
@@ -6,9 +6,6 @@ env_var = env_var.get_env()
 
 _web3_instance = None
 _web3_contract = None
-
-from web3 import Web3, HTTPProvider
-from web3.middleware import geth_poa_middleware
 
 def get_web3_instance():
     global _web3_instance
@@ -19,7 +16,7 @@ def get_web3_instance():
         if not rpc_url or not api_key:
             raise ValueError("Avalanche RPC URL or API key is missing")
         
-        web3_provider_url = f"{rpc_url}/{api_key}"
+        web3_provider_url = f"{rpc_url}"
         
         try:
             _web3_instance = Web3(HTTPProvider(web3_provider_url))
