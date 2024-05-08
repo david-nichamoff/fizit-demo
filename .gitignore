@@ -15,7 +15,11 @@ Thumbs.db
 artifacts/
 
 # ignore migrations
-app/migrations
+api/migrations
+frontend/migrations
+
+# static files
+frontend/static
 
 # ignore local settings ** use template
 project/settings.py
@@ -27,12 +31,19 @@ truffle/truffle-config.js
 truffle/package-lock.json
 truffle/package.json
 
+# ignore configuration files that need to be set manually
 config/private_keys.json
 config/public_env.json
 
-# ignore various other files
+# django files 
 db.sqlite3
 manage.py
+
+# node.js 
 package.json
 package-lock.json
+node_modules
+webpack-stats.json
+
+# schema file
 schema.yml
