@@ -11,10 +11,9 @@ def get_web3_instance():
     global _web3_instance
     if _web3_instance is None:
         rpc_url = env_var.get("ava_rpc")
-        api_key = env_var.get("ava_api_key")
         
-        if not rpc_url or not api_key:
-            raise ValueError("Avalanche RPC URL or API key is missing")
+        if not rpc_url:
+            raise ValueError("Avalanche RPC URL is missing")
         
         web3_provider_url = f"{rpc_url}"
         
