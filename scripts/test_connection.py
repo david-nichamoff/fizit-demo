@@ -7,7 +7,7 @@ rpc_url_test = 'https://subnets.avax.network/fizit/testnet/rpc'
 api_key_dev = 'ac_7QCVWONF_CBHlfTfm0ltnFei7u1GOUwblk5KK94qW7l2DUHEbb30wPKAyOU3cygqf1QnW1oz_MLRCuWYAaG-cA'
 api_key_test = 'ac_pX0UXQtf00XTdA3C9ZVRRcFj9cGo5y95L0en5dgHZF3obuAXZ0cg-MUxRfRFe5PvlngjBZDFI7_QJ5XzNRhzbw'
       
-web3_provider_url = f"{rpc_url_test}"
+web3_provider_url = f"{rpc_url_dev}"
 print (web3_provider_url)
         
 _web3_instance = Web3(HTTPProvider(web3_provider_url))

@@ -1,10 +1,11 @@
-const path = require('path')
-const BundleTracker = require('webpack-bundle-tracker')
-const { CleanWebpackPlugin } = require('clean-webpack-plugin')
+const path = require('path');
+const BundleTracker = require('webpack-bundle-tracker');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const Dotenv = require('dotenv-webpack');
 
 module.exports = {
   entry: {
-    frontend: './frontend/src/dashboard.js',
+    frontend: './frontend/src/index.js',
   },
   output: {
     path: path.resolve(__dirname, 'frontend/static/frontend'),
@@ -16,6 +17,9 @@ module.exports = {
     new BundleTracker({
       path: __dirname,
       filename: 'webpack-stats.json',
+    }),
+    new Dotenv({
+      path: './.env.dev',
     }),
   ],
   module: {
@@ -29,6 +33,17 @@ module.exports = {
         test: /\.css$/,
         use: ['style-loader', 'css-loader'],
       },
+      {
+        test: /\.(png|jpe?g|gif)$/i,
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              outputPath: 'images', // Output directory for images
+            },
+          },
+        ],
+      },
     ],
   },
-}
+};

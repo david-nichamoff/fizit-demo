@@ -30,6 +30,7 @@ def get_contract(contract_idx):
     contract_dict["late_fee_pct"] = contract[7] / 10000
     contract_dict["transact_logic"] = json.loads(contract[8].replace("'",'"'))
     contract_dict["is_active"] = contract[9]
+    contract_dict["contract_idx"] = contract_idx
     return contract_dict
 
 def get_contracts():
@@ -77,7 +78,7 @@ def delete_contract(contract_idx):
     tx_receipt = web3_client.get_tx_receipt(call_function)
     return True if tx_receipt["status"] == 1 else False   
 
-def get_settle_dict(settle):
+def get_settle_dict(settle, contract):
     settle_dict = {}
     settle_dict["ext_id"] = json.loads(settle[0].replace("'",'"'))
     settle_dict["settle_due_dt"] = datetime.datetime.fromtimestamp(settle[1])
@@ -97,13 +98,26 @@ def get_settle_dict(settle):
     settle_dict["residual_confirm"] = settle[15]
     settle_dict["residual_exp_amt"] = settle[16] / 100
     settle_dict["residual_calc_amt"] = settle[17] / 100
+    settle_dict["contract_name"] = contract[1]
     return settle_dict
     
 def get_settlements(contract_idx):
     settlements = []
+    contract = w3_contract.functions.getContract(contract_idx).call()
     settles = w3_contract.functions.getSettlements(contract_idx).call()
     for settle in settles:
-        settlements.append(get_settle_dict(settle))
+        settlements.append(get_settle_dict(settle, contract))
+    return settlements
+
+def get_all_settlements():
+    settlements = []
+    for contract_idx in range(get_contract_count()):
+        contract = w3_contract.functions.getContract(contract_idx).call()
+        settles = w3_contract.functions.getSettlements(contract_idx).call()
+        for settle in settles:
+            settle_dict = get_settle_dict(settle, contract)
+            settle_dict["contract_idx"] = contract_idx
+            settlements.append(settle_dict)
     return settlements
 
 def get_settlement(contract_idx, settle_idx):
@@ -131,7 +145,7 @@ def delete_settlements(contract_idx):
     tx_receipt = web3_client.get_tx_receipt(call_function)
     return True if tx_receipt["status"] == 1 else False   
 
-def get_transact_dict(transact):
+def get_transact_dict(transact, contract):
     transact_dict = {}
     transact_dict["ext_id"] = json.loads(transact[0].replace("'",'"'))
     transact_dict["transact_dt"] = datetime.datetime.fromtimestamp(transact[1])
@@ -141,14 +155,29 @@ def get_transact_dict(transact):
     transact_dict["advance_pay_dt"] = datetime.datetime.fromtimestamp(transact[5])
     transact_dict["advance_pay_amt"] = transact[6] / 100
     transact_dict["advance_confirm"] = transact[7]
+    transact_dict["contract_name"] = contract[1]
     return transact_dict
 
 def get_transactions(contract_idx):
     transactions = []
     transacts = w3_contract.functions.getTransactions(contract_idx).call()
+    contract = w3_contract.functions.getContract(contract_idx).call()
     for transact in transacts:
-        transactions.append(get_transact_dict(transact))
-    return transactions
+        transactions.append(get_transact_dict(transact, contract))
+    sorted_transactions = sorted(transactions, key=lambda d: d['transact_dt'], reverse=True)
+    return sorted_transactions
+
+def get_all_transactions():
+    transactions = []
+    for contract_idx in range(get_contract_count()):
+        transacts = w3_contract.functions.getTransactions(contract_idx).call()
+        contract = w3_contract.functions.getContract(contract_idx).call()
+        for transact in transacts:
+            transact_dict = get_transact_dict(transact, contract)
+            transact_dict["contract_idx"] = contract_idx
+            transactions.append(transact_dict)
+    sorted_transactions = sorted(transactions, key=lambda d: d['transact_dt'], reverse=True)
+    return sorted_transactions 
 
 def get_transaction(contract_idx, transact_idx):
     transact = w3_contract.functions.getTransaction(contract_idx, transact_idx).call()
@@ -272,6 +301,16 @@ def get_artifacts(contract_idx):
         artifact_dict = {}
         artifact_dict["artifact_id"] = artifact
         artifacts.append(artifact_dict)
+    return artifacts
+
+def get_all_artifacts():
+    artifacts = []
+    for contract_idx in range(get_contract_count()):
+        for artifact in  w3_contract.functions.getArtifacts(contract_idx).call():
+            artifact_dict = {}
+            artifact_dict["artifact_id"] = artifact
+            artifact_dict["contract_idx"] = contract_idx
+            artifacts.append(artifact_dict)
     return artifacts
 
 def add_artifacts(contract_idx, contract_name):

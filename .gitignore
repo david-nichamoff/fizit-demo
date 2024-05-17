@@ -34,6 +34,8 @@ truffle/package.json
 # ignore configuration files that need to be set manually
 config/private_keys.json
 config/public_env.json
+.env.dev
+webpack.config.js
 
 # django files 
 db.sqlite3

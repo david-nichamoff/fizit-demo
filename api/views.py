@@ -2,17 +2,19 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework import viewsets, status
 from drf_spectacular.utils import extend_schema
 from .serializers import ContractSerializer, SettlementSerializer, TransactionSerializer
 from .serializers import ArtifactSerializer, AccountSerializer, RecipientSerializer
 
 from packages.interface import get_contracts, get_contract, add_contract, update_contract
-from packages.interface import get_settlements, add_settlements, delete_settlements
-from packages.interface import get_transactions, add_transactions, delete_transactions
+from packages.interface import get_settlements, get_all_settlements, add_settlements, delete_settlements
+from packages.interface import get_transactions, get_all_transactions, add_transactions, delete_transactions
 from packages.interface import pay_residual, pay_advance, get_deposits
 from packages.interface import get_accounts, get_recipients
-from packages.interface import get_artifacts, add_artifacts, delete_artifacts
+from packages.interface import get_artifacts, get_all_artifacts, add_artifacts, delete_artifacts
 
 class ContractViewSet(viewsets.ViewSet):
     lookup_field = 'contract_idx'
@@ -132,7 +134,7 @@ class SettlementViewSet(viewsets.ViewSet):
 
     @extend_schema(
         responses={status.HTTP_200_OK: SettlementSerializer(many=True)},
-        description="List all settlements for a contract"
+        description="List all settlements"
     )
     def list(self, request, contract_idx=None):
         if contract_idx is not None:
@@ -142,7 +144,11 @@ class SettlementViewSet(viewsets.ViewSet):
             except Exception as e:
                 return Response(str(e), status=status.HTTP_404_NOT_FOUND)
         else:
-            return Response("contract_idx parameter is required", status=status.HTTP_400_BAD_REQUEST)
+            try:
+                settlements = get_all_settlements()
+                return Response(settlements, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response(str(e), status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(
         request=SettlementSerializer,
@@ -175,7 +181,7 @@ class TransactionViewSet(viewsets.ViewSet):
 
     @extend_schema(
         responses={status.HTTP_200_OK: TransactionSerializer(many=True)},
-        description="List all transactions for a contract"
+        description="List all transactions"
     )
     def list(self, request, contract_idx=None):
         if contract_idx is not None:
@@ -185,7 +191,11 @@ class TransactionViewSet(viewsets.ViewSet):
             except Exception as e:
                 return Response(str(e), status=status.HTTP_404_NOT_FOUND)
         else:
-            return Response("contract_idx parameter is required", status=status.HTTP_400_BAD_REQUEST)
+            try:
+                transactions = get_all_transactions()
+                return Response(transactions, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response(str(e), status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(
         request=TransactionSerializer,
@@ -193,6 +203,7 @@ class TransactionViewSet(viewsets.ViewSet):
         description="Add a list of transactions to an existing contract"
     )
     def create(self, request, contract_idx=None):
+        print (request.data)
         serializer = TransactionSerializer(data=request.data, many=True)
         if serializer.is_valid():
             try:
@@ -229,7 +240,11 @@ class ArtifactViewSet(viewsets.ViewSet):
             except Exception as e:
                 return Response(str(e), status=status.HTTP_404_NOT_FOUND)
         else:
-            return Response("contract_idx parameter is required", status=status.HTTP_400_BAD_REQUEST)
+            try:
+                artifacts = get_all_artifacts()
+                return Response(artifacts, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response(str(e), status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(
         responses={status.HTTP_201_CREATED: str},

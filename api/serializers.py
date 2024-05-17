@@ -3,7 +3,7 @@ from rest_framework import serializers
 class ContractSerializer(serializers.Serializer):
     ext_id = serializers.JSONField()
     contract_idx = serializers.IntegerField(read_only=True)
-    contract_name = serializers.CharField(max_length=255)
+    contract_name = serializers.CharField(max_length=50)
     payment_instr = serializers.JSONField()
     funding_instr = serializers.JSONField()
     service_fee_pct = serializers.FloatField(default=0.50,min_value=0.00,max_value=1.00)
@@ -29,6 +29,7 @@ class ContractSerializer(serializers.Serializer):
 class SettlementSerializer(serializers.Serializer):
     ext_id = serializers.JSONField()
     contract_idx = serializers.IntegerField(read_only=True)
+    contract_name = serializers.CharField(max_length=50)
     settle_due_dt = serializers.DateField() 
     transact_min_dt =  serializers.DateField()  
     transact_max_dt =  serializers.DateField() 
@@ -38,7 +39,7 @@ class SettlementSerializer(serializers.Serializer):
     settle_pay_amt = serializers.FloatField(read_only=True,default=0,min_value=0)
     settle_confirm = serializers.CharField(read_only=True,max_length=1000)
     dispute_amt = serializers.FloatField(read_only=True,default=0,min_value=0)
-    dispute_reason =  serializers.CharField(read_only=True,max_length=255)
+    dispute_reason =  serializers.CharField(read_only=True,max_length=1000)
     days_late = serializers.IntegerField(read_only=True)
     late_fee_amt = serializers.FloatField(read_only=True,default=0,min_value=0)
     residual_pay_dt =  serializers.DateField(read_only=True)  
@@ -49,6 +50,7 @@ class SettlementSerializer(serializers.Serializer):
 
 class TransactionSerializer(serializers.Serializer):
     contract_idx = serializers.IntegerField(read_only=True)
+    contract_name = serializers.CharField(max_length=50, read_only=True)
     ext_id = serializers.JSONField()
     transact_dt = serializers.DateTimeField()
     transact_amt = serializers.FloatField(read_only=True,default=0,min_value=0)

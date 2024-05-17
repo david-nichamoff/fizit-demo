@@ -1,0 +1,79 @@
+@import url('./Palette.css');
+
+.demo-page {
+  flex: 1;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  margin-left: 80px;
+  overflow-y: hidden;
+}
+
+.paymenow-container {
+  padding: 20px;
+  padding-bottom: 0px;
+  max-width: calc(100vw);
+  height: auto;
+  overflow: hidden;
+  border: 1px solid var(--color-grey);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 30px;
+}
+
+.paymenow-container .form-group {
+  margin: 10px 0;
+}
+
+.paymenow-container .notation {
+  color: var(--color-darkblue);
+  font-style: italic;
+  margin-top: 0px;
+}
+.paymenow-container label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.paymenow-container select,
+.paymenow-container input,
+.paymenow-container textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--color-grey);
+  border-radius: 4px;
+  box-sizing: border-box;
+  background-color: white;
+}
+
+.paymenow-container select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path fill="gray" d="M7 10l5 5 5-5z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.paymenow-container button {
+  margin-top: 10px;
+  padding: 8px 16px;
+  background-color: var(--color-lightblue);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 25%;
+  align-self: center;
+  margin-bottom: 20px;
+}
+
+.paymenow-container button:hover {
+  background-color: var(--color-green);
+}
+
+.paymenow-container button.disabled {
+  background-color: var(--color-grey);
+  cursor: not-allowed;
+}

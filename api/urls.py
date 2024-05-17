@@ -12,6 +12,9 @@ urlpatterns = [
     path('contracts/<int:contract_idx>/settlements/', views.SettlementViewSet.as_view({'get': 'list', 'post': 'create', 'delete': 'delete'}), name='contract-settlements'),
     path('contracts/<int:contract_idx>/artifacts/', views.ArtifactViewSet.as_view({'get': 'list', 'post':'create','delete': 'delete'}), name='contract-artifacts'),
     path('contracts/<int:contract_idx>/transactions/', views.TransactionViewSet.as_view({'get': 'list', 'post': 'create', 'delete': 'delete'}), name='contract-transactions'),
+    path('transactions/', views.TransactionViewSet.as_view({'get': 'list'}), name='transaction-list'),
+    path('settlements/', views.SettlementViewSet.as_view({'get': 'list'}), name='settlement-list'),
+    path('artifacts/', views.ArtifactViewSet.as_view({'get': 'list'}), name='artifact-list'),
     path('accounts/', views.AccountViewSet.as_view({'get': 'list'}), name='account-list'),
     path('recipients/', views.RecipientViewSet.as_view({'get': 'list'}), name='recipient-list'),
 ]
