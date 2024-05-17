@@ -5,7 +5,7 @@ import './DemoPage.css';
 
 const DemoPage = ({ contracts }) => {
   const [selectedContract, setSelectedContract] = useState('');
-  const [extId, setExtId] = useState(JSON.stringify({ transact_id: 1000 }, null, 2));
+  const [extId, setExtId] = useState(JSON.stringify({ ticket_no: 1000 }, null, 2));
   const [transactDt, setTransactDt] = useState('');
   const [transactData, setTransactData] = useState(JSON.stringify({ ticket_amt: 500 }, null, 2));
   const [isFormValid, setIsFormValid] = useState(false);
