@@ -1,31 +1,31 @@
 import React, { useState } from 'react';
-import Multiselect from 'multiselect-react-dropdown'
+import Multiselect from 'multiselect-react-dropdown';
 import './FilterContainer.css';
 
-const FilterContainer = ({ onApplyFilters, contracts, header }) => {
-  const [selectedContracts, setSelectedContracts] = useState([]);
+const FilterContainer = ({ onApplyFilters, items = [], header, displayKey }) => {
+  const [selectedItems, setSelectedItems] = useState([]);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
   const handleApplyFilters = () => {
     // Call the parent component's function to apply filters
-    onApplyFilters(selectedContracts, dateFrom, dateTo);
+    onApplyFilters(selectedItems, dateFrom, dateTo);
   };
 
   return (
     <div className="filter-container">
       <h2>{header}</h2>
 
-      {/* Contract Multiselect */}
+      {/* Items Multiselect */}
       <div className="multiselect-container">
         <Multiselect
-          options={contracts.map((contract) => ({ key: contract.contract_name, value: contract.contract_name }))}
-          selectedValues={selectedContracts.map((contract) => ({ key: contract, value: contract }))}
-          onSelect={(selectedList) => setSelectedContracts(selectedList.map((item) => item.value))}
-          onRemove={(selectedList) => setSelectedContracts(selectedList.map((item) => item.value))}
+          options={items.map((item) => ({ key: item[displayKey], value: item[displayKey] }))}
+          selectedValues={selectedItems.map((item) => ({ key: item, value: item }))}
+          onSelect={(selectedList) => setSelectedItems(selectedList.map((item) => item.value))}
+          onRemove={(selectedList) => setSelectedItems(selectedList.map((item) => item.value))}
           displayValue="key"
-          placeholder="Select contracts..."
-          stype={{maxHeight: '200px', overflow: 'auto'}}
+          placeholder={`Select ${header.toLowerCase()}...`}
+          style={{ maxHeight: '200px', overflow: 'auto' }}
         />
       </div>
 

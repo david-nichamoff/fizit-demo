@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Pagination from './Pagination';
-import SettlementDetail from './SettlementDetail'
+import SettlementDetail from './SettlementDetail';
 import { formatCurrency, formatDate } from './Utils';
 import FilterContainer from './FilterContainer'; 
 import axios from 'axios';
@@ -27,7 +27,7 @@ const SettlementsPage = ({ settlements }) => {
     };
 
     fetchContracts();
-  } , []);
+  }, []);
 
   useEffect(() => {
     setIsInitialLoad(false);
@@ -81,8 +81,9 @@ const SettlementsPage = ({ settlements }) => {
     <div className="detail-page">
       <FilterContainer 
         onApplyFilters={applyFilters} 
-        contracts={contracts} 
+        items={contracts} 
         header="Settlements"
+        displayKey="contract_name"
       />
       <div className="stats-container">
         <div className="late-fee-container">
@@ -94,7 +95,7 @@ const SettlementsPage = ({ settlements }) => {
           <p>
             Average Dispute Amount<br></br><span className="amount">{formatCurrency(averageDisputeAmt)}</span>
           </p>
-      </div>
+        </div>
       </div>
       <div className="settlement-container">
         <div className="settlement-header">

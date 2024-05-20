@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ValueChart from './ValueChart'; 
 import Pagination from './Pagination';
-import TransactionDetail from './TransactionDetail'
+import TransactionDetail from './TransactionDetail';
 import { formatCurrency, formatDateTime } from './Utils';
 import FilterContainer from './FilterContainer'; 
 import axios from 'axios';
@@ -9,7 +9,7 @@ import './TransactionsPage.css';
 
 const TransactionsPage = ({ transactions }) => {
   const itemsPerPage = 12;
-  const [contracts, setContracts] = useState([]);
+  const [contracts, setContracts] = useState([]); // Initialize with an empty array
   const [selectedContracts, setSelectedContracts] = useState([]);
   const [dateFrom, setDateFrom] = useState(null);
   const [dateTo, setDateTo] = useState(null);
@@ -72,8 +72,9 @@ const TransactionsPage = ({ transactions }) => {
     <div className="detail-page">
       <FilterContainer 
         onApplyFilters={applyFilters} 
-        contracts={contracts} 
+        items={contracts} 
         header="Transactions"
+        displayKey="contract_name"
       />
       <div className="transaction-container">
         <div className="transaction-header">

@@ -60,6 +60,14 @@ class TransactionSerializer(serializers.Serializer):
     advance_pay_amt = serializers.FloatField(read_only=True,default=0,min_value=0)
     advance_confirm = serializers.CharField(read_only=True,max_length=1000)
 
+class DepositSerializer(serializers.Serializer):
+    account_id = serializers.UUIDField()
+    account_name = serializers.CharField(max_length=255)
+    deposit_id = serializers.UUIDField()
+    counterparty = serializers.CharField(max_length=255)
+    amount = serializers.FloatField()
+    date = serializers.DateField()
+
 class ArtifactSerializer(serializers.Serializer):
     contract_idx = serializers.IntegerField(read_only=True)
     artifact_id = serializers.CharField(read_only=True,max_length=255)

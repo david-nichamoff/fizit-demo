@@ -4,6 +4,7 @@ import ContractsPage from './components/ContractsPage';
 import SettlementsPage from './components/SettlementsPage';
 import TransactionsPage from './components/TransactionsPage';
 import ArtifactsPage from './components/ArtifactsPage';
+import DepositsPage from './components/DepositsPage';
 import DemoPage from './components/DemoPage';
 import axios from 'axios';
 import './App.css';
@@ -13,8 +14,9 @@ const App = () => {
   const [settlements, setSettlements] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [artifacts, setArtifacts] = useState([]);
+  const [deposits, setDeposits] = useState([]);
 
-  const [displayPage, setDisplayPage] = useState('contracts'); // Default page to display
+  const [displayPage, setDisplayPage] = useState('contracts'); 
 
   const fetchData = async (url, setData) => {
     try {
@@ -22,7 +24,6 @@ const App = () => {
       const responseData = response.data;
 
       if (Array.isArray(responseData)) {
-
         setData(responseData);
       } else {
         console.error(`API response is not an array for ${url}:`, responseData);
@@ -48,6 +49,10 @@ const App = () => {
       case 'transactions':
         fetchData('/transactions', setTransactions);
         break;
+      case 'deposits':
+        fetchData('/deposits', setDeposits);
+        fetchData('/contracts', setContracts);
+        break;
       case 'artifacts':
         fetchData('/artifacts', setArtifacts);
         break;
@@ -66,6 +71,7 @@ const App = () => {
         {displayPage === 'contracts' && <ContractsPage contracts={contracts} />}
         {displayPage === 'settlements' && <SettlementsPage settlements={settlements} />}
         {displayPage === 'transactions' && <TransactionsPage transactions={transactions} />}
+        {displayPage === 'deposits' && <DepositsPage contracts={contracts} deposits={deposits} />}
         {displayPage === 'artifacts' && <ArtifactsPage artifacts={artifacts} />}
         {displayPage === 'demonstration' && <DemoPage contracts={contracts} />}
       </div>

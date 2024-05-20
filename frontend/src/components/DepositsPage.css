@@ -1,0 +1,131 @@
+@import url('./Palette.css');
+
+.detail-page {
+    flex: 1;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    margin-left: 80px;
+    overflow-y: hidden;
+}
+
+.deposit-container {
+    padding: 20px;
+    padding-bottom: 0px;
+    max-width: calc(100vw);
+    height: auto;
+    overflow: hidden;
+    border: 1px solid var(--color-grey);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 30px;
+}
+
+.deposit-header {
+    display: flex;
+    width: 100%;
+    font-weight: bold;
+    border-bottom: 1px solid var(--color-grey);
+    border-top: 1px solid var(--color-grey);
+    z-index: 1;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    background-color: white;
+    position: sticky;
+    top: 0;
+    left: 0;
+}
+
+.deposit-list {
+    width: 100%;
+    list-style-type: none;
+    margin-top: 10px;
+    padding-left: 0;
+}
+
+.deposit-item {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--color-grey);
+    padding-top: 2px;
+    padding-bottom: 2px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.deposit-item.selected {
+    background-color: var(--color-lightblue);
+    color: white;
+}
+
+.deposit-column {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    margin-right: 5px;
+}
+
+.string-column {
+    flex: 5;
+}
+
+.amount-column {
+    flex: 2;
+}
+
+.date-column {
+    flex: 4;
+}
+
+/* Responsive styling for small screens */
+@media (max-width: 768px) {
+    .deposit-header {
+        flex-wrap: wrap;
+    }
+
+    .column-header {
+        flex: 1 1 100%;
+    }
+
+    .deposit-item {
+        flex-direction: column;
+    }
+}
+
+.contracts-container, .settlement-periods-container {
+    padding: 20px;
+    padding-bottom: 0px;
+    max-width: calc(100vw);
+    height: auto;
+    overflow: hidden;
+    border: 1px solid var(--color-grey);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 30px;
+}
+
+.contracts-list, .settlement-periods-list {
+    width: 100%;
+    list-style-type: none;
+    margin-top: 10px;
+    padding-left: 0;
+}
+
+.contract-item, .settlement-period-item {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--color-grey);
+    padding-top: 2px;
+    padding-bottom: 2px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.contract-item.selected, .settlement-period-item.selected {
+    background-color: var(--color-lightblue);
+    color: white;
+}

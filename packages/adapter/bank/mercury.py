@@ -19,6 +19,28 @@ def get_accounts():
         print(f"Error fetching accounts: {e}")
         return []
 
+def get_deposits():
+    try:
+        account_response = requests.get(env_var["mercury_url"] + '/accounts', auth=(env_var["mercury_token"], ''))
+        account_response.raise_for_status()
+        account_data = json.loads(account_response.text)['accounts']
+        
+        deposits = []
+        for account in account_data:
+            url = f"{env_var["mercury_url"]}/account/{account['id']}/transactions"
+            payload = { "limit" : 50, "offset" : 0 }
+            deposit_response = requests.get(url, auth=(env_var['mercury_token'],''), json=payload)
+            print (deposit_response.text)
+            deposit_data = json.loads(deposit_response.text)['transactions']
+            for deposit in deposit_data:
+                deposits.append({'deposit_id' : deposit['id'], 'counterparty' : deposit['counterpartyName'], 
+                                'amount' : deposit['amount'], 'date' : deposit['createdAt']})
+
+        return deposits
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching deposit: {e}")
+        return []
+
 def get_recipients():
     try:
         response = requests.get(env_var["mercury_url"] + '/recipients', auth=(env_var["mercury_token"], ''))
@@ -50,29 +72,3 @@ def make_payment(account_id, recipient_id, amount):
         return False, f"HTTP Error {status_code}: {error_message}"
     except Exception as e:
         return False, f"Unexpected Error: {e}"
-
-def get_deposits(account_id, date_from):
-
-    deposits = []
-
-    url = f"{env_var["mercury_url"]}/account/{account_id}/transactions"
-    payload = { "limit" : 500  }
-    response = requests.get(url, auth=(env_var['mercury_token'],''), json=payload)
-    print(url)
-    print (response.text)
-
-    for deposit in json.loads(response.text['transactions']):
-        if deposit['amount'] > 0 and deposit['createdAt'] >= date_from:
-            deposits.append({'deposit_id' : deposit['id'], 'counterparty' : deposit['counterpartyName'], 
-                             'amount' : deposit['amount'], 'date' : deposit['createdAt']})
-
-    return deposits
-
-def get_deposit(account_id, deposit_id):
-    url = env_var["mercury_url"] + '/account/' + str(account_id) + '/transactions/' + str(deposit_id)
-    response = requests.get(url, auth=(env_var['mercury_token'],''))
-
-    deposit = {'deposit_id' : deposit['id'], 'counterparty' : deposit['counterpartyName'], 
-                             'amount' : deposit['amount'], 'date' : deposit['createdAt']}
-
-    return deposit

@@ -8,6 +8,7 @@ from rest_framework import viewsets, status
 from drf_spectacular.utils import extend_schema
 from .serializers import ContractSerializer, SettlementSerializer, TransactionSerializer
 from .serializers import ArtifactSerializer, AccountSerializer, RecipientSerializer
+from .serializers import DepositSerializer
 
 from packages.interface import get_contracts, get_contract, add_contract, update_contract
 from packages.interface import get_settlements, get_all_settlements, add_settlements, delete_settlements
@@ -269,7 +270,6 @@ class ArtifactViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
-
 class AccountViewSet(viewsets.ViewSet):
 
     @extend_schema(
@@ -280,6 +280,20 @@ class AccountViewSet(viewsets.ViewSet):
         try:
             accounts = get_accounts()
             serializer = AccountSerializer(accounts, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_404_NOT_FOUND)
+
+class DepositViewSet(viewsets.ViewSet):
+
+    @extend_schema(
+        responses={status.HTTP_200_OK: DepositSerializer(many=True)},
+        description="List all pending bank deposits"
+    )
+    def list(self, request):
+        try:
+            deposits = get_deposits()
+            serializer = DepositSerializer(deposits, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(str(e), status=status.HTTP_404_NOT_FOUND)

@@ -2,8 +2,6 @@ import React from 'react';
 import './ContractsPage.css';
 
 const ContractsPage = ({ contracts }) => {
-  console.log('Contracts:', contracts);
-
   return (
     <div className="detail-page">
       <h1>Contract Overview</h1>

@@ -69,7 +69,7 @@
 }
 
 .settlement-item.overdue-unpaid {
-    background-color: var(--color-red);
+    background-color: var(--color-error);
     color: white;
 }
 

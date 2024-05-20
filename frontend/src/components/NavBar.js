@@ -22,13 +22,13 @@ const NavBar = ({ onViewChange }) => {
           <button onClick={() => onViewChange('deposits')}>Deposits</button>
         </li>
         <li>
+          <button onClick={() => onViewChange('float')}>Float</button>
+        </li>
+        <li>
           <button onClick={() => onViewChange('ambassador')}>Ambassador</button>
         </li>
         <li>
           <button onClick={() => onViewChange('builder')}>Builder</button>
-        </li>
-        <li>
-          <button onClick={() => onViewChange('float')}>Float</button>
         </li>
         <li>
           <button onClick={() => onViewChange('artifacts')}>Artifacts</button>

@@ -214,6 +214,11 @@ def get_recipients():
     recipients = adapter.bank.mercury.get_recipients()
     return recipients
 
+def get_deposits():
+    # add additional adapters
+    deposits = adapter.bank.mercury.get_deposits()
+    return deposits
+
 def pay_advance(contract_idx):
 
     transact_amt = 0
@@ -272,15 +277,6 @@ def pay_residual(contract_idx, contract, settlements):
                 return False
 
     return True
-
-def get_deposits(contract_idx, date_from):
-
-    contract = get_contract(contract_idx)
-
-    if contract["funding_instr"]["bank"] == "mercury":
-        account_id = contract["funding_instr"]["account"] 
-        deposits = adapter.bank.mercury.get_deposits(account_id, date_from)
-    return deposits
 
 def post_settlement(contract_idx, settle_idx, deposit_id, dispute_reason):
     deposit = adapter.bank.mercury.get_deposit(contract_idx, deposit_id)
