@@ -4,6 +4,7 @@ import ContractsPage from './components/ContractsPage';
 import SettlementsPage from './components/SettlementsPage';
 import TransactionsPage from './components/TransactionsPage';
 import ArtifactsPage from './components/ArtifactsPage';
+import PaymentsPage from './components/PaymentsPage';
 import DepositsPage from './components/DepositsPage';
 import DemoPage from './components/DemoPage';
 import axios from 'axios';
@@ -15,6 +16,8 @@ const App = () => {
   const [transactions, setTransactions] = useState([]);
   const [artifacts, setArtifacts] = useState([]);
   const [deposits, setDeposits] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [accounts, setAccounts] = useState([]);
 
   const [displayPage, setDisplayPage] = useState('contracts'); 
 
@@ -53,6 +56,11 @@ const App = () => {
         fetchData('/deposits', setDeposits);
         fetchData('/contracts', setContracts);
         break;
+      case 'payments':
+        fetchData('/accounts', setAccounts);
+        fetchData('/transactions', setTransactions);
+        fetchData('/settlements', setSettlements);
+        break;
       case 'artifacts':
         fetchData('/artifacts', setArtifacts);
         break;
@@ -72,8 +80,9 @@ const App = () => {
         {displayPage === 'settlements' && <SettlementsPage settlements={settlements} />}
         {displayPage === 'transactions' && <TransactionsPage transactions={transactions} />}
         {displayPage === 'deposits' && <DepositsPage contracts={contracts} deposits={deposits} />}
+        {displayPage === 'payments' && <PaymentsPage accounts={accounts} transactions={transactions} settlements={settlements} />}
         {displayPage === 'artifacts' && <ArtifactsPage artifacts={artifacts} />}
-        {displayPage === 'demonstration' && <DemoPage contracts={contracts} />}
+        {displayPage === 'demo' && <DemoPage contracts={contracts} />}
       </div>
     </div> 
   );

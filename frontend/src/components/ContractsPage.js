@@ -11,9 +11,9 @@ const ContractsPage = ({ contracts }) => {
             <div className="contract-container">
               <strong>{contract.contract_name}</strong>
               <p>Contract ID: {contract.ext_id.contract}</p>
-              <p>Payment ID: {contract.payment_instr.id}</p>
+              <p>Payment ID: {contract.payment_instr.recipient_id}</p>
               <p>Bank: {contract.funding_instr.bank}</p>
-              <p>Account: {contract.funding_instr.account}</p>
+              <p>Account: {contract.funding_instr.account_id}</p>
             </div>
           </li>
         ))}

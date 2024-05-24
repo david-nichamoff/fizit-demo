@@ -73,6 +73,7 @@ const TransactionsPage = ({ transactions }) => {
       <FilterContainer 
         onApplyFilters={applyFilters} 
         items={contracts} 
+        dropdown_text="Contracts"
         header="Transactions"
         displayKey="contract_name"
       />
@@ -99,7 +100,7 @@ const TransactionsPage = ({ transactions }) => {
         </ul>
         <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
       </div>
-      <TransactionDetail transaction={selectedTransaction} /> 
+      {selectedTransaction && <TransactionDetail transaction={selectedTransaction} />}
       {!isInitialLoad && <ValueChart transactions={filteredTransactions} />} 
     </div>
   );

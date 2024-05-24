@@ -5,56 +5,79 @@ import FilterContainer from './FilterContainer';
 import axios from 'axios';
 import './DepositsPage.css';
 
-const DepositsPage = ({ deposits, contracts }) => {
+const DepositsPage = () => {
   const itemsPerPage = 12;
+  const [deposits, setDeposits] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const [settlementPeriods, setSettlementPeriods] = useState([]);
-  const [selectedContracts, setSelectedContracts] = useState([]);
+  const [selectedAccounts, setSelectedAccounts] = useState([]);
   const [dateFrom, setDateFrom] = useState(null);
   const [dateTo, setDateTo] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedDeposit, setSelectedDeposit] = useState(null);
-  const [selectedContract, setSelectedContract] = useState(null);
   const [selectedSettlementPeriod, setSelectedSettlementPeriod] = useState(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => {
+    const fetchAccounts = async () => {
+      try {
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/accounts`);
+        setAccounts(response.data);
+      } catch (error) {
+        console.error('Error fetching accounts:', error);
+      }
+    };
+
+    fetchAccounts();
+  }, []);
+
+  useEffect(() => {
+    fetchDeposits([], null, null);
     setIsInitialLoad(false);
   }, []);
 
-  const applyFilters = (selectedContracts, fromDate, toDate) => {
-    setSelectedContracts(selectedContracts);
+  const applyFilters = (selectedAccounts, fromDate, toDate) => {
+    setSelectedAccounts(selectedAccounts);
     setDateFrom(fromDate);
     setDateTo(toDate);
-    setCurrentPage(1); // Reset pagination to first page
+    setCurrentPage(1); 
+    fetchDeposits(selectedAccounts, fromDate, toDate); 
   };
 
-  const fetchSettlementPeriods = async (contractId) => {
+  const fetchDeposits = async (selectedAccounts, fromDate, toDate) => {
     try {
-      const response = await axios.get(`${process.env.REACT_APP_API_URL}/settlements?contract_id=${contractId}`);
-      setSettlementPeriods(response.data);
+      const params = {};
+      if (selectedAccounts.length > 0) {
+        params.account_ids = selectedAccounts.join(',');
+      }
+      if (fromDate) {
+        params.start_date = fromDate;
+      }
+      if (toDate) {
+        params.end_date = toDate;
+      }
+
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/deposits`, { params });
+      setDeposits(response.data);
+    } catch (error) {
+      console.error('Error fetching deposits:', error);
+    }
+  };
+
+  const fetchSettlementPeriods = async (accountId) => {
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/settlements`, { params: { account_id: accountId } });
+      const validSettlementPeriods = response.data.filter(period => period.settle_exp_amt > 0);
+      setSettlementPeriods(validSettlementPeriods);
     } catch (error) {
       console.error('Error fetching settlement periods:', error);
     }
   };
 
-  // Filter deposits based on selected contracts and date range
-  const filteredDeposits = deposits.filter((deposit) => {
-    if (selectedContracts.length > 0 && !selectedContracts.includes(deposit.contract_name)) {
-      return false;
-    }
-    if (dateFrom && new Date(deposit.deposit_dt) < new Date(dateFrom)) {
-      return false;
-    }
-    if (dateTo && new Date(deposit.deposit_dt) > new Date(dateTo)) {
-      return false;
-    }
-    return true;
-  });
-
-  const totalPages = Math.ceil(filteredDeposits.length / itemsPerPage);
+  const totalPages = Math.ceil(deposits.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, filteredDeposits.length);
-  const visibleDeposits = filteredDeposits.slice(startIndex, endIndex);
+  const endIndex = Math.min(startIndex + itemsPerPage, deposits.length);
+  const visibleDeposits = deposits.slice(startIndex, endIndex);
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -62,29 +85,33 @@ const DepositsPage = ({ deposits, contracts }) => {
 
   const handleDepositSelect = (deposit) => {
     setSelectedDeposit(deposit);
-    const contract = contracts.find(c => c.contract_name === deposit.contract_name);
-    if (contract) {
-      fetchSettlementPeriods(contract.contract_id); // Fetch settlement periods for the selected contract
-      setSelectedContract(contract);
-    }
+    fetchSettlementPeriods(deposit.account_id);
   };
 
-  const handleLinkDeposit = () => {
-    // Logic to link deposit to the selected settlement period
-    // API call to link deposit with settlement period
+  const handleLinkDeposit = async () => {
+    if (selectedSettlementPeriod) {
+      try {
+        await axios.post(`${process.env.REACT_APP_API_URL}/contracts/${selectedSettlementPeriod.contract_idx}/post_settlement`);
+        alert('Deposit successfully linked to settlement period.');
+      } catch (error) {
+        console.error('Error linking deposit to settlement period:', error);
+        alert('Failed to link deposit to settlement period.');
+      }
+    }
   };
 
   return (
     <div className="detail-page">
       <FilterContainer 
         onApplyFilters={applyFilters} 
-        items={contracts} 
+        items={accounts} 
+        dropdown_text="Accounts"
         header="Deposits"
-        displayKey="contract_name"
+        displayKey="account_name"
       />
       <div className="deposit-container">
         <div className="deposit-header">
-          <div className="column-header string-column">Contract</div>
+          <div className="column-header string-column">Account</div>
           <div className="column-header amount-column">Amount</div>
           <div className="column-header date-column">Deposit Date</div>
           <div className="column-header string-column">Counterparty</div>
@@ -96,8 +123,8 @@ const DepositsPage = ({ deposits, contracts }) => {
               className={`deposit-item ${deposit === selectedDeposit ? 'selected' : ''}`}
               onClick={() => handleDepositSelect(deposit)}
             >
-              <div className="deposit-column string-column">{deposit.contract_name}</div>
-              <div className="deposit-column amount-column">{formatCurrency(deposit.amount)}</div>
+              <div className="deposit-column string-column">{deposit.account_name}</div>
+              <div className="deposit-column amount-column">{formatCurrency(deposit.deposit_amt)}</div>
               <div className="deposit-column date-column">{formatDateTime(deposit.deposit_dt)}</div>
               <div className="deposit-column string-column">{deposit.counterparty}</div>
             </li>
@@ -105,9 +132,14 @@ const DepositsPage = ({ deposits, contracts }) => {
         </ul>
         <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
       </div>
-      {selectedDeposit && selectedContract && (
+      {selectedDeposit && (
         <div className="settlement-periods-container">
-          <h3>Select Settlement Period</h3>
+          <h2>Settlement Period</h2>
+          <div className="settlement-periods-header">
+            <div className="column-header string-column">Contract</div>
+            <div className="column-header date-column">Due Date</div>
+            <div className="column-header amount-column">Expected Amount</div>
+          </div>
           <ul className="settlement-periods-list">
             {settlementPeriods.map((period, index) => (
               <li 
@@ -115,13 +147,16 @@ const DepositsPage = ({ deposits, contracts }) => {
                 className={`settlement-period-item ${period === selectedSettlementPeriod ? 'selected' : ''}`}
                 onClick={() => setSelectedSettlementPeriod(period)}
               >
-                {formatDate(period.start_date)} - {formatDate(period.end_date)}
+                <div className="settlement-period-column string-column">{period.contract_name}</div>
+                <div className="settlement-period-column date-column">{formatDate(period.settle_due_dt)}</div>
+                <div className="settlement-period-column amount-column">{formatCurrency(period.settle_exp_amt)}</div>
               </li>
             ))}
           </ul>
           <button 
+            className="link-button"
             onClick={handleLinkDeposit} 
-            disabled={!selectedSettlementPeriod}
+            disabled={!selectedDeposit || !selectedSettlementPeriod}
           >
             Link Deposit to Settlement Period
           </button>

@@ -29,7 +29,9 @@ class ContractSerializer(serializers.Serializer):
 class SettlementSerializer(serializers.Serializer):
     ext_id = serializers.JSONField()
     contract_idx = serializers.IntegerField(read_only=True)
-    contract_name = serializers.CharField(max_length=50)
+    contract_name = serializers.CharField(read_only=True, max_length=50)
+    payment_instr = serializers.JSONField(read_only=True)
+    funding_instr = serializers.JSONField(read_only=True)
     settle_due_dt = serializers.DateField() 
     transact_min_dt =  serializers.DateField()  
     transact_max_dt =  serializers.DateField() 
@@ -51,6 +53,8 @@ class SettlementSerializer(serializers.Serializer):
 class TransactionSerializer(serializers.Serializer):
     contract_idx = serializers.IntegerField(read_only=True)
     contract_name = serializers.CharField(max_length=50, read_only=True)
+    payment_instr = serializers.JSONField(read_only=True)
+    funding_instr = serializers.JSONField(read_only=True)
     ext_id = serializers.JSONField()
     transact_dt = serializers.DateTimeField()
     transact_amt = serializers.FloatField(read_only=True,default=0,min_value=0)
@@ -61,22 +65,29 @@ class TransactionSerializer(serializers.Serializer):
     advance_confirm = serializers.CharField(read_only=True,max_length=1000)
 
 class DepositSerializer(serializers.Serializer):
+    bank = serializers.CharField(max_length=50)
     account_id = serializers.UUIDField()
     account_name = serializers.CharField(max_length=255)
     deposit_id = serializers.UUIDField()
     counterparty = serializers.CharField(max_length=255)
-    amount = serializers.FloatField()
-    date = serializers.DateField()
+    deposit_amt = serializers.FloatField()
+    deposit_dt = serializers.DateField()
 
 class ArtifactSerializer(serializers.Serializer):
     contract_idx = serializers.IntegerField(read_only=True)
+    contract_name = serializers.CharField(max_length=50, read_only=True)
     artifact_id = serializers.CharField(read_only=True,max_length=255)
+    doc_title = serializers.CharField(max_length=50)
+    doc_type = serializers.CharField(max_length=50)
+    added_dt = serializers.DateField()
 
 class AccountSerializer(serializers.Serializer):
+    bank = serializers.CharField(max_length=50)
     account_id = serializers.UUIDField()
     account_name = serializers.CharField(max_length=255)
     available_balance = serializers.FloatField()
 
 class RecipientSerializer(serializers.Serializer):
+    bank = serializers.CharField(max_length=50)
     recipient_id = serializers.UUIDField()
     recipient_name = serializers.CharField(max_length=255)

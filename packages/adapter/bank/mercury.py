@@ -13,32 +13,11 @@ def get_accounts():
 
         accounts = []
         for account in account_data:
-            accounts.append({'account_id': account['id'], 'account_name' : account['name'], 'available_balance' : account['availableBalance']})
+            accounts.append({'bank' : 'mercury', 'account_id': account['id'], 'account_name' : account['name'], 
+                             'available_balance' : account['availableBalance']})
         return accounts
     except requests.exceptions.RequestException as e:
         print(f"Error fetching accounts: {e}")
-        return []
-
-def get_deposits():
-    try:
-        account_response = requests.get(env_var["mercury_url"] + '/accounts', auth=(env_var["mercury_token"], ''))
-        account_response.raise_for_status()
-        account_data = json.loads(account_response.text)['accounts']
-        
-        deposits = []
-        for account in account_data:
-            url = f"{env_var["mercury_url"]}/account/{account['id']}/transactions"
-            payload = { "limit" : 50, "offset" : 0 }
-            deposit_response = requests.get(url, auth=(env_var['mercury_token'],''), json=payload)
-            print (deposit_response.text)
-            deposit_data = json.loads(deposit_response.text)['transactions']
-            for deposit in deposit_data:
-                deposits.append({'deposit_id' : deposit['id'], 'counterparty' : deposit['counterpartyName'], 
-                                'amount' : deposit['amount'], 'date' : deposit['createdAt']})
-
-        return deposits
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching deposit: {e}")
         return []
 
 def get_recipients():
@@ -49,11 +28,33 @@ def get_recipients():
 
         recipients = []
         for recipient in recipient_data:
-            recipients.append({'recipient_id':recipient['id'],'recipient_name':recipient['name']})
+            recipients.append({'bank' : 'mercury', 'recipient_id':recipient['id'],'recipient_name':recipient['name']})
         return recipients
     except requests.exceptions.RequestException as e:
         print(f"Error fetching recipients: {e}")
         return []
+
+def get_deposits(start_date, end_date, account_ids):
+    accounts = get_accounts()
+    deposits = []
+
+    for account in accounts:
+        if account_ids is None or account['account_id'] in account_ids:
+            try:
+                url = f"{env_var["mercury_url"]}/account/{account['account_id']}/transactions"
+                payload = { "start" : start_date, "end" : end_date }
+                response = requests.get(url, auth=(env_var['mercury_token'],''), params=payload)
+                deposit_data = json.loads(response.text)['transactions']
+
+                for deposit in deposit_data:
+                    if deposit['amount'] > 0:  # filter out expenses
+                        deposits.append({'bank' : account['bank'], 'account_id': account['account_id'], 'account_name': account['account_name'],
+                                         'deposit_id' : deposit['id'], 'counterparty' : deposit['counterpartyName'], 
+                                         'deposit_amt' : deposit['amount'], 'deposit_dt' : deposit['createdAt']})
+            except requests.exceptions.RequestException as e:
+                print(f"Error fetching deposit: {e}")
+
+    return deposits
 
 def make_payment(account_id, recipient_id, amount):
     idem = str(uuid.uuid1())

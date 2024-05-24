@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Multiselect from 'multiselect-react-dropdown';
 import './FilterContainer.css';
 
-const FilterContainer = ({ onApplyFilters, items = [], header, displayKey }) => {
+const FilterContainer = ({ onApplyFilters, items = [], dropdown_text, header, displayKey }) => {
   const [selectedItems, setSelectedItems] = useState([]);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -24,7 +24,7 @@ const FilterContainer = ({ onApplyFilters, items = [], header, displayKey }) => 
           onSelect={(selectedList) => setSelectedItems(selectedList.map((item) => item.value))}
           onRemove={(selectedList) => setSelectedItems(selectedList.map((item) => item.value))}
           displayValue="key"
-          placeholder={`Select ${header.toLowerCase()}...`}
+          placeholder={`Select ${dropdown_text.toLowerCase()}...`}
           style={{ maxHeight: '200px', overflow: 'auto' }}
         />
       </div>
@@ -36,7 +36,7 @@ const FilterContainer = ({ onApplyFilters, items = [], header, displayKey }) => 
       <input type="date" id="dateTo" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
 
       {/* Apply Filters Button */}
-      <button onClick={handleApplyFilters}>Apply Filters</button>
+      <button onClick={handleApplyFilters}>Apply Filter</button>
     </div>
   );
 };

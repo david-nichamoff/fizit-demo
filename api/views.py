@@ -1,45 +1,44 @@
+from datetime import datetime, timedelta
+
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework import viewsets, status
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from .serializers import ContractSerializer, SettlementSerializer, TransactionSerializer
 from .serializers import ArtifactSerializer, AccountSerializer, RecipientSerializer
 from .serializers import DepositSerializer
 
-from packages.interface import get_contracts, get_contract, add_contract, update_contract
-from packages.interface import get_settlements, get_all_settlements, add_settlements, delete_settlements
-from packages.interface import get_transactions, get_all_transactions, add_transactions, delete_transactions
+from packages.interface import get_contracts, add_contract, update_contract
+from packages.interface import get_settlements, add_settlements, delete_settlements
+from packages.interface import get_transactions, add_transactions, delete_transactions
 from packages.interface import pay_residual, pay_advance, get_deposits
 from packages.interface import get_accounts, get_recipients
-from packages.interface import get_artifacts, get_all_artifacts, add_artifacts, delete_artifacts
+from packages.interface import get_artifacts, add_artifacts, delete_artifacts
 
 class ContractViewSet(viewsets.ViewSet):
     lookup_field = 'contract_idx'
 
     @extend_schema(
+        parameters=[
+            OpenApiParameter(name='contract_idx', description='Contract index', required=False, type=str),
+            OpenApiParameter(name='bank', description='Funding bank', required=False, type=str),
+            OpenApiParameter(name='account_ids', description='Funding account_id list, comma separated ', required=False, type=str)
+        ],
         responses={status.HTTP_200_OK: ContractSerializer(many=True)},
-        description="List all contracts"
+        description="Get contracts"
     )
     def list(self, request):
-        try:
-            contracts = get_contracts()
-            serializer = ContractSerializer(contracts, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response(str(e), status=status.HTTP_404_NOT_FOUND)
+        contract_idx = request.query_params.get('contract_idx')
+        bank = request.query_params.get('bank')
+        account_ids = request.query_params.get('account_id')
+        if account_ids is not None: account_ids = [account_ids]
+        if contract_idx is not None: contract_idx = int(contract_idx)
 
-    @extend_schema(
-        responses={status.HTTP_200_OK: ContractSerializer(many=False)},
-        description="Get an existing contract"
-    )
-    def get(self, request, contract_idx=None):
         try:
-            contract = get_contract(contract_idx)
-            serializer = ContractSerializer(contract, many=False)
+            contracts = get_contracts(contract_idx, bank, account_ids)
+            serializer = ContractSerializer(contracts, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(str(e), status=status.HTTP_404_NOT_FOUND)
@@ -68,7 +67,7 @@ class ContractViewSet(viewsets.ViewSet):
     )
     def partial_update(self, request, contract_idx=None):
         try:
-            contract_dict = get_contract(contract_idx)
+            contract_dict = get_contracts(contract_idx)
             serializer = ContractSerializer(data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             for key, value in serializer.validated_data.items():
@@ -89,7 +88,7 @@ class ContractViewSet(viewsets.ViewSet):
     @action(detail=True, methods=['post'], url_path='pay-advance')
     def pay_advance(self, request, contract_idx=None):
         try:
-            response = pay_advance(int(contract_idx))
+            response = pay_advance(contract_idx)
             return Response(response, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -102,18 +101,6 @@ class ContractViewSet(viewsets.ViewSet):
     def pay_residual(self, request, contract_idx=None):
         try:
             response = pay_residual(contract_idx)
-            return Response(response, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-    @extend_schema(
-        responses={status.HTTP_200_OK: str},
-        description="Get deposits from bank"
-    )
-    @action(detail=True, methods=['post'], url_path='get-deposits/(?P<date_from>[^/.]+)')
-    def get_deposits(self, request, contract_idx=None, date_from=None):
-        try:
-            response = get_deposits(int(contract_idx), date_from)
             return Response(response, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -134,22 +121,26 @@ class ContractViewSet(viewsets.ViewSet):
 class SettlementViewSet(viewsets.ViewSet):
 
     @extend_schema(
+        parameters = [
+            OpenApiParameter(name='contract_idx', description='Contract index', required=False, type=str),
+            OpenApiParameter(name='bank', description='Funding bank', required=False, type=str),
+            OpenApiParameter(name='account_ids', description='Funding account_id list, comma separated ', required=False, type=str)
+        ],
         responses={status.HTTP_200_OK: SettlementSerializer(many=True)},
-        description="List all settlements"
+        description="List settlements"
     )
-    def list(self, request, contract_idx=None):
-        if contract_idx is not None:
-            try:
-                settlements = get_settlements(int(contract_idx))
-                return Response(settlements, status=status.HTTP_200_OK)
-            except Exception as e:
-                return Response(str(e), status=status.HTTP_404_NOT_FOUND)
-        else:
-            try:
-                settlements = get_all_settlements()
-                return Response(settlements, status=status.HTTP_200_OK)
-            except Exception as e:
-                return Response(str(e), status=status.HTTP_404_NOT_FOUND)
+    def list(self, request):
+        contract_idx = request.query_params.get('contract_idx')
+        bank = request.query_params.get('bank')
+        account_ids = request.query_params.get('account_id')
+        if contract_idx is not None: contract_idx = int(contract_idx)
+        if account_ids is not None: account_ids = [account_ids]
+        
+        try:
+            settlements = get_settlements(contract_idx, bank, account_ids)
+            return Response(settlements, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(
         request=SettlementSerializer,
@@ -173,7 +164,7 @@ class SettlementViewSet(viewsets.ViewSet):
     )
     def delete(self, request, contract_idx=None):
         try:
-            response = delete_settlements(int(contract_idx))
+            response = delete_settlements(contract_idx)
             return Response(response, status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
@@ -181,22 +172,26 @@ class SettlementViewSet(viewsets.ViewSet):
 class TransactionViewSet(viewsets.ViewSet):
 
     @extend_schema(
+        parameters = [
+            OpenApiParameter(name='contract_idx', description='Contract index', required=False, type=str),
+            OpenApiParameter(name='bank', description='Funding bank', required=False, type=str),
+            OpenApiParameter(name='account_ids', description='Funding account_id list, comma separated ', required=False, type=str)
+        ],
         responses={status.HTTP_200_OK: TransactionSerializer(many=True)},
         description="List all transactions"
     )
-    def list(self, request, contract_idx=None):
-        if contract_idx is not None:
-            try:
-                transactions = get_transactions(int(contract_idx))
-                return Response(transactions, status=status.HTTP_200_OK)
-            except Exception as e:
-                return Response(str(e), status=status.HTTP_404_NOT_FOUND)
-        else:
-            try:
-                transactions = get_all_transactions()
-                return Response(transactions, status=status.HTTP_200_OK)
-            except Exception as e:
-                return Response(str(e), status=status.HTTP_404_NOT_FOUND)
+    def list(self, request):
+        contract_idx = request.query_params.get('contract_idx')
+        bank = request.query_params.get('bank')
+        account_ids = request.query_params.get('account_ids')
+        if contract_idx is not None: contract_idx = int(contract_idx)
+        if account_ids is not None: account_ids = [account_ids]
+
+        try:
+            transactions = get_transactions(contract_idx, bank, account_ids)
+            return Response(transactions, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(
         request=TransactionSerializer,
@@ -204,11 +199,10 @@ class TransactionViewSet(viewsets.ViewSet):
         description="Add a list of transactions to an existing contract"
     )
     def create(self, request, contract_idx=None):
-        print (request.data)
         serializer = TransactionSerializer(data=request.data, many=True)
         if serializer.is_valid():
             try:
-                transact_logic = get_contract(contract_idx)['transact_logic']
+                transact_logic = get_contracts(contract_idx)['transact_logic']
                 response = add_transactions(contract_idx, transact_logic, serializer.validated_data)
                 return Response(response, status=status.HTTP_201_CREATED)
             except Exception as e:
@@ -222,7 +216,7 @@ class TransactionViewSet(viewsets.ViewSet):
     )
     def delete(self, request, contract_idx=None):
         try:
-            response = delete_transactions(int(contract_idx))
+            response = delete_transactions(contract_idx)
             return Response(response, status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
@@ -230,22 +224,21 @@ class TransactionViewSet(viewsets.ViewSet):
 class ArtifactViewSet(viewsets.ViewSet):
 
     @extend_schema(
+        parameters = [
+            OpenApiParameter(name='contract_idx', description='Contract index', required=False, type=str)
+        ],
         responses={status.HTTP_200_OK: ArtifactSerializer(many=True)},
         description="List all artifacts for a contract"
     )
-    def list(self, request, contract_idx=None):
-        if contract_idx is not None:
-            try:
-                artifacts = get_artifacts(int(contract_idx))
-                return Response(artifacts, status=status.HTTP_200_OK)
-            except Exception as e:
-                return Response(str(e), status=status.HTTP_404_NOT_FOUND)
-        else:
-            try:
-                artifacts = get_all_artifacts()
-                return Response(artifacts, status=status.HTTP_200_OK)
-            except Exception as e:
-                return Response(str(e), status=status.HTTP_404_NOT_FOUND)
+    def list(self, request):
+        contract_idx = int(request.query_params.get('contract_idx'))
+        if contract_idx is not None: contract_idx = int(contract_idx)
+
+        try:
+            artifacts = get_artifacts(contract_idx)
+            return Response(artifacts, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(
         responses={status.HTTP_201_CREATED: str},
@@ -253,8 +246,8 @@ class ArtifactViewSet(viewsets.ViewSet):
     )
     def create(self, request, contract_idx=None):
         try:
-            contract_name = get_contract(int(contract_idx))["contract_name"]
-            response = add_artifacts(int(contract_idx), contract_name)
+            contract_name = get_contracts(contract_idx)["contract_name"]
+            response = add_artifacts(contract_idx, contract_name)
             return Response(response, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -265,7 +258,7 @@ class ArtifactViewSet(viewsets.ViewSet):
     )
     def delete(self, request, contract_idx=None):
         try:
-            response = delete_artifacts(int(contract_idx))
+            response = delete_artifacts(contract_idx)
             return Response(response, status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
@@ -273,12 +266,17 @@ class ArtifactViewSet(viewsets.ViewSet):
 class AccountViewSet(viewsets.ViewSet):
 
     @extend_schema(
+        parameters=[
+            OpenApiParameter(name='bank', description='Funding bank', required=False, type=str)
+        ],
         responses={status.HTTP_200_OK: AccountSerializer(many=True)},
         description="List all bank accounts and balances"
     )
     def list(self, request):
+        bank = request.query_params.get('bank')
+
         try:
-            accounts = get_accounts()
+            accounts = get_accounts(bank)
             serializer = AccountSerializer(accounts, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
@@ -287,12 +285,29 @@ class AccountViewSet(viewsets.ViewSet):
 class DepositViewSet(viewsets.ViewSet):
 
     @extend_schema(
+        parameters=[
+            OpenApiParameter(name='start_date', description='Start date for filtering deposits', required=False, type=str, default=(datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')),
+            OpenApiParameter(name='end_date', description='End date for filtering deposits', required=False, type=str, default=datetime.now().strftime('%Y-%m-%d')),
+            OpenApiParameter(name='bank', description='Funding bank', required=False, type=str),
+            OpenApiParameter(name='account_ids', description='Funding account_id list, comma separated ', required=False, type=str)
+        ],
         responses={status.HTTP_200_OK: DepositSerializer(many=True)},
         description="List all pending bank deposits"
     )
     def list(self, request):
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        bank = request.query_params.get('bank')
+        account_ids = request.query_params.get('account_id')
+        if account_ids is not None: account_ids = [account_ids]
+        
+        if start_date is None:
+            start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        if end_date is None:
+            end_date = datetime.now().strftime('%Y-%m-%d')
+
         try:
-            deposits = get_deposits()
+            deposits = get_deposits(start_date, end_date, bank, account_ids)
             serializer = DepositSerializer(deposits, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
@@ -301,12 +316,16 @@ class DepositViewSet(viewsets.ViewSet):
 class RecipientViewSet(viewsets.ViewSet):
 
     @extend_schema(
+        parameters=[
+            OpenApiParameter(name='bank', description='Funding bank', required=False, type=str)
+        ],
         responses={status.HTTP_200_OK: RecipientSerializer(many=True)},
         description="List all recipients"
     )
     def list(self, request):
+        bank = request.query_params.get('bank')
         try:
-            recipients = get_recipients()
+            recipients = get_recipients(bank)
             serializer = RecipientSerializer(recipients, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:

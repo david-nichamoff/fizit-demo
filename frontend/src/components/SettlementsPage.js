@@ -82,21 +82,10 @@ const SettlementsPage = ({ settlements }) => {
       <FilterContainer 
         onApplyFilters={applyFilters} 
         items={contracts} 
+        dropdown_text = "Contracts"
         header="Settlements"
         displayKey="contract_name"
       />
-      <div className="stats-container">
-        <div className="late-fee-container">
-          <p>
-            Average Late Fee<br></br><span className="amount">{formatCurrency(averageLateFee)}</span>
-          </p>
-        </div>
-        <div className="dispute-container">
-          <p>
-            Average Dispute Amount<br></br><span className="amount">{formatCurrency(averageDisputeAmt)}</span>
-          </p>
-        </div>
-      </div>
       <div className="settlement-container">
         <div className="settlement-header">
           <div className="column-header string-column">Contract</div>
@@ -122,7 +111,19 @@ const SettlementsPage = ({ settlements }) => {
         </ul>
         <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
       </div>
-      <SettlementDetail settlement={selectedSettlement} />
+      {selectedSettlement && <SettlementDetail settlement={selectedSettlement} />}
+      <div className="stats-container">
+        <div className="late-fee-container">
+          <p>
+            Average Late Fee<br></br><span className="amount">{formatCurrency(averageLateFee)}</span>
+          </p>
+        </div>
+        <div className="dispute-container">
+          <p>
+            Average Dispute Amount<br></br><span className="amount">{formatCurrency(averageDisputeAmt)}</span>
+          </p>
+        </div>
+      </div>
     </div>
   );
 };

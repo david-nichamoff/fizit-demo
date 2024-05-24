@@ -8,7 +8,7 @@ contract Delivery {
     Contract[] contracts;                                   // [contract_idx]
     mapping (uint => Settlement[]) private settlements;     // contract_idx => settlement[]
     mapping (uint => Transaction[]) private transactions;   // contract_idx => transaction[]
-    mapping (uint => string[]) private artifacts;           // contract_idx => artifact_list[]
+    mapping (uint => Artifact[]) private artifacts;           // contract_idx => artifact_list[]
 
     // every field ending in _dt is a unix timestamp
     // every field ending in _amt is an integer representing a float with 2 decimals
@@ -60,6 +60,13 @@ contract Delivery {
         string advance_confirm;
     }
 
+    struct Artifact {
+        string artifact_id;
+        uint added_dt;
+        string doc_title;
+        string doc_type;
+    }
+
     event ContractAdded(uint indexed contract_idx);
     event ContractUpdated(uint indexed contract_idx);
     event TransactionAdded(uint indexed contract_idx, uint indexed transact_idx);
@@ -96,12 +103,17 @@ contract Delivery {
         emit ContractUpdated(contract_idx);
     }
 
-    function getArtifacts (uint contract_idx) public view returns (string[] memory) {
+    function getArtifacts (uint contract_idx) public view returns (Artifact[] memory) {
         return artifacts[contract_idx];
     }
 
-    function addArtifact (uint contract_idx, string memory artifact_id) public onlyOwner {
-        artifacts[contract_idx].push(artifact_id);
+    function addArtifact (uint contract_idx, string memory artifact_id, string memory doc_title, string memory doc_type, uint added_dt) public onlyOwner {
+        Artifact memory artifact;
+        artifact.added_dt = added_dt;
+        artifact.artifact_id = artifact_id;
+        artifact.doc_title = doc_title;
+        artifact.doc_type = doc_type; 
+        artifacts[contract_idx].push(artifact);
         emit ArtifactAdded(contract_idx, artifacts[contract_idx].length - 1);
     }
 
@@ -111,10 +123,6 @@ contract Delivery {
 
     function getSettlements(uint contract_idx) public view returns (Settlement[] memory) {
         return settlements[contract_idx];
-    }
-
-    function getSettlement(uint contract_idx, uint settle_idx) public view returns (Settlement memory) {
-        return settlements[contract_idx][settle_idx];
     }
 
     function addSettlement(uint contract_idx, string memory ext_id, uint settle_due_dt, uint transact_min_dt, uint transact_max_dt) public onlyOwner {
@@ -134,10 +142,6 @@ contract Delivery {
 
     function getTransactions(uint contract_idx) public view returns (Transaction[] memory) {
         return transactions[contract_idx];
-    }
-
-    function getTransaction(uint contract_idx, uint transact_idx) public view returns (Transaction memory) {
-        return transactions[contract_idx][transact_idx];
     }
 
     function addTransaction(uint contract_idx, string memory ext_id, uint transact_dt, uint transact_amt, string memory transact_data) public onlyOwner {

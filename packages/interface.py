@@ -17,7 +17,7 @@ w3_contract = web3_client.get_web3_contract()
 def get_contract_count():
     return w3_contract.functions.getContractCount().call() 
 
-def get_contract(contract_idx):
+def get_contract_dict(contract_idx):
     contract_dict, contract = {}, []
     contract = w3_contract.functions.getContract(contract_idx).call()
     contract_dict["ext_id"] = json.loads(contract[0].replace("'",'"'))
@@ -33,11 +33,15 @@ def get_contract(contract_idx):
     contract_dict["contract_idx"] = contract_idx
     return contract_dict
 
-def get_contracts():
+def get_contracts(contract_idx_, bank, account_ids):
     contracts = []
     for contract_idx in range(get_contract_count()):
-        contract_dict = get_contract(contract_idx)
-        contracts.append(contract_dict)
+        if contract_idx_ is None or contract_idx == contract_idx_: 
+            contract_dict = get_contract_dict(contract_idx)
+            if (account_ids is None or contract_dict['funding_instr']['account_id'] in account_ids) and \
+               (bank is None or bank == contract_dict['funding_instr']['bank']):
+                contracts.append(contract_dict)
+
     return contracts
 
 def build_contract(contract_dict):
@@ -98,31 +102,23 @@ def get_settle_dict(settle, contract):
     settle_dict["residual_confirm"] = settle[15]
     settle_dict["residual_exp_amt"] = settle[16] / 100
     settle_dict["residual_calc_amt"] = settle[17] / 100
-    settle_dict["contract_name"] = contract[1]
+    settle_dict["contract_idx"] = contract['contract_idx']
+    settle_dict["contract_name"] = contract['contract_name']
+    settle_dict["payment_instr"] = contract['payment_instr']
+    settle_dict["funding_instr"] = contract['funding_instr']
     return settle_dict
     
-def get_settlements(contract_idx):
+def get_settlements(contract_idx, bank, account_ids):
     settlements = []
-    contract = w3_contract.functions.getContract(contract_idx).call()
-    settles = w3_contract.functions.getSettlements(contract_idx).call()
-    for settle in settles:
-        settlements.append(get_settle_dict(settle, contract))
-    return settlements
+    contracts = get_contracts(contract_idx, bank, account_ids)
 
-def get_all_settlements():
-    settlements = []
-    for contract_idx in range(get_contract_count()):
-        contract = w3_contract.functions.getContract(contract_idx).call()
-        settles = w3_contract.functions.getSettlements(contract_idx).call()
+    for contract in contracts:
+        settles = w3_contract.functions.getSettlements(contract['contract_idx']).call()
         for settle in settles:
             settle_dict = get_settle_dict(settle, contract)
-            settle_dict["contract_idx"] = contract_idx
             settlements.append(settle_dict)
-    return settlements
-
-def get_settlement(contract_idx, settle_idx):
-    settle = w3_contract.functions.getSettlement(contract_idx, settle_idx).call()
-    return get_settle_dict(settle)
+    sorted_settlements = sorted(settlements, key=lambda d: d['settle_due_dt'], reverse=False)
+    return sorted_settlements 
 
 def add_settlements(contract_idx, settlements):
     for settlement in settlements:
@@ -131,7 +127,6 @@ def add_settlements(contract_idx, settlements):
         max_dt = int(datetime.datetime.combine(settlement["transact_max_dt"], datetime.time.min).timestamp())
         ext_id = str(settlement["ext_id"])
         nonce = w3.eth.get_transaction_count(env_var["wallet_addr"])
-        print ("Settlement: "  + str(settlement["settle_due_dt"]))
         call_function = w3_contract.functions.addSettlement(contract_idx, ext_id, due_dt, min_dt, max_dt).build_transaction(
             {"from":env_var["wallet_addr"],"nonce":nonce,"gas":env_var["gas_limit"]}) 
         tx_receipt = web3_client.get_tx_receipt(call_function)
@@ -155,33 +150,23 @@ def get_transact_dict(transact, contract):
     transact_dict["advance_pay_dt"] = datetime.datetime.fromtimestamp(transact[5])
     transact_dict["advance_pay_amt"] = transact[6] / 100
     transact_dict["advance_confirm"] = transact[7]
-    transact_dict["contract_name"] = contract[1]
+    transact_dict["contract_idx"] = contract['contract_idx']
+    transact_dict["contract_name"] = contract['contract_name']
+    transact_dict["payment_instr"] = contract['payment_instr']
+    transact_dict["funding_instr"] = contract['funding_instr']
     return transact_dict
 
-def get_transactions(contract_idx):
+def get_transactions(contract_idx, bank, account_ids):
     transactions = []
-    transacts = w3_contract.functions.getTransactions(contract_idx).call()
-    contract = w3_contract.functions.getContract(contract_idx).call()
-    for transact in transacts:
-        transactions.append(get_transact_dict(transact, contract))
-    sorted_transactions = sorted(transactions, key=lambda d: d['transact_dt'], reverse=True)
-    return sorted_transactions
+    contracts = get_contracts(contract_idx, bank, account_ids)
 
-def get_all_transactions():
-    transactions = []
-    for contract_idx in range(get_contract_count()):
-        transacts = w3_contract.functions.getTransactions(contract_idx).call()
-        contract = w3_contract.functions.getContract(contract_idx).call()
+    for contract in contracts:
+        transacts = w3_contract.functions.getTransactions(contract['contract_idx']).call()
         for transact in transacts:
             transact_dict = get_transact_dict(transact, contract)
-            transact_dict["contract_idx"] = contract_idx
             transactions.append(transact_dict)
     sorted_transactions = sorted(transactions, key=lambda d: d['transact_dt'], reverse=True)
     return sorted_transactions 
-
-def get_transaction(contract_idx, transact_idx):
-    transact = w3_contract.functions.getTransaction(contract_idx, transact_idx).call()
-    return get_transact_dict(transact)
 
 def add_transactions(contract_idx, transact_logic, transactions):
     for transaction in transactions:
@@ -190,7 +175,6 @@ def add_transactions(contract_idx, transact_logic, transactions):
         transact_data = transaction["transact_data"]
         nonce = w3.eth.get_transaction_count(env_var["wallet_addr"])
         transact_amt = int(jsonLogic(transact_logic,transact_data) * 100) 
-        print ("Transaction: "  + str(transaction["transact_dt"]))
         call_function = w3_contract.functions.addTransaction(contract_idx, ext_id, transact_dt, transact_amt, str(transact_data)).build_transaction(
             {"from":env_var["wallet_addr"],"nonce":nonce,"gas":env_var["gas_limit"]}) 
         tx_receipt = web3_client.get_tx_receipt(call_function)
@@ -204,25 +188,55 @@ def delete_transactions(contract_idx):
     tx_receipt = web3_client.get_tx_receipt(call_function)
     return True if tx_receipt["status"] == 1 else False   
 
-def get_accounts():
-    # add additional adapters
-    accounts = adapter.bank.mercury.get_accounts()
+def get_artifacts(contract_idx):
+    artifacts = []
+    contracts = get_contracts(contract_idx, None, None)
+
+    for contract in contracts:
+        facts = w3_contract.functions.getArtifacts(contract['contract_idx']).call()
+        for artifact in facts:
+            artifact_dict = {}
+            artifact_dict["contract_idx"] = contract["contract_idx"]
+            artifact_dict["contract_name"] = contract["contract_name"]
+            artifact_dict["artifact_id"] = artifact["artifact_id"]
+            artifact_dict["doc_title"] = artifact["doc_title"]
+            artifact_dict["doc_type"] = artifact["doc_type"]
+            artifact_dict["added_dt"] = artifact["added_dt"]
+            artifacts.append(artifact_dict)
+    sorted_artifacts = sorted(artifacts, key=lambda d: d['added_dt'], reverse=True)
+    return sorted_artifacts
+
+def add_artifacts(contract_idx, contract_name):
+    artifact_path = os.environ['PYTHONPATH'] + '/../artifacts/' + str(contract_idx) + '/'
+    artifact_files = next(os.walk(artifact_path))[2]
+    current_time = int(datetime.datetime.now().timestamp())
+    return adapter.artifact.numbers.add_artifacts(contract_idx, contract_name, artifact_path, artifact_files, current_time)
+
+def delete_artifacts(contract_idx):
+    artifacts = w3_contract.functions.getArtifacts(contract_idx).call()
+    return adapter.artifact.numbers.delete_artifacts(contract_idx, artifacts)
+
+def get_accounts(bank):
+    accounts = []
+    if bank == "mercury" or bank is None:  
+        accounts = adapter.bank.mercury.get_accounts()
     return accounts
 
-def get_recipients():
-    # add additional adapters
-    recipients = adapter.bank.mercury.get_recipients()
+def get_recipients(bank):
+    if bank == "mercury" or bank is None:
+        recipients = adapter.bank.mercury.get_recipients()
     return recipients
 
-def get_deposits():
-    # add additional adapters
-    deposits = adapter.bank.mercury.get_deposits()
+def get_deposits(start_date, end_date, bank, account_ids):
+    deposits = []
+    if bank == "mercury" or bank is None:
+        deposits = adapter.bank.mercury.get_deposits(start_date, end_date, account_ids)
     return deposits
 
 def pay_advance(contract_idx):
 
     transact_amt = 0
-    contract = get_contract(contract_idx)
+    contract = get_contracts(contract_idx)
     transactions = get_transactions(contract_idx) 
 
     for transact_idx in range(len(transactions)):
@@ -233,8 +247,8 @@ def pay_advance(contract_idx):
     if transact_amt > 0:
         # repeat for all bank accounts
         if contract["funding_instr"]["bank"] == "mercury":
-            recipient_id = contract["payment_instr"]["id"]
-            account_id = contract["funding_instr"]["account"]
+            recipient_id = contract["payment_instr"]["recipient_id"]
+            account_id = contract["funding_instr"]["account_id"]
             success, error_message = adapter.bank.mercury.make_payment(account_id, recipient_id, transact_amt)
 
         if success:
@@ -244,7 +258,6 @@ def pay_advance(contract_idx):
                     nonce = w3.eth.get_transaction_count(env_var["wallet_addr"])
                     current_time = int(datetime.datetime.now().timestamp())
                     payment_amt =  int(transaction["advance_amt"] * 100)
-                    print ("Advance: " + str(transact_idx))
                     call_function = w3_contract.functions.payAdvance(contract_idx, transact_idx, current_time, payment_amt, "completed").build_transaction \
                         ({"from":env_var["wallet_addr"],"nonce":nonce,"gas":env_var["gas_limit"]})
                     tx_receipt = web3_client.get_tx_receipt(call_function)
@@ -261,8 +274,8 @@ def pay_residual(contract_idx, contract, settlements):
         if settlement["residual_exp_amt"] > 0 and not settlement["residual_pay_dt"]:
 
             if contract["funding_instr"]["bank"] == "mercury":
-                recipient_id = contract["payment_instr"]["id"]
-                account_id = contract["funding_instr"]["account"]
+                recipient_id = contract["payment_instr"]["recipient_id"]
+                account_id = contract["funding_instr"]["account_id"]
                 response = adapter.bank.mercury.make_payment(account_id, recipient_id, settlement["residual_exp_amt"])
 
             if response:
@@ -290,30 +303,3 @@ def post_settlement(contract_idx, settle_idx, deposit_id, dispute_reason):
     send_tx = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
     tx_receipt = w3.eth.wait_for_transaction_receipt(send_tx)
     if tx_receipt['status'] != 1: return False
-
-def get_artifacts(contract_idx):
-    artifacts = []
-    for artifact in w3_contract.functions.getArtifacts(contract_idx).call():
-        artifact_dict = {}
-        artifact_dict["artifact_id"] = artifact
-        artifacts.append(artifact_dict)
-    return artifacts
-
-def get_all_artifacts():
-    artifacts = []
-    for contract_idx in range(get_contract_count()):
-        for artifact in  w3_contract.functions.getArtifacts(contract_idx).call():
-            artifact_dict = {}
-            artifact_dict["artifact_id"] = artifact
-            artifact_dict["contract_idx"] = contract_idx
-            artifacts.append(artifact_dict)
-    return artifacts
-
-def add_artifacts(contract_idx, contract_name):
-    artifact_path = os.environ['PYTHONPATH'] + '/../artifacts/' + str(contract_idx) + '/'
-    artifact_files = next(os.walk(artifact_path))[2]
-    return adapter.artifact.numbers.add_artifacts(contract_idx, contract_name, artifact_path, artifact_files)
-
-def delete_artifacts(contract_idx):
-    artifacts = w3_contract.functions.getArtifacts(contract_idx).call()
-    return adapter.artifact.numbers.delete_artifacts(contract_idx, artifacts)
