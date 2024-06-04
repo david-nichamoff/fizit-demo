@@ -8,7 +8,7 @@ contract Delivery {
     Contract[] contracts;                                   // [contract_idx]
     mapping (uint => Settlement[]) private settlements;     // contract_idx => settlement[]
     mapping (uint => Transaction[]) private transactions;   // contract_idx => transaction[]
-    mapping (uint => Artifact[]) private artifacts;           // contract_idx => artifact_list[]
+    mapping (uint => Artifact[]) private artifacts;         // contract_idx => artifact_list[]
 
     // every field ending in _dt is a unix timestamp
     // every field ending in _amt is an integer representing a float with 2 decimals
@@ -16,9 +16,8 @@ contract Delivery {
     // every field ending in _confirm is a string returned from the fiat payment provider
 
     struct Contract {
-        string ext_id;                  // json with list of external_id(s) for contract
+        string extended_data;           // json extended data
         string contract_name;           // non-unique, description for display purposes
-        string payment_instr;           // seller payment instructions
         string funding_instr;           // buyer funding instructions
         uint service_fee_pct;           // service fee can include a pct + flat rate amt
         uint service_fee_amt;           
@@ -29,10 +28,10 @@ contract Delivery {
     }    
 
     struct Settlement {
-        string ext_id;                  // json with list of external_id(s), e.g. invoice_id
-        uint settle_due_dt;             // date the payment is due (midnight)   
-        uint transact_min_dt;           // min date the transaction is made (midnight)
-        uint transact_max_dt;           // max date the transaction is made (midnight) 
+        string extended_data;           // json extended data
+        uint settle_due_dt;             // date the payment is due 
+        uint transact_min_dt;           // min date the transaction is made 
+        uint transact_max_dt;           // max date the transaction is made 
         uint transact_count; 
         uint settle_pay_dt;
         uint settle_exp_amt;            // expected amount of settlement
@@ -50,7 +49,7 @@ contract Delivery {
     }
 
     struct Transaction {
-        string ext_id;                  // json external identifier for transaction
+        string extended_data;           // json extended data
         uint transact_dt;               
         uint transact_amt;              // calculated value of a transaction of transaction
         uint advance_amt;               // advance_amt * advance_pct - service_fee_amt
@@ -61,10 +60,11 @@ contract Delivery {
     }
 
     struct Artifact {
-        string artifact_id;
-        uint added_dt;
-        string doc_title;
-        string doc_type;
+        string artifact_id;             // external identifier
+        string extended_data;           // json extended data
+        uint added_dt;                  // date artifact was added
+        string doc_title;               // name of documents
+        string doc_type;                // document type
     }
 
     event ContractAdded(uint indexed contract_idx);
@@ -125,12 +125,12 @@ contract Delivery {
         return settlements[contract_idx];
     }
 
-    function addSettlement(uint contract_idx, string memory ext_id, uint settle_due_dt, uint transact_min_dt, uint transact_max_dt) public onlyOwner {
+    function addSettlement(uint contract_idx, string memory extended_data, uint settle_due_dt, uint transact_min_dt, uint transact_max_dt) public onlyOwner {
         Settlement memory settlement;
         settlement.settle_due_dt = settle_due_dt;
         settlement.transact_min_dt = transact_min_dt;
         settlement.transact_max_dt = transact_max_dt;
-        settlement.ext_id = ext_id;
+        settlement.extended_data = extended_data;
         settlements[contract_idx].push(settlement);
         emit SettlementAdded(contract_idx, settlements[contract_idx].length - 1);
     }
@@ -144,24 +144,32 @@ contract Delivery {
         return transactions[contract_idx];
     }
 
-    function addTransaction(uint contract_idx, string memory ext_id, uint transact_dt, uint transact_amt, string memory transact_data) public onlyOwner {
+    function addTransaction(uint contract_idx, string memory extended_data, uint transact_dt, uint transact_amt, string memory transact_data) public onlyOwner {
 
         Transaction memory transact;
-        transact.ext_id = ext_id;
+        transact.extended_data = extended_data;
         transact.transact_dt = transact_dt;
         transact.transact_amt = transact_amt;
         transact.transact_data = transact_data;
 
         for (uint i = 0; i < settlements[contract_idx].length; i++) {
             if (transact_dt >= settlements[contract_idx][i].transact_min_dt && transact_dt < settlements[contract_idx][i].transact_max_dt) {
-                settlements[contract_idx][i].transact_count ++;
+                settlements[contract_idx][i].transact_count++;
                 settlements[contract_idx][i].settle_exp_amt += transact.transact_amt;
                 settlements[contract_idx][i].residual_exp_amt += transact_amt - (transact_amt * contracts[contract_idx].advance_pct / 10000);
             }
         }
 
         uint service_fee = (contracts[contract_idx].service_fee_pct * transact_amt / 10000) + contracts[contract_idx].service_fee_amt;
-        transact.advance_amt = (transact_amt * contracts[contract_idx].advance_pct / 10000) - service_fee;
+        uint advance_amt_calculated = (transact_amt * contracts[contract_idx].advance_pct / 10000);
+    
+        // case where the service fee > advance amt
+        if (advance_amt_calculated >= service_fee) {
+            transact.advance_amt = advance_amt_calculated - service_fee;
+        }    else {
+                transact.advance_amt = 0;
+        }
+    
         transactions[contract_idx].push(transact);
         emit TransactionAdded(contract_idx, transactions[contract_idx].length - 1);
     }

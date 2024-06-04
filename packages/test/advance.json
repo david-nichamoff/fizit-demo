@@ -1,8 +1,7 @@
 {
-    "ext_id"           : {}, 
+    "extended_data"    : {}, 
     "contract_name"    : "Advance 2024-03-15",
-    "payment_instr"    : {"recipient_id" : "627ecace-e780-11ee-b69b-f311fd81fcb4"},
-    "funding_instr"    : {"bank": "mercury", "account_id" : "61396d72-e780-11ee-b69b-137ed758771c"},
+    "funding_instr"    : {"bank": "mercury", "account_id" : "61396d72-e780-11ee-b69b-137ed758771c", "recipient_id" : "627ecace-e780-11ee-b69b-f311fd81fcb4"},
     "service_fee_pct"  : 0.00,
     "service_fee_amt"  : 0.00,
     "advance_pct"      : 1.00,

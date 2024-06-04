@@ -28,7 +28,7 @@ const DemoPage = ({ contracts }) => {
       const contract = contracts.find((contract) => contract.contract_name === selectedContract);
       if (contract) {
         const csrfToken = Cookies.get('csrftoken');
-        const jsonPayload = [{ext_id: JSON.parse(extId), transact_dt: new Date(transactDt).toISOString(), transact_data: JSON.parse(transactData)}]; 
+        const jsonPayload = [{extended_data: JSON.parse(extId), transact_dt: new Date(transactDt).toISOString(), transact_data: JSON.parse(transactData)}]; 
         console.log("JSON to be sent:", JSON.stringify(jsonPayload));
 
 

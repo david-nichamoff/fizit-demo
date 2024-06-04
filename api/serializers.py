@@ -1,10 +1,9 @@
 from rest_framework import serializers
 
 class ContractSerializer(serializers.Serializer):
-    ext_id = serializers.JSONField()
+    extended_data = serializers.JSONField()
     contract_idx = serializers.IntegerField(read_only=True)
     contract_name = serializers.CharField(max_length=50)
-    payment_instr = serializers.JSONField()
     funding_instr = serializers.JSONField()
     service_fee_pct = serializers.FloatField(default=0.50,min_value=0.00,max_value=1.00)
     service_fee_amt = serializers.FloatField(default=0.00,min_value=0.00)
@@ -14,9 +13,8 @@ class ContractSerializer(serializers.Serializer):
     is_active = serializers.BooleanField()
 
     def update(self, instance, validated_data):
-        instance['ext_id'] = validated_data.get('ext_id', instance['ext_id'])
+        instance['extended_data'] = validated_data.get('extended_data', instance['extended_data'])
         instance['contract_name'] = validated_data.get('contract_name', instance['contract_name'])
-        instance['payment_instr'] = validated_data.get('payment_instr', instance['payment_instr'])
         instance['funding_instr'] = validated_data.get('funding_instr', instance['funding_instr'])
         instance['service_fee_pct'] = validated_data.get('service_fee_pct', instance['service_fee_pct'])
         instance['service_fee_amt'] = validated_data.get('service_fee_amt', instance['service_fee_amt'])
@@ -27,10 +25,9 @@ class ContractSerializer(serializers.Serializer):
         return instance
 
 class SettlementSerializer(serializers.Serializer):
-    ext_id = serializers.JSONField()
+    extended_data = serializers.JSONField()
     contract_idx = serializers.IntegerField(read_only=True)
     contract_name = serializers.CharField(read_only=True, max_length=50)
-    payment_instr = serializers.JSONField(read_only=True)
     funding_instr = serializers.JSONField(read_only=True)
     settle_due_dt = serializers.DateField() 
     transact_min_dt =  serializers.DateField()  
@@ -53,9 +50,8 @@ class SettlementSerializer(serializers.Serializer):
 class TransactionSerializer(serializers.Serializer):
     contract_idx = serializers.IntegerField(read_only=True)
     contract_name = serializers.CharField(max_length=50, read_only=True)
-    payment_instr = serializers.JSONField(read_only=True)
     funding_instr = serializers.JSONField(read_only=True)
-    ext_id = serializers.JSONField()
+    extended_data = serializers.JSONField()
     transact_dt = serializers.DateTimeField()
     transact_amt = serializers.FloatField(read_only=True,default=0,min_value=0)
     advance_amt = serializers.FloatField(read_only=True,default=0,min_value=0)
@@ -64,10 +60,17 @@ class TransactionSerializer(serializers.Serializer):
     advance_pay_amt = serializers.FloatField(read_only=True,default=0,min_value=0)
     advance_confirm = serializers.CharField(read_only=True,max_length=1000)
 
+class TicketSerializer(serializers.Serializer):
+    contract_idx = serializers.IntegerField(read_only=True)
+    contract_name = serializers.CharField(max_length=50, read_only=True)
+    ticket_data = serializers.JSONField()
+    ticket_id = serializers.IntegerField()
+    approved_dt = serializers.DateField()
+    ticket_amt = serializers.FloatField()
+
 class DepositSerializer(serializers.Serializer):
     bank = serializers.CharField(max_length=50)
     account_id = serializers.UUIDField()
-    account_name = serializers.CharField(max_length=255)
     deposit_id = serializers.UUIDField()
     counterparty = serializers.CharField(max_length=255)
     deposit_amt = serializers.FloatField()

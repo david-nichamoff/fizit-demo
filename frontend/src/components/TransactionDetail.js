@@ -2,33 +2,46 @@ import React from 'react';
 import { formatCurrency, formatDateTime } from './Utils';
 import './TransactionDetail.css';
 
+const formatJsonAsGrid = (jsonObject) => {
+  return (
+    <>
+      {Object.entries(jsonObject).map(([key, value], index) => (
+        <React.Fragment key={index}>
+          <div className="json-key">{key}</div>
+          <div className="json-value">{JSON.stringify(value)}</div>
+        </React.Fragment>
+      ))}
+    </>
+  );
+};
+
 const TransactionDetail = ({ transaction }) => {
   const isTransactionSelected = !!transaction;
 
   return (
     <div className="transaction-detail-container">
       <h2>Transaction Details</h2>
-      {isTransactionSelected ? (
-        <>
-          <p><strong>Contract:</strong> {transaction.contract_name}</p>
-          <p><strong>Transaction Date:</strong> {formatDateTime(transaction.transact_dt)}</p>
-          <p><strong>Transaction Amount:</strong> {formatCurrency(transaction.transact_amt)}</p>
-          <p><strong>Amount Advanced:</strong> {formatCurrency(transaction.advance_pay_amt)}</p>
-          <p><strong>Advanced Date:</strong> {formatDateTime(transaction.advance_pay_dt)}</p>
-          <p><strong>External Identifiers:</strong> {JSON.stringify(transaction.ext_id)}</p>
-          <p><strong>Transaction Data:</strong> {JSON.stringify(transaction.transact_data)}</p>
-        </>
-      ) : (
-        <>
-          <p><strong>Contract:</strong></p>
-          <p><strong>Transaction Date:</strong></p>
-          <p><strong>Transaction Amount:</strong></p>
-          <p><strong>Amount Advanced:</strong></p>
-          <p><strong>Advanced Date:</strong></p>
-          <p><strong>External Identifiers:</strong></p>
-          <p><strong>Transaction Data:</strong></p>
-        </>
-      )}
+      <div className="transaction-grid">
+        <div className="header-row">Transaction Details</div>
+        <div className="json-key">Contract Name</div>
+        <div className="json-value">{isTransactionSelected ? transaction.contract_name : ''}</div>
+        <div className="json-key">Transaction Date</div>
+        <div className="json-value">{isTransactionSelected ? formatDateTime(transaction.transact_dt) : ''}</div>
+        <div className="json-key">Transaction Amount</div>
+        <div className="json-value">{isTransactionSelected ? formatCurrency(transaction.transact_amt) : ''}</div>
+        
+        <div className="header-row">Advance Details</div>
+        <div className="json-key">Amount Advanced</div>
+        <div className="json-value">{isTransactionSelected ? formatCurrency(transaction.advance_pay_amt) : ''}</div>
+        <div className="json-key">Advanced Date</div>
+        <div className="json-value">{isTransactionSelected ? formatDateTime(transaction.advance_pay_dt) : ''}</div>
+
+        <div className="header-row">Identifiers</div>
+        {isTransactionSelected ? formatJsonAsGrid(transaction.extended_data) : null}
+
+        <div className="header-row">Transaction Data</div>
+        {isTransactionSelected ? formatJsonAsGrid(transaction.transact_data) : null}
+      </div>
     </div>
   );
 };

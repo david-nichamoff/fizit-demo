@@ -1,5 +1,5 @@
 import React from 'react';
-import logo from '../assets/fizit_white-gray.png'; 
+import logo from '../assets/logo/fizit_white-gray.png'; 
 import '../App.css'; 
 
 const NavBar = ({ onViewChange }) => {
@@ -10,7 +10,7 @@ const NavBar = ({ onViewChange }) => {
       </div>
       <ul className="nav-links">
         <li>
-          <button onClick={() => onViewChange('contracts')}>Overview</button>
+          <button onClick={() => onViewChange('contracts')}>Contracts</button>
         </li>
         <li>
           <button onClick={() => onViewChange('settlements')}>Settlements</button>
@@ -19,10 +19,13 @@ const NavBar = ({ onViewChange }) => {
           <button onClick={() => onViewChange('transactions')}>Transactions</button>
         </li>
         <li>
-          <button onClick={() => onViewChange('artifacts')}>Artifacts</button>
+          <button onClick={() => onViewChange('tickets')}>Tickets</button>
         </li>
         <li>
-          <button onClick={() => onViewChange('integrations')}>Integrations</button>
+          <button onClick={() => onViewChange('devices')}>Devices</button>
+        </li>
+        <li>
+          <button onClick={() => onViewChange('artifacts')}>Artifacts</button>
         </li>
         <li>
           <button onClick={() => onViewChange('payments')}>Payments</button>
@@ -35,12 +38,6 @@ const NavBar = ({ onViewChange }) => {
         </li>
         <li>
           <button onClick={() => onViewChange('administration')}>Admin</button>
-        </li>
-        <li>
-          <button onClick={() => onViewChange('demonstration')}>Demo</button>
-        </li>
-        <li>
-          <button onClick={() => onViewChange('documentation')}>API Docs</button>
         </li>
       </ul>
     </nav>

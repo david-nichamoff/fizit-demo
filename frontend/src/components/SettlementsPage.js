@@ -10,7 +10,7 @@ const SettlementsPage = ({ settlements }) => {
   const itemsPerPage = 12;
   const [contracts, setContracts] = useState([]);
   const [selectedContracts, setSelectedContracts] = useState([]);
-  const [dateFrom, setDateFrom]= useState(null);
+  const [dateFrom, setDateFrom] = useState(null);
   const [dateTo, setDateTo] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSettlement, setSelectedSettlement] = useState(null);
@@ -111,16 +111,20 @@ const SettlementsPage = ({ settlements }) => {
         </ul>
         <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
       </div>
-      {selectedSettlement && <SettlementDetail settlement={selectedSettlement} />}
+      {selectedSettlement && (
+        <div className="settlement-detail-wrapper">
+          <SettlementDetail settlement={selectedSettlement} />
+        </div>
+      )}
       <div className="stats-container">
         <div className="late-fee-container">
           <p>
-            Average Late Fee<br></br><span className="amount">{formatCurrency(averageLateFee)}</span>
+            Average Late Fee<br /><span className="amount">{formatCurrency(averageLateFee)}</span>
           </p>
         </div>
         <div className="dispute-container">
           <p>
-            Average Dispute Amount<br></br><span className="amount">{formatCurrency(averageDisputeAmt)}</span>
+            Average Dispute Amount<br /><span className="amount">{formatCurrency(averageDisputeAmt)}</span>
           </p>
         </div>
       </div>

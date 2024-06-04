@@ -1,138 +1,146 @@
-
 @import url('./Palette.css');
 
 .detail-page {
-    flex: 1; 
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-    margin-left: 80px; 
-    overflow-y: hidden;
+  flex: 1;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  margin-left: 80px;
+  overflow-y: hidden;
 }
-  
+
 .settlement-container {
-    padding: 20px; 
-    padding-bottom: 0px;
-    max-width: calc(100vw);
-    height: auto;
-    overflow: hidden; 
-    border: 1px solid var(--color-grey);
-    box-shadow: 0 0 15px  rgba(0, 0, 0, 0.5);
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 30px;
+  padding: 20px;
+  padding-bottom: 0px;
+  max-width: calc(100vw);
+  height: auto;
+  overflow: hidden;
+  border: 1px solid var(--color-grey);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px; /* Ensure this is 20px for consistency */
+}
+
+.settlement-detail-wrapper {
+  margin-bottom: 20px; /* Ensure this is 20px for consistency */
 }
 
 .settlement-header {
-    display: flex;
-    width: 100%;
-    font-weight: bold;
-    border-bottom: 1px solid var(--color-grey);
-    border-top: 1px solid var(--color-grey);
-    z-index: 1;
-    padding-top: 4px;
-    padding-bottom: 4px;
-    background-color: white;
-    position: sticky;
-    top: 0;
-    left: 0;
+  display: flex;
+  width: 100%;
+  font-weight: bold;
+  border-bottom: 1px solid var(--color-grey);
+  border-top: 1px solid var(--color-grey);
+  z-index: 1;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  background-color: white;
+  position: sticky;
+  top: 0;
+  left: 0;
 }
 
 .settlement-list {
-    width: 100%;
-    list-style-type: none;
-    margin-top: 10px; 
-    padding-left: 0;
+  width: 100%;
+  list-style-type: none;
+  margin-top: 10px;
+  padding-left: 0;
 }
-  
+
 .settlement-item {
-    display: flex; 
-    align-items: center; 
-    border-bottom: 1px solid var(--color-grey);
-    padding-top: 2px;
-    padding-bottom: 2px;
-    cursor: pointer;
-    width: 100%;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--color-grey);
+  padding-top: 2px;
+  padding-bottom: 2px;
+  cursor: pointer;
+  width: 100%;
 }
 
 .settlement-item.selected {
-    background-color: var(--color-lightblue); 
-    color: white; 
+  background-color: var(--color-lightblue);
+  color: white;
 }
 
 .settlement-column {
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-    margin-right: 5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  margin-right: 5px;
 }
 
 .settlement-item.overdue-unpaid {
-    background-color: var(--color-error);
-    color: white;
+  background-color: var(--color-error);
+  color: white;
 }
 
 .string-column {
-    flex: 5;
+  flex: 5;
 }
 
 .date-column {
-    flex: 2;
+  flex: 2;
 }
 
 .amount-column {
-    flex: 2;
+  flex: 2;
 }
 
 .number-column {
-    flex: 2;
+  flex: 2;
 }
 
 .stats-container {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 0px;
-    margin-bottom: 30px;
-  }
-  
-  .late-fee-container, .dispute-container {
-    flex: 1;
-    margin: 0 0px;
-    padding: 0px;
-    border: 1px solid var(--color-grey);
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-    border-radius: 4px;
-    background-color: white; 
-    text-align: center;
-  }
-
-  .late-fee-container {
-    margin-right: 20px;
-  }
-  
-  .late-fee-container .amount, .dispute-container .amount {
-    font-size: 20px;
-    font-weight: bold;
-  }
-  
-.late-fee-container .amount, .dispute-conainer .amount {
-   font-size: 20px;
-   font-weight: bold; 
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px; /* Ensure this is 20px for consistency */
+  margin-bottom: 20px; /* Ensure this is 20px for consistency */
 }
 
+.late-fee-container,
+.dispute-container {
+  flex: 1;
+  margin: 0 10px; /* Add horizontal margin for spacing */
+  padding: 10px;
+  border: 1px solid var(--color-grey);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  background-color: white;
+  text-align: center;
+}
+
+.late-fee-container {
+  margin-left: 0; /* Remove left margin to align with settlement detail */
+}
+
+.dispute-container {
+  margin-right: 0; /* Remove right margin to align with settlement detail */
+}
+
+.late-fee-container .amount,
+.dispute-container .amount {
+  font-size: 20px;
+  font-weight: bold;
+}
 
 /* Responsive styling for small screens */
 @media (max-width: 768px) {
-    .transaction-header {
-      flex-wrap: wrap; /* Allow headers to wrap on smaller screens */
-    }
-  
-    .column-header {
-      flex: 1 1 100%; /* Each header takes up full width on smaller screens */
-    }
-  
-    .transaction-item {
-      flex-direction: column; /* Stack items vertically on smaller screens */
-    }
+  .transaction-header {
+    flex-wrap: wrap; /* Allow headers to wrap on smaller screens */
+  }
+
+  .column-header {
+    flex: 1 1 100%; /* Each header takes up full width on smaller screens */
+  }
+
+  .transaction-item {
+    flex-direction: column; /* Stack items vertically on smaller screens */
+  }
+
+  .late-fee-container,
+  .dispute-container {
+    margin: 10px 0; /* Add vertical margin for small screens */
+  }
 }

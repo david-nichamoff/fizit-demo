@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import Pagination from './Pagination';
 import { formatCurrency, formatDateTime, formatDate } from './Utils';
-import FilterContainer from './FilterContainer';
 import axios from 'axios';
 import './PaymentsPage.css';
 
 const PaymentsPage = ({ accounts, transactions, settlements }) => {
   const itemsPerPage = 12;
-  const [selectedAccounts, setSelectedAccounts] = useState([]);
   const [filteredTransactions, setFilteredTransactions] = useState([]);
   const [filteredSettlements, setFilteredSettlements] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState(null);
+  const [selectedAccountId, setSelectedAccountId] = useState(null);
   const [selectedSettlementPeriod, setSelectedSettlementPeriod] = useState(null);
-  const [dateFrom, setDateFrom] = useState(null);
-  const [dateTo, setDateTo] = useState(null);
   const [currentPageTransactions, setCurrentPageTransactions] = useState(1);
   const [currentPageSettlements, setCurrentPageSettlements] = useState(1);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -21,16 +18,6 @@ const PaymentsPage = ({ accounts, transactions, settlements }) => {
   useEffect(() => {
     setIsInitialLoad(false);
   }, []);
-
-  const applyFilters = (selectedAccounts, fromDate, toDate) => {
-    setSelectedAccounts(selectedAccounts);
-    setDateFrom(fromDate);
-    setDateTo(toDate);
-    setCurrentPageTransactions(1); 
-    setCurrentPageSettlements(1);
-    setFilteredTransactions([]);
-    setFilteredSettlements([]);
-  };
 
   useEffect(() => {
     if (selectedAccount) {
@@ -70,12 +57,13 @@ const PaymentsPage = ({ accounts, transactions, settlements }) => {
 
   const handleAccountSelect = (account) => {
     setSelectedAccount(account);
+    setSelectedAccountId(account.account_id);
     setSelectedSettlementPeriod(null); 
   };
 
   const handlePayAdvance = async () => {
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/pay_advance`);
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/accounts/${selectedAccountId}/pay_advance`);
       alert('Advance payment successfully processed.');
     } catch (error) {
       console.error('Error processing advance payment:', error);
@@ -85,7 +73,7 @@ const PaymentsPage = ({ accounts, transactions, settlements }) => {
 
   const handlePayResidual = async () => {
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/pay_residual`);
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/accounts/${selectedAccountId}/pay_residual`);
       alert('Residual payment successfully processed.');
     } catch (error) {
       console.error('Error processing residual payment:', error);
@@ -98,14 +86,8 @@ const PaymentsPage = ({ accounts, transactions, settlements }) => {
 
   return (
     <div className="detail-page">
-      <FilterContainer 
-        onApplyFilters={applyFilters} 
-        items={accounts} 
-        dropdown_text="Accounts"
-        header="Payments"
-        displayKey="account_name"
-      />
       <div className="account-container">
+        <h2>Accounts</h2>
         <div className="account-header">
           <div className="column-header shortstring-column">Bank</div>
           <div className="column-header string-column">Account Name</div>

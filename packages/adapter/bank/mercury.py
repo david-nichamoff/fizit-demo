@@ -34,25 +34,23 @@ def get_recipients():
         print(f"Error fetching recipients: {e}")
         return []
 
-def get_deposits(start_date, end_date, account_ids):
-    accounts = get_accounts()
+def get_deposits(start_date, end_date, account_id):
     deposits = []
+    url = f"{env_var["mercury_url"]}/account/{account_id}/transactions"
+    payload = { "start" : start_date.strftime('%Y-%m-%d'), "end" : end_date.strftime('%Y-%m-%d') }
+    headers = { "accept" : "application/json" }
 
-    for account in accounts:
-        if account_ids is None or account['account_id'] in account_ids:
-            try:
-                url = f"{env_var["mercury_url"]}/account/{account['account_id']}/transactions"
-                payload = { "start" : start_date, "end" : end_date }
-                response = requests.get(url, auth=(env_var['mercury_token'],''), params=payload)
-                deposit_data = json.loads(response.text)['transactions']
+    try:
+        response = requests.get(url, auth=(env_var['mercury_token'],''), headers=headers, params=payload)
+        deposit_data = json.loads(response.text)['transactions']
 
-                for deposit in deposit_data:
-                    if deposit['amount'] > 0:  # filter out expenses
-                        deposits.append({'bank' : account['bank'], 'account_id': account['account_id'], 'account_name': account['account_name'],
-                                         'deposit_id' : deposit['id'], 'counterparty' : deposit['counterpartyName'], 
-                                         'deposit_amt' : deposit['amount'], 'deposit_dt' : deposit['createdAt']})
-            except requests.exceptions.RequestException as e:
-                print(f"Error fetching deposit: {e}")
+        for deposit in deposit_data:
+            if deposit['amount'] > 0:  # filter out expenses
+                deposits.append({'bank' : 'mercury', 'account_id': account_id, 
+                    'deposit_id' : deposit['id'], 'counterparty' : deposit['counterpartyName'], 
+                    'deposit_amt' : deposit['amount'], 'deposit_dt' : deposit['createdAt']})
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching deposit: {e}")
 
     return deposits
 

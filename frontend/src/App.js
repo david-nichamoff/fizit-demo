@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import NavBar from './components/NavBar';
+import AmbassadorPage from './components/AmbassadorPage';
+import AdminPage from './components/AdminPage';
 import ContractsPage from './components/ContractsPage';
 import SettlementsPage from './components/SettlementsPage';
 import TransactionsPage from './components/TransactionsPage';
 import ArtifactsPage from './components/ArtifactsPage';
+import TicketsPage from './components/TicketsPage';
+import DevicesPage from './components/DevicesPage';
 import PaymentsPage from './components/PaymentsPage';
 import DepositsPage from './components/DepositsPage';
-import DemoPage from './components/DemoPage';
 import axios from 'axios';
 import './App.css';
 
@@ -16,7 +19,6 @@ const App = () => {
   const [transactions, setTransactions] = useState([]);
   const [artifacts, setArtifacts] = useState([]);
   const [deposits, setDeposits] = useState([]);
-  const [payments, setPayments] = useState([]);
   const [accounts, setAccounts] = useState([]);
 
   const [displayPage, setDisplayPage] = useState('contracts'); 
@@ -52,6 +54,9 @@ const App = () => {
       case 'transactions':
         fetchData('/transactions', setTransactions);
         break;
+      case 'tickets':
+        fetchData('/contracts', setContracts);
+        break;
       case 'deposits':
         fetchData('/deposits', setDeposits);
         fetchData('/contracts', setContracts);
@@ -63,9 +68,6 @@ const App = () => {
         break;
       case 'artifacts':
         fetchData('/artifacts', setArtifacts);
-        break;
-      case 'demo':
-        fetchData('/contracts', setContracts);
         break;
       default:
         break;
@@ -79,10 +81,13 @@ const App = () => {
         {displayPage === 'contracts' && <ContractsPage contracts={contracts} />}
         {displayPage === 'settlements' && <SettlementsPage settlements={settlements} />}
         {displayPage === 'transactions' && <TransactionsPage transactions={transactions} />}
+        {displayPage === 'tickets' && <TicketsPage contracts={contracts} />}
+        {displayPage === 'devices' && <DevicesPage contracts={contracts} />}
+        {displayPage === 'ambassador' && <AmbassadorPage contracts={contracts} />}
+        {displayPage === 'administration' && <AdminPage contracts={contracts} />}
         {displayPage === 'deposits' && <DepositsPage contracts={contracts} deposits={deposits} />}
         {displayPage === 'payments' && <PaymentsPage accounts={accounts} transactions={transactions} settlements={settlements} />}
         {displayPage === 'artifacts' && <ArtifactsPage artifacts={artifacts} />}
-        {displayPage === 'demo' && <DemoPage contracts={contracts} />}
       </div>
     </div> 
   );

@@ -1,48 +1,59 @@
-
 @import url('./Palette.css');
 
 .filter-container {
-    padding: 20px;
-    margin-bottom: 30px;
-    max-width: calc(100vw);
-    max-height: 300px;
-    border: 1px solid  var(--color-grey);
-    box-shadow: 0 0 15px  rgba(0, 0, 0, 0.5);
+  padding: 20px;
+  margin-bottom: 20px;
+  max-width: calc(100vw);
+  max-height: 300px;
+  border: 1px solid var(--color-grey);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
 }
 
 .filter-container h2 {
-    margin-bottom: 10px;
+  margin-bottom: 10px;
 }
-  
+
 .multiselect-container {
-    margin-bottom: 5px; 
+  margin-bottom: 10px;
 }
-  
+
+.date-filter-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
 .filter-container input[type='date'] {
-    margin-top: 0px; 
-    margin-right: 10px;
-    padding: 4px;
-    width: 15%;
-    border-radius: 4px;
-    border: 1px solid var(--color-grey);
+  margin-top: 0px;
+  margin-right: 10px;
+  padding: 4px;
+  width: 15%;
+  border-radius: 4px;
+  border: 1px solid var(--color-grey);
 }
-  
+
 .filter-container label {
-    margin-top: 0px; 
-    margin-right: 6px;
+  margin-top: 0px;
+  margin-right: 6px;
 }
-  
+
+.filter-container .apply-filter-button-container {
+  display: flex;
+  align-items: center;
+}
+
 .filter-container button {
-    margin-top: 16px;
-    padding: 8px 16px;
-    background-color: var(--color-lightblue);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+  padding: 8px 16px;
+  background-color: var(--color-lightblue);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 10px; /* Adjust margin to place the button to the right of the date selectors */
 }
-  
+
 .filter-container button:hover {
-    background-color: var(--color-green);
+  background-color: var(--color-green);
 }
-  

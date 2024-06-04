@@ -9,7 +9,7 @@
     overflow-y: hidden;
 }
 
-.account-container, .deposit-container, .settlement-periods-container {
+.deposit-container, .settlement-periods-container {
     padding: 20px;
     padding-bottom: 0px;
     max-width: calc(100vw);
@@ -23,7 +23,7 @@
     margin-bottom: 30px;
 }
 
-.account-header, .deposit-header, .settlement-periods-header {
+.deposit-header, .settlement-periods-header {
     display: flex;
     width: 100%;
     font-weight: bold;
@@ -39,14 +39,14 @@
     align-items: center;
 }
 
-.account-list, .deposit-list, .settlement-periods-list {
+.deposit-list, .settlement-periods-list {
     width: 100%;
     list-style-type: none;
     margin-top: 10px;
     padding-left: 0;
 }
 
-.account-item, .deposit-item, .settlement-period-item {
+.deposit-item, .settlement-period-item {
     display: flex;
     align-items: center;
     border-bottom: 1px solid var(--color-grey);
@@ -56,12 +56,12 @@
     width: 100%;
 }
 
-.account-item.selected, .deposit-item.selected, .settlement-period-item.selected {
+.deposit-item.selected, .settlement-period-item.selected {
     background-color: var(--color-lightblue);
     color: white;
 }
 
-.account-column, .deposit-column, .settlement-period-column {
+.deposit-column, .settlement-period-column {
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
@@ -70,10 +70,6 @@
 
 .string-column {
     flex: 5;
-}
-
-.shortstring-column {
-    flex: 2;
 }
 
 .amount-column {
@@ -95,6 +91,7 @@
     border-radius: 4px;
     cursor: pointer;
     width: 50%; 
+    align-self: center; /* Center the button */
 }
 
 .link-button:disabled {
@@ -108,7 +105,7 @@
 
 /* Responsive styling for small screens */
 @media (max-width: 768px) {
-    .account-header, .deposit-header, .settlement-periods-header {
+    .deposit-header, .settlement-periods-header {
         flex-wrap: wrap;
     }
 
@@ -116,12 +113,12 @@
         flex: 1 1 100%;
     }
 
-    .account-item, .deposit-item, .settlement-period-item {
+    .deposit-item, .settlement-period-item {
         flex-direction: column;
     }
 
-    .column-footer {
-        text-align: center;
-        margin: 10px 0;
+    .link-button {
+        width: 100%;
+        margin-top: 10px;
     }
 }

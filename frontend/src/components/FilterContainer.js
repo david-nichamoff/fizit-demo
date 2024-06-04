@@ -8,7 +8,6 @@ const FilterContainer = ({ onApplyFilters, items = [], dropdown_text, header, di
   const [dateTo, setDateTo] = useState('');
 
   const handleApplyFilters = () => {
-    // Call the parent component's function to apply filters
     onApplyFilters(selectedItems, dateFrom, dateTo);
   };
 
@@ -16,7 +15,6 @@ const FilterContainer = ({ onApplyFilters, items = [], dropdown_text, header, di
     <div className="filter-container">
       <h2>{header}</h2>
 
-      {/* Items Multiselect */}
       <div className="multiselect-container">
         <Multiselect
           options={items.map((item) => ({ key: item[displayKey], value: item[displayKey] }))}
@@ -29,14 +27,15 @@ const FilterContainer = ({ onApplyFilters, items = [], dropdown_text, header, di
         />
       </div>
 
-      {/* Date Range */}
-      <label htmlFor="dateFrom">Date From:</label>
-      <input type="date" id="dateFrom" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-      <label htmlFor="dateTo">Date To:</label>
-      <input type="date" id="dateTo" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-
-      {/* Apply Filters Button */}
-      <button onClick={handleApplyFilters}>Apply Filter</button>
+      <div className="date-filter-container">
+        <label htmlFor="dateFrom">Date From:</label>
+        <input type="date" id="dateFrom" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+        <label htmlFor="dateTo">Date To:</label>
+        <input type="date" id="dateTo" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+        <div className="apply-filter-button-container">
+          <button onClick={handleApplyFilters}>Apply Filter</button>
+        </div>
+      </div>
     </div>
   );
 };

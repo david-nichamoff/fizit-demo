@@ -9,10 +9,16 @@ import env_var
 
 import adapter.bank.mercury
 import adapter.artifact.numbers
+import adapter.ticketing.engage
+
+from api.models import EngageSrc, EngageDest
 
 env_var = env_var.get_env()
 w3 = web3_client.get_web3_instance()
 w3_contract = web3_client.get_web3_contract()
+
+def from_timestamp(ts):
+    return None if ts == 0 else datetime.datetime.fromtimestamp(ts)
 
 def get_contract_count():
     return w3_contract.functions.getContractCount().call() 
@@ -20,35 +26,36 @@ def get_contract_count():
 def get_contract_dict(contract_idx):
     contract_dict, contract = {}, []
     contract = w3_contract.functions.getContract(contract_idx).call()
-    contract_dict["ext_id"] = json.loads(contract[0].replace("'",'"'))
+    contract_dict["extended_data"] = json.loads(contract[0].replace("'",'"'))
     contract_dict["contract_name"] = contract[1]
-    contract_dict["payment_instr"] = json.loads(contract[2].replace("'",'"'))
-    contract_dict["funding_instr"] = json.loads(contract[3].replace("'",'"'))
-    contract_dict["service_fee_pct"] = contract[4] / 10000
-    contract_dict["service_fee_amt"] = contract[5] / 100
-    contract_dict["advance_pct"] = contract[6] / 10000
-    contract_dict["late_fee_pct"] = contract[7] / 10000
-    contract_dict["transact_logic"] = json.loads(contract[8].replace("'",'"'))
-    contract_dict["is_active"] = contract[9]
+    contract_dict["funding_instr"] = json.loads(contract[2].replace("'",'"'))
+    contract_dict["service_fee_pct"] = contract[3] / 10000
+    contract_dict["service_fee_amt"] = contract[4] / 100
+    contract_dict["advance_pct"] = contract[5] / 10000
+    contract_dict["late_fee_pct"] = contract[6] / 10000
+    contract_dict["transact_logic"] = json.loads(contract[7].replace("'",'"'))
+    contract_dict["is_active"] = contract[8]
     contract_dict["contract_idx"] = contract_idx
     return contract_dict
 
-def get_contracts(contract_idx_, bank, account_ids):
+def get_contracts(bank, account_ids):
     contracts = []
     for contract_idx in range(get_contract_count()):
-        if contract_idx_ is None or contract_idx == contract_idx_: 
-            contract_dict = get_contract_dict(contract_idx)
-            if (account_ids is None or contract_dict['funding_instr']['account_id'] in account_ids) and \
-               (bank is None or bank == contract_dict['funding_instr']['bank']):
-                contracts.append(contract_dict)
+        contract_dict = get_contract_dict(contract_idx)
+        if (account_ids is None or contract_dict['funding_instr']['account_id'] in account_ids) and \
+           (bank is None or bank == contract_dict['funding_instr']['bank']):
+            contracts.append(contract_dict)
 
     return contracts
 
+def get_contract(contract_idx):
+    contract = get_contract_dict(contract_idx)
+    return contract 
+
 def build_contract(contract_dict):
     contract = []
-    contract.append(str(contract_dict["ext_id"]))
+    contract.append(str(contract_dict["extended_data"]))
     contract.append(contract_dict["contract_name"])
-    contract.append(str(contract_dict["payment_instr"]))
     contract.append(str(contract_dict["funding_instr"]))
     contract.append(int(contract_dict["service_fee_pct"] * 10000))
     contract.append(int(contract_dict["service_fee_amt"] * 100))
@@ -84,12 +91,12 @@ def delete_contract(contract_idx):
 
 def get_settle_dict(settle, contract):
     settle_dict = {}
-    settle_dict["ext_id"] = json.loads(settle[0].replace("'",'"'))
-    settle_dict["settle_due_dt"] = datetime.datetime.fromtimestamp(settle[1])
-    settle_dict["transact_min_dt"] = datetime.datetime.fromtimestamp(settle[2])
-    settle_dict["transact_max_dt"] = datetime.datetime.fromtimestamp(settle[3])
+    settle_dict["extended_data"] = json.loads(settle[0].replace("'",'"'))
+    settle_dict["settle_due_dt"] = from_timestamp(settle[1]) 
+    settle_dict["transact_min_dt"] = from_timestamp(settle[2])
+    settle_dict["transact_max_dt"] = from_timestamp(settle[3])
     settle_dict["transact_count"] = settle[4]
-    settle_dict["settle_pay_dt"] = datetime.datetime.fromtimestamp(settle[5])
+    settle_dict["settle_pay_dt"] = from_timestamp(settle[5])
     settle_dict["settle_exp_amt"] = settle[6] / 100
     settle_dict["settle_pay_amt"] = settle[7] / 100
     settle_dict["settle_confirm"] = settle[8]
@@ -97,20 +104,19 @@ def get_settle_dict(settle, contract):
     settle_dict["dispute_reason"] = settle[10]
     settle_dict["days_late"] = settle[11]
     settle_dict["late_fee_amt"] = settle[12] / 100
-    settle_dict["residual_pay_dt"] = datetime.datetime.fromtimestamp(settle[13]) 
+    settle_dict["residual_pay_dt"] = from_timestamp(settle[13]) 
     settle_dict["residual_pay_amt"] = settle[14] / 100
     settle_dict["residual_confirm"] = settle[15]
     settle_dict["residual_exp_amt"] = settle[16] / 100
     settle_dict["residual_calc_amt"] = settle[17] / 100
     settle_dict["contract_idx"] = contract['contract_idx']
     settle_dict["contract_name"] = contract['contract_name']
-    settle_dict["payment_instr"] = contract['payment_instr']
     settle_dict["funding_instr"] = contract['funding_instr']
     return settle_dict
     
-def get_settlements(contract_idx, bank, account_ids):
+def get_settlements(bank, account_ids):
     settlements = []
-    contracts = get_contracts(contract_idx, bank, account_ids)
+    contracts = get_contracts(bank, account_ids)
 
     for contract in contracts:
         settles = w3_contract.functions.getSettlements(contract['contract_idx']).call()
@@ -120,14 +126,24 @@ def get_settlements(contract_idx, bank, account_ids):
     sorted_settlements = sorted(settlements, key=lambda d: d['settle_due_dt'], reverse=False)
     return sorted_settlements 
 
+def get_contract_settlements(contract_idx):
+    settlements = []
+    contract = get_contract(contract_idx)
+    settles = w3_contract.functions.getSettlements(contract['contract_idx']).call() 
+    for settle in settles:
+        settle_dict = get_settle_dict(settle, contract)
+        settlements.append(settle_dict)
+    sorted_settlements = sorted(settlements, key=lambda d: d['settle_due_dt'], reverse=False)
+    return sorted_settlements 
+
 def add_settlements(contract_idx, settlements):
     for settlement in settlements:
         due_dt = int(datetime.datetime.combine(settlement["settle_due_dt"], datetime.time.min).timestamp())
         min_dt = int(datetime.datetime.combine(settlement["transact_min_dt"], datetime.time.min).timestamp())
         max_dt = int(datetime.datetime.combine(settlement["transact_max_dt"], datetime.time.min).timestamp())
-        ext_id = str(settlement["ext_id"])
+        extended_data = str(settlement["extended_data"])
         nonce = w3.eth.get_transaction_count(env_var["wallet_addr"])
-        call_function = w3_contract.functions.addSettlement(contract_idx, ext_id, due_dt, min_dt, max_dt).build_transaction(
+        call_function = w3_contract.functions.addSettlement(contract_idx, extended_data, due_dt, min_dt, max_dt).build_transaction(
             {"from":env_var["wallet_addr"],"nonce":nonce,"gas":env_var["gas_limit"]}) 
         tx_receipt = web3_client.get_tx_receipt(call_function)
         if tx_receipt["status"] != 1: return False
@@ -142,23 +158,21 @@ def delete_settlements(contract_idx):
 
 def get_transact_dict(transact, contract):
     transact_dict = {}
-    transact_dict["ext_id"] = json.loads(transact[0].replace("'",'"'))
-    transact_dict["transact_dt"] = datetime.datetime.fromtimestamp(transact[1])
+    transact_dict["extended_data"] = json.loads(transact[0].replace("'",'"'))
+    transact_dict["transact_dt"] = from_timestamp(transact[1])
     transact_dict["transact_amt"] = transact[2] / 100
     transact_dict["advance_amt"] = transact[3] / 100
     transact_dict["transact_data"] = json.loads(transact[4].replace("'",'"'))
-    transact_dict["advance_pay_dt"] = datetime.datetime.fromtimestamp(transact[5])
+    transact_dict["advance_pay_dt"] = from_timestamp(transact[5])
     transact_dict["advance_pay_amt"] = transact[6] / 100
     transact_dict["advance_confirm"] = transact[7]
     transact_dict["contract_idx"] = contract['contract_idx']
-    transact_dict["contract_name"] = contract['contract_name']
-    transact_dict["payment_instr"] = contract['payment_instr']
     transact_dict["funding_instr"] = contract['funding_instr']
     return transact_dict
 
-def get_transactions(contract_idx, bank, account_ids):
+def get_transactions(bank, account_ids):
     transactions = []
-    contracts = get_contracts(contract_idx, bank, account_ids)
+    contracts = get_contracts(bank, account_ids)
 
     for contract in contracts:
         transacts = w3_contract.functions.getTransactions(contract['contract_idx']).call()
@@ -168,14 +182,24 @@ def get_transactions(contract_idx, bank, account_ids):
     sorted_transactions = sorted(transactions, key=lambda d: d['transact_dt'], reverse=True)
     return sorted_transactions 
 
+def get_contract_transactions(contract_idx):
+    transactions=[]
+    contract = get_contract(contract_idx)
+    transacts = w3_contract.functions.getTransactions(contract['contract_idx']).call() 
+    for transact in transacts:
+        transact_dict = get_transact_dict(transact, contract)
+        transactions.append(transact_dict)
+    sorted_transactions = sorted(transactions, key=lambda d: d['transact_dt'], reverse=True)
+    return sorted_transactions 
+
 def add_transactions(contract_idx, transact_logic, transactions):
     for transaction in transactions:
-        ext_id = str(transaction["ext_id"])
-        transact_dt = int(datetime.datetime.combine(transaction["transact_dt"], datetime.time.min).timestamp())
+        extended_data = str(transaction["extended_data"])
+        transact_dt = int(transaction["transact_dt"].timestamp())
         transact_data = transaction["transact_data"]
         nonce = w3.eth.get_transaction_count(env_var["wallet_addr"])
         transact_amt = int(jsonLogic(transact_logic,transact_data) * 100) 
-        call_function = w3_contract.functions.addTransaction(contract_idx, ext_id, transact_dt, transact_amt, str(transact_data)).build_transaction(
+        call_function = w3_contract.functions.addTransaction(contract_idx, extended_data, transact_dt, transact_amt, str(transact_data)).build_transaction(
             {"from":env_var["wallet_addr"],"nonce":nonce,"gas":env_var["gas_limit"]}) 
         tx_receipt = web3_client.get_tx_receipt(call_function)
         if tx_receipt["status"] != 1: return False
@@ -188,9 +212,21 @@ def delete_transactions(contract_idx):
     tx_receipt = web3_client.get_tx_receipt(call_function)
     return True if tx_receipt["status"] == 1 else False   
 
-def get_artifacts(contract_idx):
+def get_contract_tickets(contract_idx, start_date, end_date):
+    contract = get_contract(contract_idx)
+    tickets = []
+
+    if contract["extended_data"]["type"] == "ticket": 
+        if contract["extended_data"]["provider"] == "engage":
+            engage_src = EngageSrc.objects.get(src_code=contract["extended_data"]["src_code"])
+            engage_dest = EngageDest.objects.get(dest_code=contract["extended_data"]["dest_code"])
+            tickets = adapter.ticketing.engage.get_tickets(contract, engage_src, engage_dest, start_date, end_date)
+
+    return tickets 
+
+def get_contract_artifacts(contract_idx):
     artifacts = []
-    contracts = get_contracts(contract_idx, None, None)
+    contracts = get_contract(contract_idx)
 
     for contract in contracts:
         facts = w3_contract.functions.getArtifacts(contract['contract_idx']).call()
@@ -227,44 +263,42 @@ def get_recipients(bank):
         recipients = adapter.bank.mercury.get_recipients()
     return recipients
 
-def get_deposits(start_date, end_date, bank, account_ids):
-    deposits = []
-    if bank == "mercury" or bank is None:
-        deposits = adapter.bank.mercury.get_deposits(start_date, end_date, account_ids)
+def get_deposits(start_date, end_date, account_id):
+    deposits = adapter.bank.mercury.get_deposits(start_date, end_date, account_id)
     return deposits
 
-def pay_advance(contract_idx):
-
+def pay_advance(account_id):
     transact_amt = 0
-    contract = get_contracts(contract_idx)
-    transactions = get_transactions(contract_idx) 
 
-    for transact_idx in range(len(transactions)):
-        if not transactions[transact_idx]["advance_pay_amt"]:
-            # transaction has not been paid 
-            transact_amt += transactions[transact_idx]["advance_amt"]
+    for contract_idx in range(get_contract_count()):
+        contract = get_contract(contract_idx)
 
-    if transact_amt > 0:
-        # repeat for all bank accounts
-        if contract["funding_instr"]["bank"] == "mercury":
-            recipient_id = contract["payment_instr"]["recipient_id"]
-            account_id = contract["funding_instr"]["account_id"]
+        if contract["funding_instr"]["account_id"] == account_id:
+            transactions = get_contract_transactions(contract_idx) 
+
+        for transact_idx in range(len(transactions)):
+            if not transactions[transact_idx]["advance_pay_amt"]:
+                # transaction has not been paid 
+                transact_amt += transactions[transact_idx]["advance_amt"]
+
+        if transact_amt > 0:
+            recipient_id = contract["funding_instr"]["recipient_id"]
             success, error_message = adapter.bank.mercury.make_payment(account_id, recipient_id, transact_amt)
 
-        if success:
-            for transact_idx in range(len(transactions)):
-                transaction = transactions[transact_idx]
-                if not transaction["advance_pay_amt"]:
-                    nonce = w3.eth.get_transaction_count(env_var["wallet_addr"])
-                    current_time = int(datetime.datetime.now().timestamp())
-                    payment_amt =  int(transaction["advance_amt"] * 100)
-                    call_function = w3_contract.functions.payAdvance(contract_idx, transact_idx, current_time, payment_amt, "completed").build_transaction \
-                        ({"from":env_var["wallet_addr"],"nonce":nonce,"gas":env_var["gas_limit"]})
-                    tx_receipt = web3_client.get_tx_receipt(call_function)
-                    if tx_receipt["status"] != 1: return False
-        else:
-            print(f"Payment failed: {error_message}")
-            return False
+            if success:
+                for transact_idx in range(len(transactions)):
+                    transaction = transactions[transact_idx]
+                    if not transaction["advance_pay_amt"]:
+                        nonce = w3.eth.get_transaction_count(env_var["wallet_addr"])
+                        current_time = int(datetime.datetime.now().timestamp())
+                        payment_amt =  int(transaction["advance_amt"] * 100)
+                        call_function = w3_contract.functions.payAdvance(contract_idx, transact_idx, current_time, payment_amt, "completed").build_transaction \
+                            ({"from":env_var["wallet_addr"],"nonce":nonce,"gas":env_var["gas_limit"]})
+                        tx_receipt = web3_client.get_tx_receipt(call_function)
+                        if tx_receipt["status"] != 1: return False
+            else:
+                print(f"Payment failed: {error_message}")
+                return False
 
     return True
 
@@ -274,7 +308,7 @@ def pay_residual(contract_idx, contract, settlements):
         if settlement["residual_exp_amt"] > 0 and not settlement["residual_pay_dt"]:
 
             if contract["funding_instr"]["bank"] == "mercury":
-                recipient_id = contract["payment_instr"]["recipient_id"]
+                recipient_id = contract["funding_instr"]["recipient_id"]
                 account_id = contract["funding_instr"]["account_id"]
                 response = adapter.bank.mercury.make_payment(account_id, recipient_id, settlement["residual_exp_amt"])
 

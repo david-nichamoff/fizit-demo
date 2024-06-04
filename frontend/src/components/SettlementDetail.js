@@ -8,44 +8,45 @@ const SettlementDetail = ({ settlement }) => {
   return (
     <div className="settlement-detail-container">
       <h2>Settlement Details</h2>
-      {isSettlementSelected ? (
-        <>
-          <p><strong>Contract:</strong> {settlement.contract_name}</p>
-          <p><strong>Due Date:</strong> {formatDate(settlement.settle_due_dt)}</p>
-          <p><strong>Transaction Start Date:</strong> {formatDate(settlement.transact_min_dt)}</p>
-          <p><strong>Transaction End Date:</strong> {formatDate(settlement.transact_max_dt)}</p>
-          <p><strong>Transaction Count:</strong> {settlement.transact_count}</p>
-          <p><strong>Paid Date:</strong> {formatDate(settlement.settle_pay_dt)}</p>
-          <p><strong>Expected Payment:</strong> {formatCurrency(settlement.settle_exp_amt)}</p>
-          <p><strong>Amount Paid:</strong> {formatCurrency(settlement.settle_pay_amt)}</p>
-          <p><strong>Amount Disputed:</strong> {formatCurrency(settlement.dispute_amt)}</p>
-          <p><strong>Dispute Reason:</strong> {settlement.dispute_reason}</p>
-          <p><strong>Days Late:</strong> {settlement.days_late}</p>
-          <p><strong>Late Fee Amount:</strong> {formatCurrency(settlement.late_fee_amt)}</p>
-          <p><strong>Residual Payment Date:</strong> {formatDate(settlement.residual_pay_dt)}</p>
-          <p><strong>Residual Expected Amount:</strong> {formatCurrency(settlement.residual_exp_amt)}</p>
-          <p><strong>Residual Calculated Amount:</strong> {formatCurrency(settlement.residual_calc_amt)}</p>
-          <p><strong>Residual Paid Amount:</strong> {formatCurrency(settlement.residual_pay_amt)}</p>
-        </>
-      ) : (
-        <>
-          <p><strong>Contract:</strong></p>
-          <p><strong>Due Date:</strong></p>
-          <p><strong>Transaction Start Date:</strong></p>
-          <p><strong>Transaction End Date:</strong></p>
-          <p><strong>Transaction Count:</strong></p>
-          <p><strong>Paid Date:</strong></p>
-          <p><strong>Expected Payment:</strong></p>
-          <p><strong>Amount Paid:</strong></p>
-          <p><strong>Amount Disputed:</strong></p>
-          <p><strong>Dispute Reason:</strong></p>
-          <p><strong>Days Late:</strong></p>
-          <p><strong>Late Fee Amount:</strong></p>
-          <p><strong>Residual Payment Date:</strong></p>
-          <p><strong>Residual Expected Amount:</strong></p>
-          <p><strong>Residual Paid Amount:</strong></p>
-        </>
-      )}
+      <div className="settlement-grid">
+        <div className="header-row">Settlement Period Details</div>
+        <div className="json-key">Contract Name</div>
+        <div className="json-value">{isSettlementSelected ? settlement.contract_name : ''}</div>
+        <div className="json-key">Due Date</div>
+        <div className="json-value">{isSettlementSelected ? formatDate(settlement.settle_due_dt) : ''}</div>
+        <div className="json-key">Transaction Start Date</div>
+        <div className="json-value">{isSettlementSelected ? formatDate(settlement.transact_min_dt) : ''}</div>
+        <div className="json-key">Transaction End Date</div>
+        <div className="json-value">{isSettlementSelected ? formatDate(settlement.transact_max_dt) : ''}</div>
+        <div className="json-key">Transaction Count</div>
+        <div className="json-value">{isSettlementSelected ? settlement.transact_count : ''}</div>
+        
+        <div className="header-row">Payment Details</div>
+        <div className="json-key">Paid Date</div>
+        <div className="json-value">{isSettlementSelected ? formatDate(settlement.settle_pay_dt) : ''}</div>
+        <div className="json-key">Expected Payment</div>
+        <div className="json-value">{isSettlementSelected ? formatCurrency(settlement.settle_exp_amt) : ''}</div>
+        <div className="json-key">Amount Paid</div>
+        <div className="json-value">{isSettlementSelected ? formatCurrency(settlement.settle_pay_amt) : ''}</div>
+        <div className="json-key">Amount Disputed</div>
+        <div className="json-value">{isSettlementSelected ? formatCurrency(settlement.dispute_amt) : ''}</div>
+        <div className="json-key">Dispute Reason</div>
+        <div className="json-value">{isSettlementSelected ? settlement.dispute_reason : ''}</div>
+        <div className="json-key">Days Late</div>
+        <div className="json-value">{isSettlementSelected ? settlement.days_late : ''}</div>
+        <div className="json-key">Late Fee Amount</div>
+        <div className="json-value">{isSettlementSelected ? formatCurrency(settlement.late_fee_amt) : ''}</div>
+
+        <div className="header-row">Residual Payment Details</div>
+        <div className="json-key">Residual Payment Date</div>
+        <div className="json-value">{isSettlementSelected ? formatDate(settlement.residual_pay_dt) : ''}</div>
+        <div className="json-key">Residual Expected Amount</div>
+        <div className="json-value">{isSettlementSelected ? formatCurrency(settlement.residual_exp_amt) : ''}</div>
+        <div className="json-key">Residual Calculated Amount</div>
+        <div className="json-value">{isSettlementSelected ? formatCurrency(settlement.residual_calc_amt) : ''}</div>
+        <div className="json-key">Residual Paid Amount</div>
+        <div className="json-value">{isSettlementSelected ? formatCurrency(settlement.residual_pay_amt) : ''}</div>
+      </div>
     </div>
   );
 };
