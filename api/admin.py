@@ -1,5 +1,4 @@
 from django.contrib import admin
-from rest_framework_api_key.models import APIKey
 from .models import EngageSrc, EngageDest
 
 @admin.register(EngageSrc)
@@ -11,5 +10,3 @@ class EngageSrcAdmin(admin.ModelAdmin):
 class EngageDestAdmin(admin.ModelAdmin):
     list_display = ('dest_id', 'dest_code')
     search_fields = ('dest_code',)
-
-admin.site.register(APIKey)
