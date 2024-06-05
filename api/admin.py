@@ -3,6 +3,8 @@ from rest_framework_api_key.models import APIKey
 from rest_framework_api_key.admin import APIKeyModelAdmin
 from .models import EngageSrc, EngageDest, CustomAPIKey
 
+admin.site.unregister(APIKey)
+
 @admin.register(EngageSrc)
 class EngageSrcAdmin(admin.ModelAdmin):
     list_display = ('src_id', 'api_key', 'src_code')
