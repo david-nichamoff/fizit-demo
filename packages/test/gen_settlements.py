@@ -69,7 +69,7 @@ def generate_settlements(n, first_settle_due_dt, first_transact_min_dt, first_tr
 
 def post_settlements(contract_idx, settlements):
     headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
-    response = requests.post(env_var["url"] + f"/api//contracts/{contract_idx}/settlements/", json=settlements, headers=headers)
+    response = requests.post(env_var["url"] + f"/api/contracts/{contract_idx}/settlements/", json=settlements, headers=headers)
     if response.status_code == 201:
         print("Settlements successfully created.")
     else:
