@@ -8,7 +8,7 @@ env_var = env_var.get_env()
 
 def get_contracts():
     headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
-    response = requests.get(env_var["url"] + "api/contracts", headers=headers)
+    response = requests.get(env_var["url"] + "/api/contracts", headers=headers)
     if response.status_code == 200:
         return json.loads(response.text)
     else:
@@ -30,7 +30,7 @@ def prompt_user_for_contract(contracts):
             print("Invalid input. Please enter a number.")
 
 def delete_transactions(contract_idx):
-    url =  env_var["url"] + f"api/contracts/{contract_idx}/transactions/"
+    url =  env_var["url"] + f"/api/contracts/{contract_idx}/transactions/"
     headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
     response = requests.delete(url, headers=headers)
     if response.status_code == 204:
@@ -91,7 +91,7 @@ def generate_transactions(contract_idx, variables, sample_values, extended_data_
 
 def post_transactions(contract_idx, transactions):
     headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
-    response = requests.post(env_var["url"] + f"api/contracts/{contract_idx}/transactions/", json=transactions, headers=headers)
+    response = requests.post(env_var["url"] + f"/api/contracts/{contract_idx}/transactions/", json=transactions, headers=headers)
     if response.status_code == 201:
         print("Transactions successfully created.")
     else:

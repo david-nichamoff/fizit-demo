@@ -9,7 +9,7 @@ env_var = env_var.get_env()
 
 def get_contracts():
     headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
-    response = requests.get(env_var["url"] + "api/contracts", headers=headers)
+    response = requests.get(env_var["url"] + "/api/contracts", headers=headers)
     if response.status_code == 200:
         return json.loads(response.text)
     else:
@@ -32,7 +32,7 @@ def prompt_user_for_contract(contracts):
 
 def delete_settlements(contract_idx):
     headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
-    response = requests.delete(env_var["url"] + f"api/contracts/{contract_idx}/settlements/", headers=headers)
+    response = requests.delete(env_var["url"] + f"/api/contracts/{contract_idx}/settlements/", headers=headers)
     if response.status_code == 204:
         print("Current settlements deleted successfully.")
     else:
@@ -69,7 +69,7 @@ def generate_settlements(n, first_settle_due_dt, first_transact_min_dt, first_tr
 
 def post_settlements(contract_idx, settlements):
     headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
-    response = requests.post(env_var["url"] + f"api/contracts/{contract_idx}/settlements/", json=settlements, headers=headers)
+    response = requests.post(env_var["url"] + f"/api//contracts/{contract_idx}/settlements/", json=settlements, headers=headers)
     if response.status_code == 201:
         print("Settlements successfully created.")
     else:

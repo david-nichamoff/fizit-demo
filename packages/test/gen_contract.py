@@ -55,7 +55,7 @@ def main():
         return
 
     headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
-    response = requests.get(env_var["url"] + '/api/contracts', headers=headers)
+    response = requests.get(env_var["url"] + 'api/contracts', headers=headers)
     contracts = json.loads(response.text)
     contract_idx = contract_exists(contracts, contract_name)
 
