@@ -7,7 +7,8 @@ import env_var
 env_var = env_var.get_env()
 
 def get_contracts():
-    response = requests.get(env_var["url"] + "api/contracts")
+    headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
+    response = requests.get(env_var["url"] + "api/contracts", headers=headers)
     if response.status_code == 200:
         return json.loads(response.text)
     else:
@@ -30,7 +31,8 @@ def prompt_user_for_contract(contracts):
 
 def delete_transactions(contract_idx):
     url =  env_var["url"] + f"api/contracts/{contract_idx}/transactions/"
-    response = requests.delete(url)
+    headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
+    response = requests.delete(url, headers=headers)
     if response.status_code == 204:
         print("Current transactions deleted successfully.")
     else:
@@ -45,7 +47,7 @@ def prompt_user_for_variables():
     return variables, sample_values
 
 def prompt_user_for_extended_datas():
-    extended_data_keys = input("Enter the external ID keys (comma-separated): ").split(',')
+    extended_data_keys = input("Enter the extended_data keys comma-separated): ").split(',')
     extended_data_keys = [key.strip() for key in extended_data_keys]
     return extended_data_keys
 
@@ -88,7 +90,8 @@ def generate_transactions(contract_idx, variables, sample_values, extended_data_
     return transactions
 
 def post_transactions(contract_idx, transactions):
-    response = requests.post(env_var["url"] + f"api/contracts/{contract_idx}/transactions/", json=transactions)
+    headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
+    response = requests.post(env_var["url"] + f"api/contracts/{contract_idx}/transactions/", json=transactions, headers=headers)
     if response.status_code == 201:
         print("Transactions successfully created.")
     else:

@@ -15,7 +15,7 @@ body {
     height: 100vh; 
     overflow-y: auto;
 }
- 
+
 .nav-bar {
     flex: 0 0 200px; 
     background-color: var(--color-darkblue);
@@ -27,6 +27,9 @@ body {
     left: 0;
     top: 0;
     bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
 .nav-bar ul {
@@ -50,7 +53,7 @@ body {
     background-color: transparent; 
     border: none; 
     cursor: pointer; 
-    color:  var(--color-grey);
+    color: var(--color-grey);
     font-size: 16px; 
     font-weight: normal; 
     padding: 10px 0px; 
@@ -62,7 +65,7 @@ body {
 .nav-links button:hover {
     color: var(--color-green); /* Change text color on hover */
 }
-  
+
 .logo {
     display: flex;
     justify-content: left; 
@@ -75,4 +78,47 @@ body {
     width: 120px;
     height: auto;
 }
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: auto;
+    margin-bottom: 40px; /* To add some spacing from the bottom */
+}
+
+.username {
+    color: var(--color-grey);
+    font-size: 12px; /* Set to 12px */
+    margin-bottom: 10px;
+}
+
+/* App.css */
+.user-info {
+    margin-top: auto; /* Pushes user info to the bottom of the nav */
+    padding-top: 20px;
+    border-top: 1px solid var(--color-grey);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
   
+  .username {
+    font-size: 12px;
+    color: var(--color-grey);
+  }
+  
+  .logout-link {
+    font-size: 10px;
+    color: var(--color-grey);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 5px;
+    font-style: italic;
+  }
+  
+  .logout-link:hover {
+    text-decoration: underline;
+  }

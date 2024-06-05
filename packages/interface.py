@@ -226,19 +226,18 @@ def get_contract_tickets(contract_idx, start_date, end_date):
 
 def get_contract_artifacts(contract_idx):
     artifacts = []
-    contracts = get_contract(contract_idx)
+    contract = get_contract(contract_idx)
 
-    for contract in contracts:
-        facts = w3_contract.functions.getArtifacts(contract['contract_idx']).call()
-        for artifact in facts:
-            artifact_dict = {}
-            artifact_dict["contract_idx"] = contract["contract_idx"]
-            artifact_dict["contract_name"] = contract["contract_name"]
-            artifact_dict["artifact_id"] = artifact["artifact_id"]
-            artifact_dict["doc_title"] = artifact["doc_title"]
-            artifact_dict["doc_type"] = artifact["doc_type"]
-            artifact_dict["added_dt"] = artifact["added_dt"]
-            artifacts.append(artifact_dict)
+    facts = w3_contract.functions.getArtifacts(contract['contract_idx']).call()
+    for artifact in facts:
+        artifact_dict = {}
+        artifact_dict["contract_idx"] = contract["contract_idx"]
+        artifact_dict["contract_name"] = contract["contract_name"]
+        artifact_dict["artifact_id"] = artifact["artifact_id"]
+        artifact_dict["doc_title"] = artifact["doc_title"]
+        artifact_dict["doc_type"] = artifact["doc_type"]
+        artifact_dict["added_dt"] = artifact["added_dt"]
+        artifacts.append(artifact_dict)
     sorted_artifacts = sorted(artifacts, key=lambda d: d['added_dt'], reverse=True)
     return sorted_artifacts
 

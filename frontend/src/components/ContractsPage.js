@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import uc from '../assets/image/under_construction_pc_800_wht.jpg'; 
+import uc from '../../static/assets/image/under_construction_pc_800_wht.jpg'; 
 import { formatPercentage, formatCurrency } from './Utils';
 import './ContractsPage.css';
 

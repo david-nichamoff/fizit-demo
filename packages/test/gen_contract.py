@@ -30,11 +30,13 @@ def prompt_user_for_file(json_files):
             print("Invalid input. Please enter a number.")
 
 def partial_update(contract_data, contract_idx):
-    response = requests.patch(env_var["url"] + f'/api/contracts/{contract_idx}/', json=contract_data)
+    headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
+    response = requests.patch(env_var["url"] + f'/api/contracts/{contract_idx}/', json=contract_data, headers=headers)
     return response
 
 def create_contract(contract_data):
-    response = requests.post(env_var["url"] + '/api/contracts/', json=contract_data)
+    headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
+    response = requests.post(env_var["url"] + '/api/contracts/', json=contract_data, headers=headers)
     return response
 
 def main():
@@ -52,7 +54,8 @@ def main():
         print("The selected JSON file does not contain a 'contract_name' key.")
         return
 
-    response = requests.get(env_var["url"] + '/api/contracts')
+    headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
+    response = requests.get(env_var["url"] + '/api/contracts', headers=headers)
     contracts = json.loads(response.text)
     contract_idx = contract_exists(contracts, contract_name)
 

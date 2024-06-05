@@ -1,13 +1,15 @@
 import json
 import requests
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 import random
 
 import env_var
 env_var = env_var.get_env()
 
 def get_contracts():
-    response = requests.get(env_var["url"] + "api/contracts")
+    headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
+    response = requests.get(env_var["url"] + "api/contracts", headers=headers)
     if response.status_code == 200:
         return json.loads(response.text)
     else:
@@ -29,7 +31,8 @@ def prompt_user_for_contract(contracts):
             print("Invalid input. Please enter a number.")
 
 def delete_settlements(contract_idx):
-    response = requests.delete(env_var["url"] + f"api/contracts/{contract_idx}/settlements/")
+    headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
+    response = requests.delete(env_var["url"] + f"api/contracts/{contract_idx}/settlements/", headers=headers)
     if response.status_code == 204:
         print("Current settlements deleted successfully.")
     else:
@@ -58,14 +61,15 @@ def generate_settlements(n, first_settle_due_dt, first_transact_min_dt, first_tr
             }
         }
         settlements.append(settlement)
-        settle_due_dt += timedelta(days=30)
-        transact_min_dt += timedelta(days=30)
-        transact_max_dt += timedelta(days=30)
+        settle_due_dt += relativedelta(months=1)
+        transact_min_dt += relativedelta(months=1)
+        transact_max_dt += relativedelta(months=1)
 
     return settlements
 
 def post_settlements(contract_idx, settlements):
-    response = requests.post(env_var["url"] + f"api/contracts/{contract_idx}/settlements/", json=settlements)
+    headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
+    response = requests.post(env_var["url"] + f"api/contracts/{contract_idx}/settlements/", json=settlements, headers=headers)
     if response.status_code == 201:
         print("Settlements successfully created.")
     else:

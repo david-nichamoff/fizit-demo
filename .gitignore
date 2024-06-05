@@ -18,9 +18,6 @@ artifacts/
 api/migrations
 frontend/migrations
 
-# static files
-frontend/static
-
 # ignore local settings ** use template
 project/settings.py
 
@@ -34,6 +31,7 @@ truffle/package.json
 # ignore configuration files that need to be set manually
 config/private_keys.json
 config/public_env.json
+config/admin.txt
 .env.dev
 webpack.config.js
 

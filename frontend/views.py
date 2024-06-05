@@ -1,12 +1,17 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect
+from django.http import JsonResponse
 
 @login_required
 def dashboard(request):
     return render(request, 'frontend/dashboard.html') 
+
+@login_required
+def get_user(request):
+    user = request.user
+    return JsonResponse({'username': user.username})
 
 def login_view(request):
     if request.method == 'POST':
@@ -28,4 +33,4 @@ def register_view(request):
             return redirect('dashboard')
     else:
         form = UserCreationForm()
-    return render(request, 'register.html', {'form': form})
+    return render(request, 'registration/register.html', {'form': form})

@@ -7,7 +7,7 @@ import SettlementsPage from './components/SettlementsPage';
 import TransactionsPage from './components/TransactionsPage';
 import ArtifactsPage from './components/ArtifactsPage';
 import TicketsPage from './components/TicketsPage';
-import DevicesPage from './components/DevicesPage';
+import MetersPage from './components/MetersPage';
 import PaymentsPage from './components/PaymentsPage';
 import DepositsPage from './components/DepositsPage';
 import axios from 'axios';
@@ -82,7 +82,7 @@ const App = () => {
         {displayPage === 'settlements' && <SettlementsPage settlements={settlements} />}
         {displayPage === 'transactions' && <TransactionsPage transactions={transactions} />}
         {displayPage === 'tickets' && <TicketsPage contracts={contracts} />}
-        {displayPage === 'devices' && <DevicesPage contracts={contracts} />}
+        {displayPage === 'meters' && <MetersPage contracts={contracts} />}
         {displayPage === 'ambassador' && <AmbassadorPage contracts={contracts} />}
         {displayPage === 'administration' && <AdminPage contracts={contracts} />}
         {displayPage === 'deposits' && <DepositsPage contracts={contracts} deposits={deposits} />}

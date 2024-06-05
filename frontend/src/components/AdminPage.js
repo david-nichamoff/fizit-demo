@@ -1,8 +1,8 @@
 import React from 'react';
-import uc from '../assets/image/under_construction_pc_800_wht.jpg'; 
-import './DevicesPage.css';
+import uc from '../../static/assets/image/under_construction_pc_800_wht.jpg'; 
+import './MetersPage.css';
 
-const DevicesPage = () => {
+const MetersPage = () => {
   return (
     <div className="devices-page">
       <div className="under-construction-container">
@@ -13,4 +13,4 @@ const DevicesPage = () => {
   );
 };
 
-export default DevicesPage;
+export default MetersPage;

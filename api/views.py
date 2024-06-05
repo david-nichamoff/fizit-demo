@@ -4,6 +4,7 @@ from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets, status
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
@@ -19,8 +20,13 @@ from packages.interface import get_accounts, get_recipients
 from packages.interface import get_contract_artifacts, add_artifacts, delete_artifacts
 from packages.interface import get_contract_tickets
 
+from .models import CustomAPIKey
+from .permissions import HasCustomAPIKey
+from .authentication import CustomAPIKeyAuthentication
+
 class ContractViewSet(viewsets.ViewSet):
-    lookup_field = 'contract_idx'
+    authentication_classes = [CustomAPIKeyAuthentication]
+    permission_classes = [HasCustomAPIKey]
 
     @extend_schema(
         operation_id="list_contracts",
@@ -34,12 +40,17 @@ class ContractViewSet(viewsets.ViewSet):
         description="Retrieve a list of contracts"
     )
     def list(self, request):
+        api_key = request.META.get('HTTP_AUTHORIZATION', '').split(' ')[-1]
+        is_master_key = CustomAPIKey.objects.filter(hashed_key=api_key, name="FIZIT_MASTER_KEY").exists()
         bank = request.query_params.get('bank')
         account_ids = request.query_params.get('account_id')
         if account_ids is not None: 
             account_ids = account_ids.split(',')
         try:
-            contracts = get_contracts(bank, account_ids)
+            if is_master_key:
+                contracts = get_contracts(bank=None, account_ids=None)
+            else:
+                contracts = get_contracts(bank, account_ids)
             serializer = ContractSerializer(contracts, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
@@ -101,6 +112,8 @@ class ContractViewSet(viewsets.ViewSet):
             return Response(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class SettlementViewSet(viewsets.ViewSet):
+    authentication_classes = [CustomAPIKeyAuthentication]
+    permission_classes = [HasCustomAPIKey]
 
     @extend_schema(
         tags=["Settlement Periods"],
@@ -170,6 +183,8 @@ class SettlementViewSet(viewsets.ViewSet):
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
 class TransactionViewSet(viewsets.ViewSet):
+    authentication_classes = [CustomAPIKeyAuthentication]
+    permission_classes = [HasCustomAPIKey]
 
     @extend_schema(
         tags=["Transactions"],
@@ -238,6 +253,8 @@ class TransactionViewSet(viewsets.ViewSet):
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
 class TicketViewSet(viewsets.ViewSet):
+    authentication_classes = [CustomAPIKeyAuthentication]
+    permission_classes = [HasCustomAPIKey]
 
     @extend_schema(
         tags=["Tickets"],
@@ -277,6 +294,8 @@ class TicketViewSet(viewsets.ViewSet):
 
 
 class ArtifactViewSet(viewsets.ViewSet):
+    authentication_classes = [CustomAPIKeyAuthentication]
+    permission_classes = [HasCustomAPIKey]
 
     @extend_schema(
         tags=["Artifacts"],
@@ -286,7 +305,7 @@ class ArtifactViewSet(viewsets.ViewSet):
     )
     def list_contract(self, request, contract_idx=None):
         try:
-            artifacts = get_contract_artifacts(contract_idx)
+            artifacts = get_contract_artifacts(int(contract_idx))
             return Response(artifacts, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(str(e), status=status.HTTP_404_NOT_FOUND)
@@ -319,6 +338,8 @@ class ArtifactViewSet(viewsets.ViewSet):
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
 class AccountViewSet(viewsets.ViewSet):
+    authentication_classes = [CustomAPIKeyAuthentication]
+    permission_classes = [HasCustomAPIKey]
 
     @extend_schema(
         tags=["Float Accounts"],
@@ -379,6 +400,8 @@ class AccountViewSet(viewsets.ViewSet):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class DepositViewSet(viewsets.ViewSet):
+    authentication_classes = [CustomAPIKeyAuthentication]
+    permission_classes = [HasCustomAPIKey]
 
     @extend_schema(
         tags=["Float Accounts"],
@@ -403,6 +426,8 @@ class DepositViewSet(viewsets.ViewSet):
             return Response(str(e), status=status.HTTP_404_NOT_FOUND)
 
 class RecipientViewSet(viewsets.ViewSet):
+    authentication_classes = [CustomAPIKeyAuthentication]
+    permission_classes = [HasCustomAPIKey]
 
     @extend_schema(
         tags=["Float Accounts"],
