@@ -42,25 +42,28 @@ const NavBar = ({ onViewChange }) => {
       </div>
       <ul className="nav-links">
         <li>
-          <button onClick={() => onViewChange('contracts')}>Contracts</button>
-        </li>
-        <li>
-          <button onClick={() => onViewChange('settlements')}>Settlements</button>
+          <button onClick={() => onViewChange('home')}>Home</button>
         </li>
         <li>
           <button onClick={() => onViewChange('transactions')}>Transactions</button>
         </li>
         <li>
-          <button onClick={() => onViewChange('tickets')}>Tickets</button>
-        </li>
-        <li>
           <button onClick={() => onViewChange('artifacts')}>Artifacts</button>
         </li>
         <li>
-          <button onClick={() => onViewChange('payments')}>Payments</button>
+          <button onClick={() => onViewChange('admin')}>Admin</button>
         </li>
         <li>
-          <button onClick={() => onViewChange('deposits')}>Deposits</button>
+          <button onClick={() => onViewChange('notifications')}>Notifications</button>
+        </li>
+        <li>
+          <button onClick={() => onViewChange('settings')}>Settings</button>
+        </li>
+        <li>
+          <button onClick={() => onViewChange('support')}>Support</button>
+        </li>
+        <li>
+          <button onClick={() => onViewChange('logout')}>Logout</button>
         </li>
       </ul>
       <div className="user-info">

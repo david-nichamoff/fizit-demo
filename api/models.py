@@ -26,13 +26,32 @@ class EngageDest(models.Model):
         verbose_name = "Engage Destination"
         verbose_name_plural = "Engage Destinations"
 
-class CustomAPIKey(AbstractAPIKey):
-    contract_ids = models.CharField(max_length=255, blank=True, null=True, help_text="Comma-separated list of contract IDs this API key can access.")
-    account_ids = models.CharField(max_length=255, blank=True, null=True, help_text="Comma-separated list of account IDs this API key can access.")
-    restricted_functions = models.CharField(max_length=255, blank=True, null=True, help_text="Comma-separated list of restricted functions.")
+class Accounts(models.Model):
+    account_idx = models.AutoField(primary_key=True)
+    account_id = models.UUIDField(unique=True)
+    bank = models.CharField(max_length=50)
 
-    @classmethod
-    def get_from_key(cls, key: str) -> 'CustomAPIKey':
-        prefix, _, _ = key.partition(".")
-        hashed_key = KeyGenerator().hash(key)
-        return cls.objects.get(prefix=prefix, hashed_key=hashed_key)
+class Recipients(models.Model):
+    account_idx = models.AutoField(primary_key=True)
+    account_id = models.UUIDField(unique=True)
+    bank = models.CharField(max_length=50)
+
+class CustomAPIKey(AbstractAPIKey):
+    parties = models.CharField(max_length=255, blank=True, null=True, help_text="Comma-separated list of party codes this API key can access.")
+
+    class Meta:
+        verbose_name = "API Key"
+        verbose_name_plural = "API Keys"
+
+class DataDictionary(models.Model):
+    type = models.CharField(max_length=50)
+    field_code = models.CharField(max_length=50)
+    display_name = models.CharField(max_length=100)
+    language_code = models.CharField(max_length=10, default='en')  # Add language_code field
+
+    def __str__(self):
+        return f"{self.type} - {self.field_code} ({self.language_code}): {self.display_name}"
+
+    class Meta:
+        unique_together = ('type', 'field_code', 'language_code')
+        verbose_name_plural = 'Data Dictionary'

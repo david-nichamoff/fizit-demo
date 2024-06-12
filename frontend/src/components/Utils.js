@@ -34,5 +34,9 @@ return new Date(dateString).toLocaleDateString(undefined, options);
 };
 
 export const formatPercentage = (value) => {
-return (value * 100).toFixed(2) + '%';
+return (value * 100) + '%';
+};
+
+export const capitalizeFirstLetter = (string) => {
+  return string.charAt(0).toUpperCase() + string.slice(1);
 };

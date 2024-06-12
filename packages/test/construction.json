@@ -1,6 +1,7 @@
 {
     "extended_data"    : {"type":"delivery"}, 
     "contract_name"    : "Pipeline Construction",
+    "contract_type"    : "construction",
     "funding_instr"    : {"bank": "mercury", "account_id" : "61396d72-e780-11ee-b69b-137ed758771c", "recipient_id": "627ecace-e780-11ee-b69b-f311fd81fcb4"},
     "service_fee_pct"  : 0.02,
     "service_fee_amt"  : 0.00,

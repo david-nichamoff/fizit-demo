@@ -1,9 +1,11 @@
 from django.contrib import admin
 from rest_framework_api_key.models import APIKey
 from rest_framework_api_key.admin import APIKeyModelAdmin
-from .models import EngageSrc, EngageDest, CustomAPIKey
+from .models import EngageSrc, EngageDest, CustomAPIKey, DataDictionary
 
-admin.site.unregister(APIKey)
+# Unregister the default APIKey model if it is registered
+if APIKey in admin.site._registry:
+    admin.site.unregister(APIKey)
 
 @admin.register(EngageSrc)
 class EngageSrcAdmin(admin.ModelAdmin):
@@ -17,7 +19,7 @@ class EngageDestAdmin(admin.ModelAdmin):
 
 @admin.register(CustomAPIKey)
 class CustomAPIKeyModelAdmin(APIKeyModelAdmin):
-    fields = ('name', 'contract_ids', 'account_ids', 'restricted_functions')
+    fields = ('name', 'parties')
 
     def save_model(self, request, obj, form, change):
         if not obj.pk:
@@ -25,3 +27,9 @@ class CustomAPIKeyModelAdmin(APIKeyModelAdmin):
             obj.prefix = api_key.prefix
             obj.hashed_key = api_key.hashed_key
         super().save_model(request, obj, form, change)
+
+@admin.register(DataDictionary)
+class DataDictionaryAdmin(admin.ModelAdmin):
+    list_display = ('type', 'field_code', 'display_name', 'language_code')
+    search_fields = ('type', 'field_code', 'display_name', 'language_code')
+    list_filter = ('type', 'language_code')

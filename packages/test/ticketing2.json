@@ -1,0 +1,21 @@
+{   
+    "contract" :
+    {
+        "extended_data"    : {"provider":"engage","src_code":"MadMax", "dest_code":"Grit"}, 
+        "contract_name"    : "Wastewater Haulage Site 2",
+        "contract_type"    : "ticketing",
+        "funding_instr"    : {"bank": "mercury", "account_id" : "61396d72-e780-11ee-b69b-137ed758771c", "recipient_id": "627ecace-e780-11ee-b69b-f311fd81fcb4"},
+        "service_fee_pct"  : 0.025,
+        "service_fee_amt"  : 5.50,
+        "advance_pct"      : 0.80,
+        "late_fee_pct"     : 0.22,
+        "transact_logic"   : {"var" : "ticket_amt"},
+        "is_active"        : true
+    },
+    "parties" :
+    [
+        {"party_code" : "Simpson", "party_type" : "Seller"},   
+        {"party_code" : "Chevron", "party_type" : "Buyer"},   
+        {"party_code" : "One AM", "party_type" : "Funder"} 
+    ]
+}

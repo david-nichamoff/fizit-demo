@@ -13,6 +13,10 @@ import adapter.ticketing.engage
 
 from api.models import EngageSrc, EngageDest
 
+from privacy import is_user_authorized
+
+ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+
 env_var = env_var.get_env()
 w3 = web3_client.get_web3_instance()
 w3_contract = web3_client.get_web3_contract()
@@ -28,34 +32,38 @@ def get_contract_dict(contract_idx):
     contract = w3_contract.functions.getContract(contract_idx).call()
     contract_dict["extended_data"] = json.loads(contract[0].replace("'",'"'))
     contract_dict["contract_name"] = contract[1]
-    contract_dict["funding_instr"] = json.loads(contract[2].replace("'",'"'))
-    contract_dict["service_fee_pct"] = contract[3] / 10000
-    contract_dict["service_fee_amt"] = contract[4] / 100
-    contract_dict["advance_pct"] = contract[5] / 10000
-    contract_dict["late_fee_pct"] = contract[6] / 10000
-    contract_dict["transact_logic"] = json.loads(contract[7].replace("'",'"'))
-    contract_dict["is_active"] = contract[8]
+    contract_dict["contract_type"] = contract[2]
+    contract_dict["funding_instr"] = json.loads(contract[3].replace("'",'"'))
+    contract_dict["service_fee_pct"] = contract[4] / 10000
+    contract_dict["service_fee_amt"] = contract[5] / 100
+    contract_dict["advance_pct"] = contract[6] / 10000
+    contract_dict["late_fee_pct"] = contract[7] / 10000
+    contract_dict["transact_logic"] = json.loads(contract[8].replace("'",'"'))
+    contract_dict["is_active"] = contract[9]
     contract_dict["contract_idx"] = contract_idx
     return contract_dict
 
-def get_contracts(bank, account_ids):
+def get_contracts(request, bank, account_ids):
     contracts = []
     for contract_idx in range(get_contract_count()):
         contract_dict = get_contract_dict(contract_idx)
+        parties = get_contract_parties(contract_idx)
         if (account_ids is None or contract_dict['funding_instr']['account_id'] in account_ids) and \
-           (bank is None or bank == contract_dict['funding_instr']['bank']):
-            contracts.append(contract_dict)
+            (bank is None or bank == contract_dict['funding_instr']['bank']):
+            if is_user_authorized(request, parties):
+                contracts.append(contract_dict)
 
     return contracts
 
 def get_contract(contract_idx):
-    contract = get_contract_dict(contract_idx)
-    return contract 
+    contract_dict = get_contract_dict(contract_idx)
+    return contract_dict
 
 def build_contract(contract_dict):
     contract = []
     contract.append(str(contract_dict["extended_data"]))
     contract.append(contract_dict["contract_name"])
+    contract.append(contract_dict["contract_type"])
     contract.append(str(contract_dict["funding_instr"]))
     contract.append(int(contract_dict["service_fee_pct"] * 10000))
     contract.append(int(contract_dict["service_fee_amt"] * 100))
@@ -82,13 +90,39 @@ def add_contract(contract_dict):
     tx_receipt = web3_client.get_tx_receipt(call_function)
     return contract_idx if tx_receipt["status"] == 1 else False
 
-def delete_contract(contract_idx):
+def get_party_dict(party, contract_idx):
+    party_dict = {}
+    party_dict["party_code"] = party[0]
+    party_dict["party_address"] = party[1]
+    party_dict["party_type"] = party[2]
+    party_dict["contract_idx"] = contract_idx
+    return party_dict
+
+def get_contract_parties(contract_idx):
+    parties = []
+    parties_ = w3_contract.functions.getParties(contract_idx).call() 
+    for party in parties_:
+        party_dict = get_party_dict(party, contract_idx)
+        parties.append(party_dict)
+
+    return parties
+
+def add_parties(contract_idx, parties):
+    for party in parties:
+        nonce = w3.eth.get_transaction_count(env_var["wallet_addr"])
+        call_function = w3_contract.functions.addParty(contract_idx, [party["party_code"], ZERO_ADDRESS, party["party_type"]] ).build_transaction(
+            {"from":env_var["wallet_addr"],"nonce":nonce,"gas":env_var["gas_limit"]}) 
+        tx_receipt = web3_client.get_tx_receipt(call_function)
+        if tx_receipt["status"] != 1: return False
+    return True
+
+def delete_parties(contract_idx):
     nonce = w3.eth.get_transaction_count(env_var["wallet_addr"])
-    call_function = w3_contract.functions.deleteContract(contract_idx).build_transaction(
+    call_function = w3_contract.functions.deleteParties(contract_idx).build_transaction(
         {"from":env_var["wallet_addr"],"nonce":nonce,"gas":env_var["gas_limit"]}) 
     tx_receipt = web3_client.get_tx_receipt(call_function)
     return True if tx_receipt["status"] == 1 else False   
-
+        
 def get_settle_dict(settle, contract):
     settle_dict = {}
     settle_dict["extended_data"] = json.loads(settle[0].replace("'",'"'))
@@ -114,9 +148,9 @@ def get_settle_dict(settle, contract):
     settle_dict["funding_instr"] = contract['funding_instr']
     return settle_dict
     
-def get_settlements(bank, account_ids):
+def get_settlements(request, bank, account_ids):
     settlements = []
-    contracts = get_contracts(bank, account_ids)
+    contracts = get_contracts(request, bank, account_ids)
 
     for contract in contracts:
         settles = w3_contract.functions.getSettlements(contract['contract_idx']).call()
@@ -170,9 +204,9 @@ def get_transact_dict(transact, contract):
     transact_dict["funding_instr"] = contract['funding_instr']
     return transact_dict
 
-def get_transactions(bank, account_ids):
+def get_transactions(request, bank, account_ids):
     transactions = []
-    contracts = get_contracts(bank, account_ids)
+    contracts = get_contracts(request, bank, account_ids)
 
     for contract in contracts:
         transacts = w3_contract.functions.getTransactions(contract['contract_idx']).call()
@@ -185,10 +219,13 @@ def get_transactions(bank, account_ids):
 def get_contract_transactions(contract_idx):
     transactions=[]
     contract = get_contract(contract_idx)
-    transacts = w3_contract.functions.getTransactions(contract['contract_idx']).call() 
-    for transact in transacts:
-        transact_dict = get_transact_dict(transact, contract)
-        transactions.append(transact_dict)
+
+    if len(contract) > 0:
+        transacts = w3_contract.functions.getTransactions(contract['contract_idx']).call() 
+        for transact in transacts:
+            transact_dict = get_transact_dict(transact, contract)
+            transactions.append(transact_dict)
+
     sorted_transactions = sorted(transactions, key=lambda d: d['transact_dt'], reverse=True)
     return sorted_transactions 
 
@@ -216,7 +253,7 @@ def get_contract_tickets(contract_idx, start_date, end_date):
     contract = get_contract(contract_idx)
     tickets = []
 
-    if contract["extended_data"]["type"] == "ticket": 
+    if contract["contract_type"] == "ticketing": 
         if contract["extended_data"]["provider"] == "engage":
             engage_src = EngageSrc.objects.get(src_code=contract["extended_data"]["src_code"])
             engage_dest = EngageDest.objects.get(dest_code=contract["extended_data"]["dest_code"])
@@ -238,6 +275,7 @@ def get_contract_artifacts(contract_idx):
         artifact_dict["doc_type"] = artifact["doc_type"]
         artifact_dict["added_dt"] = artifact["added_dt"]
         artifacts.append(artifact_dict)
+
     sorted_artifacts = sorted(artifacts, key=lambda d: d['added_dt'], reverse=True)
     return sorted_artifacts
 
@@ -252,7 +290,6 @@ def delete_artifacts(contract_idx):
     return adapter.artifact.numbers.delete_artifacts(contract_idx, artifacts)
 
 def get_accounts(bank):
-    accounts = []
     if bank == "mercury" or bank is None:  
         accounts = adapter.bank.mercury.get_accounts()
     return accounts

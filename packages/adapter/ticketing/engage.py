@@ -29,7 +29,6 @@ def get_tickets(contract, engage_src, engage_dest, start_date, end_date):
             }
             tickets.append(ticket)
 
-        # Increment curr_date by one day
         curr_date += timedelta(days=1)
 
     return tickets

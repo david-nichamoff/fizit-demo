@@ -1,0 +1,22 @@
+USERS
+-----
+
+admin
+admin@fizit.biz
+7Jqp5xme
+
+david.nichamoff
+david@fizit.biz
+nsrGzADRm2Fk
+
+API KEYS
+--------
+
+FIZIT_MASTER_KEY
+Api-Key GTxS2B4O.ctQobAB4srUz45Vy0uGShu3T5eFsSJ6R
+
+OneAM
+Api-Key Ydp6hgSp.f9oAyu5X2PTvhuetHdyhZbsasoi7ow2T
+
+USBank
+Api-Key YIGGOJt8.YeDTtoouXK0T34O2s9HhdCgBzrw7NNVD

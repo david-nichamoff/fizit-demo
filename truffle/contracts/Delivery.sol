@@ -9,6 +9,7 @@ contract Delivery {
     mapping (uint => Settlement[]) private settlements;     // contract_idx => settlement[]
     mapping (uint => Transaction[]) private transactions;   // contract_idx => transaction[]
     mapping (uint => Artifact[]) private artifacts;         // contract_idx => artifact_list[]
+    mapping (uint => Party[]) private parties;              // contract_idx => party[]
 
     // every field ending in _dt is a unix timestamp
     // every field ending in _amt is an integer representing a float with 2 decimals
@@ -17,10 +18,11 @@ contract Delivery {
 
     struct Contract {
         string extended_data;           // json extended data
-        string contract_name;           // non-unique, description for display purposes
+        string contract_name;           // description for display purposes
+        string contract_type;           // the type of contract, e.g. ticketing, construction
         string funding_instr;           // buyer funding instructions
         uint service_fee_pct;           // service fee can include a pct + flat rate amt
-        uint service_fee_amt;           
+        uint service_fee_amt;           // flat rate amt
         uint advance_pct;               // amount of money that will be advanced to seller for every transaction
         uint late_fee_pct;              // an APR, daily rate calculated as late_fee_pct / 365
         string transact_logic;          // jsonlogic formula for calculating transaction amount
@@ -67,8 +69,15 @@ contract Delivery {
         string doc_type;                // document type
     }
 
+    struct Party {
+        string party_code;              // code associated with a party
+        address party_address;          // wallet address
+        string party_type;              // the type of party associated with contract
+    }
+
     event ContractAdded(uint indexed contract_idx);
     event ContractUpdated(uint indexed contract_idx);
+    event PartyAdded(uint indexed contract_idx, uint indexed party_idx);
     event TransactionAdded(uint indexed contract_idx, uint indexed transact_idx);
     event ArtifactAdded(uint indexed contract_idx, uint indexed artifact_idx);
     event SettlementAdded(uint indexed contract_idx, uint indexed settle_idx);
@@ -101,6 +110,19 @@ contract Delivery {
     function updateContract (uint contract_idx, Contract memory contract_) public onlyOwner {
         contracts[contract_idx] = contract_;
         emit ContractUpdated(contract_idx);
+    }
+
+    function getParties(uint contract_idx) public view returns (Party[] memory) {
+        return parties[contract_idx];
+    }
+
+    function addParty(uint contract_idx, Party memory party_code) public onlyOwner {
+        parties[contract_idx].push(party_code);
+        emit PartyAdded(contract_idx, parties[contract_idx].length - 1);
+    }
+
+    function deleteParties(uint contract_idx) public onlyOwner {
+        delete parties[contract_idx];
     }
 
     function getArtifacts (uint contract_idx) public view returns (Artifact[] memory) {

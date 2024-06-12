@@ -1,18 +1,21 @@
 from datetime import datetime, timedelta
 
-from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, PermissionDenied
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import SessionAuthentication
 from rest_framework import viewsets, status
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from .serializers import ContractSerializer, SettlementSerializer, TransactionSerializer, TicketSerializer
 from .serializers import ArtifactSerializer, AccountSerializer, RecipientSerializer
+from .serializers import PartySerializer
 from .serializers import DepositSerializer
+from .serializers import DataDictionarySerializer
 
 from packages.interface import get_contract, get_contracts, add_contract, update_contract
+from packages.interface import get_contract_parties, add_parties, delete_parties
 from packages.interface import get_contract_settlements, get_settlements, add_settlements, delete_settlements
 from packages.interface import get_contract_transactions, get_transactions, add_transactions, delete_transactions
 from packages.interface import pay_residual, pay_advance, get_deposits
@@ -20,37 +23,34 @@ from packages.interface import get_accounts, get_recipients
 from packages.interface import get_contract_artifacts, add_artifacts, delete_artifacts
 from packages.interface import get_contract_tickets
 
-from .models import CustomAPIKey
+from packages.privacy import is_master_key
+
+from .models import DataDictionary
 from .permissions import HasCustomAPIKey
 from .authentication import CustomAPIKeyAuthentication
 
 class ContractViewSet(viewsets.ViewSet):
-    authentication_classes = [CustomAPIKeyAuthentication]
-    permission_classes = [HasCustomAPIKey]
+    authentication_classes = [SessionAuthentication , CustomAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
         operation_id="list_contracts",
         tags=["Contracts"],
         parameters=[
             OpenApiParameter(name='bank', description='Funding bank', required=False, type=str),
-            OpenApiParameter(name='account_ids', description='Funding account_id list, comma separated ', required=False, type=str)
+            OpenApiParameter(name='account_ids', description='Funding account_id list, comma separated ', required=False, type=str),
         ],
         responses={status.HTTP_200_OK: ContractSerializer(many=True)},
         summary="List Contracts",
         description="Retrieve a list of contracts"
     )
     def list(self, request):
-        api_key = request.META.get('HTTP_AUTHORIZATION', '').split(' ')[-1]
-        is_master_key = CustomAPIKey.objects.filter(hashed_key=api_key, name="FIZIT_MASTER_KEY").exists()
         bank = request.query_params.get('bank')
-        account_ids = request.query_params.get('account_id')
-        if account_ids is not None: 
+        account_ids = request.query_params.get('account_ids')
+        if account_ids is not None:
             account_ids = account_ids.split(',')
         try:
-            if is_master_key:
-                contracts = get_contracts(bank=None, account_ids=None)
-            else:
-                contracts = get_contracts(bank, account_ids)
+            contracts = get_contracts(request, bank, account_ids)
             serializer = ContractSerializer(contracts, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
@@ -79,6 +79,8 @@ class ContractViewSet(viewsets.ViewSet):
         description="Create a new contract"
     )
     def create(self, request):
+        if not is_master_key(request):
+            raise PermissionDenied("You do not have permission to perform this action.")
         serializer = ContractSerializer(data=request.data)
         if serializer.is_valid():
             contract_dict = serializer.validated_data 
@@ -98,6 +100,8 @@ class ContractViewSet(viewsets.ViewSet):
         description="Partial update of an existing contract"
     )
     def partial_update(self, request, contract_idx=None):
+        if not is_master_key(request):
+            raise PermissionDenied("You do not have permission to perform this action.")
         try:
             contract_dict = get_contract(contract_idx)
             serializer = ContractSerializer(data=request.data, partial=True)
@@ -111,16 +115,66 @@ class ContractViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+class PartyViewSet(viewsets.ViewSet):
+    @extend_schema(
+        tags=["Parties"],
+        request=PartySerializer(many=True),
+        responses={status.HTTP_200_OK: PartySerializer(many=True)},
+        summary="List Parties",
+        description="Retrieve a list of parties associated with a contract"
+    )
+    def list_contract(self, request, contract_idx=None):
+        try:
+            parties = get_contract_parties(int(contract_idx))
+            return Response(parties, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_404_NOT_FOUND)
+
+    @extend_schema(
+        tags=["Parties"],
+        request=PartySerializer(many=True),
+        responses={status.HTTP_201_CREATED: int},
+        summary="Create Parties",
+        description="Add a list of parties to an existing contract",
+    )
+    def create(self, request, contract_idx=None):
+        if not is_master_key(request):
+            raise PermissionDenied("You do not have permission to perform this action.")
+        serializer = PartySerializer(data=request.data, many=True)
+        if serializer.is_valid():
+            try:
+                response = add_parties(contract_idx, serializer.validated_data)
+                return Response(response, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)   
+
+    @extend_schema(
+        tags=["Parties"],
+        responses={status.HTTP_204_NO_CONTENT: int},
+        summary="Delete Parties",
+        description="Delete all parties from a contract",
+    )
+    def delete(self, request, contract_idx=None):
+        if not is_master_key(request):
+            raise PermissionDenied("You do not have permission to perform this action.")
+        try:
+            response = delete_parties(contract_idx)
+            return Response(response, status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+
 class SettlementViewSet(viewsets.ViewSet):
-    authentication_classes = [CustomAPIKeyAuthentication]
-    permission_classes = [HasCustomAPIKey]
+    authentication_classes = [SessionAuthentication , CustomAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
         tags=["Settlement Periods"],
         request=SettlementSerializer(many=True),
         parameters = [
             OpenApiParameter(name='bank', description='Funding bank', required=False, type=str),
-            OpenApiParameter(name='account_ids', description='Funding account_id list, comma separated ', required=False, type=str)
+            OpenApiParameter(name='account_ids', description='Funding account_id list, comma separated ', required=False, type=str),
         ],
         responses={status.HTTP_200_OK: SettlementSerializer(many=True)},
         summary="List Settlements",
@@ -132,7 +186,7 @@ class SettlementViewSet(viewsets.ViewSet):
         if account_ids is not None: 
             account_ids = account_ids.split(',')
         try:
-            settlements = get_settlements(bank, account_ids)
+            settlements = get_settlements(request, bank, account_ids)
             return Response(settlements, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(str(e), status=status.HTTP_404_NOT_FOUND)
@@ -159,6 +213,8 @@ class SettlementViewSet(viewsets.ViewSet):
         description="Add a list of settlements to an existing contract",
     )
     def create(self, request, contract_idx=None):
+        if not is_master_key(request):
+            raise PermissionDenied("You do not have permission to perform this action.")
         serializer = SettlementSerializer(data=request.data, many=True)
         if serializer.is_valid():
             try:
@@ -176,6 +232,8 @@ class SettlementViewSet(viewsets.ViewSet):
         description="Delete all settlements from a contract",
     )
     def delete(self, request, contract_idx=None):
+        if not is_master_key(request):
+            raise PermissionDenied("You do not have permission to perform this action.")
         try:
             response = delete_settlements(contract_idx)
             return Response(response, status=status.HTTP_204_NO_CONTENT)
@@ -183,14 +241,14 @@ class SettlementViewSet(viewsets.ViewSet):
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
 class TransactionViewSet(viewsets.ViewSet):
-    authentication_classes = [CustomAPIKeyAuthentication]
-    permission_classes = [HasCustomAPIKey]
+    authentication_classes = [SessionAuthentication , CustomAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
         tags=["Transactions"],
         parameters = [
             OpenApiParameter(name='bank', description='Funding bank', required=False, type=str),
-            OpenApiParameter(name='account_ids', description='Funding account_id list, comma separated ', required=False, type=str)
+            OpenApiParameter(name='account_ids', description='Funding account_id list, comma separated ', required=False, type=str),
         ],
         responses={status.HTTP_200_OK: TransactionSerializer(many=True)},
         summary="List Transactions",
@@ -202,7 +260,7 @@ class TransactionViewSet(viewsets.ViewSet):
         if account_ids is not None: 
             account_ids = account_ids.split(',')
         try:
-            transactions = get_transactions(bank, account_ids)
+            transactions = get_transactions(request, bank, account_ids)
             return Response(transactions, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(str(e), status=status.HTTP_404_NOT_FOUND)
@@ -228,6 +286,8 @@ class TransactionViewSet(viewsets.ViewSet):
         description="Add a list of transactions to an existing contract",
     )
     def create(self, request, contract_idx=None):
+        if not is_master_key(request):
+            raise PermissionDenied("You do not have permission to perform this action.")
         serializer = TransactionSerializer(data=request.data, many=True)
         if serializer.is_valid():
             try:
@@ -246,6 +306,8 @@ class TransactionViewSet(viewsets.ViewSet):
         description="Delete all transactions from a contract",
     )
     def delete(self, request, contract_idx=None):
+        if not is_master_key(request):
+            raise PermissionDenied("You do not have permission to perform this action.")
         try:
             response = delete_transactions(contract_idx)
             return Response(response, status=status.HTTP_204_NO_CONTENT)
@@ -253,8 +315,8 @@ class TransactionViewSet(viewsets.ViewSet):
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
 class TicketViewSet(viewsets.ViewSet):
-    authentication_classes = [CustomAPIKeyAuthentication]
-    permission_classes = [HasCustomAPIKey]
+    authentication_classes = [SessionAuthentication , CustomAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
         tags=["Tickets"],
@@ -273,8 +335,7 @@ class TicketViewSet(viewsets.ViewSet):
             start_date = datetime.strptime(start_date, '%Y-%m-%d')
             end_date = datetime.strptime(end_date, '%Y-%m-%d')
             tickets = get_contract_tickets(contract_idx, start_date, end_date)
-            serializer = TicketSerializer(tickets, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(tickets, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(str(e), status=status.HTTP_404_NOT_FOUND)
 
@@ -286,16 +347,18 @@ class TicketViewSet(viewsets.ViewSet):
     )
     @action(detail=True, methods=['post'], url_path='process')
     def process(self, request, contract_idx=None):
+        if not is_master_key(request):
+            raise PermissionDenied("You do not have permission to perform this action.")
         try:
             pass
-            return Response(response, status=status.HTTP_200_OK)
+            #return Response(response, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ArtifactViewSet(viewsets.ViewSet):
-    authentication_classes = [CustomAPIKeyAuthentication]
-    permission_classes = [HasCustomAPIKey]
+    authentication_classes = [SessionAuthentication , CustomAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
         tags=["Artifacts"],
@@ -317,6 +380,8 @@ class ArtifactViewSet(viewsets.ViewSet):
         description="Search file system for artifacts for a contract",
     )
     def create(self, request, contract_idx=None):
+        if not is_master_key(request):
+            raise PermissionDenied("You do not have permission to perform this action.")
         try:
             contract_name = get_contract(contract_idx)["contract_name"]
             response = add_artifacts(contract_idx, contract_name)
@@ -331,6 +396,8 @@ class ArtifactViewSet(viewsets.ViewSet):
         description="Delete all artifacts from a contract",
     )
     def delete(self, request, contract_idx=None):
+        if not is_master_key(request):
+            raise PermissionDenied("You do not have permission to perform this action.")
         try:
             response = delete_artifacts(contract_idx)
             return Response(response, status=status.HTTP_204_NO_CONTENT)
@@ -338,13 +405,13 @@ class ArtifactViewSet(viewsets.ViewSet):
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
 class AccountViewSet(viewsets.ViewSet):
-    authentication_classes = [CustomAPIKeyAuthentication]
-    permission_classes = [HasCustomAPIKey]
+    authentication_classes = [SessionAuthentication , CustomAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
         tags=["Float Accounts"],
         parameters=[
-            OpenApiParameter(name='bank', description='Funding bank', required=False, type=str)
+            OpenApiParameter(name='bank', description='Funding bank', required=False, type=str),
         ],
         responses={status.HTTP_200_OK: AccountSerializer(many=True)},
         summary="List Acounts",
@@ -354,8 +421,7 @@ class AccountViewSet(viewsets.ViewSet):
         bank = request.query_params.get('bank')
         try:
             accounts = get_accounts(bank)
-            serializer = AccountSerializer(accounts, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(accounts, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(str(e), status=status.HTTP_404_NOT_FOUND)
 
@@ -400,8 +466,8 @@ class AccountViewSet(viewsets.ViewSet):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class DepositViewSet(viewsets.ViewSet):
-    authentication_classes = [CustomAPIKeyAuthentication]
-    permission_classes = [HasCustomAPIKey]
+    authentication_classes = [SessionAuthentication , CustomAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
         tags=["Float Accounts"],
@@ -426,8 +492,8 @@ class DepositViewSet(viewsets.ViewSet):
             return Response(str(e), status=status.HTTP_404_NOT_FOUND)
 
 class RecipientViewSet(viewsets.ViewSet):
-    authentication_classes = [CustomAPIKeyAuthentication]
-    permission_classes = [HasCustomAPIKey]
+    authentication_classes = [SessionAuthentication , CustomAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
         tags=["Float Accounts"],
@@ -446,3 +512,17 @@ class RecipientViewSet(viewsets.ViewSet):
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(str(e), status=status.HTTP_404_NOT_FOUND)
+
+class DataDictionaryViewSet(viewsets.ViewSet):
+
+    @extend_schema(
+        tags=["Data Dictionary"],
+        summary="Retrieve Data Dictionary",
+        description="Retrieve the data dictionary"
+    )
+    def list(self, request):
+        language_code = request.query_params.get('language_code', 'en')
+        queryset = DataDictionary.objects.filter(language_code=language_code)
+        serializer = DataDictionarySerializer(queryset, many=True)
+        return Response(serializer.data)
+

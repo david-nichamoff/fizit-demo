@@ -1,27 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import NavBar from './components/NavBar';
-import AmbassadorPage from './components/AmbassadorPage';
-import AdminPage from './components/AdminPage';
-import ContractsPage from './components/ContractsPage';
-import SettlementsPage from './components/SettlementsPage';
-import TransactionsPage from './components/TransactionsPage';
-import ArtifactsPage from './components/ArtifactsPage';
-import TicketsPage from './components/TicketsPage';
-import MetersPage from './components/MetersPage';
-import PaymentsPage from './components/PaymentsPage';
-import DepositsPage from './components/DepositsPage';
 import axios from 'axios';
 import './App.css';
+import fizitLogo from '../static/assets/logo/fizit_white-gray.png';
+import Contracts from './components/Contracts';
+import GetPaidFaster from './components/GetPaidFaster'; 
 
 const App = () => {
   const [contracts, setContracts] = useState([]);
-  const [settlements, setSettlements] = useState([]);
-  const [transactions, setTransactions] = useState([]);
-  const [artifacts, setArtifacts] = useState([]);
-  const [deposits, setDeposits] = useState([]);
-  const [accounts, setAccounts] = useState([]);
+  const [username, setUsername] = useState(null);
 
-  const [displayPage, setDisplayPage] = useState('contracts'); 
+  useEffect(() => {
+    fetchData('/contracts', setContracts);
+    // Fetch username logic here, setUsername accordingly
+  }, []);
 
   const fetchData = async (url, setData) => {
     try {
@@ -38,58 +29,80 @@ const App = () => {
     }
   };
 
-  useEffect(() => {
-    fetchData('/contracts', setContracts);
-  }, []);
-
-  const handleViewChange = (page) => {
-    setDisplayPage(page);
-    switch (page) {
-      case 'contracts':
-        fetchData('/contracts', setContracts);
-        break;
-      case 'settlements':
-        fetchData('/settlements', setSettlements);
-        break;
-      case 'transactions':
-        fetchData('/transactions', setTransactions);
-        break;
-      case 'tickets':
-        fetchData('/contracts', setContracts);
-        break;
-      case 'deposits':
-        fetchData('/deposits', setDeposits);
-        fetchData('/contracts', setContracts);
-        break;
-      case 'payments':
-        fetchData('/accounts', setAccounts);
-        fetchData('/transactions', setTransactions);
-        fetchData('/settlements', setSettlements);
-        break;
-      case 'artifacts':
-        fetchData('/artifacts', setArtifacts);
-        break;
-      default:
-        break;
-    }
+  const handleLogout = () => {
+    console.log('User logged out');
+    // Add your logout logic here
   };
 
   return (
     <div className="app-container">
-      <NavBar onViewChange={handleViewChange} />
-      <div className="detail-page">
-        {displayPage === 'contracts' && <ContractsPage contracts={contracts} />}
-        {displayPage === 'settlements' && <SettlementsPage settlements={settlements} />}
-        {displayPage === 'transactions' && <TransactionsPage transactions={transactions} />}
-        {displayPage === 'tickets' && <TicketsPage contracts={contracts} />}
-        {displayPage === 'meters' && <MetersPage contracts={contracts} />}
-        {displayPage === 'ambassador' && <AmbassadorPage contracts={contracts} />}
-        {displayPage === 'administration' && <AdminPage contracts={contracts} />}
-        {displayPage === 'deposits' && <DepositsPage contracts={contracts} deposits={deposits} />}
-        {displayPage === 'payments' && <PaymentsPage accounts={accounts} transactions={transactions} settlements={settlements} />}
-        {displayPage === 'artifacts' && <ArtifactsPage artifacts={artifacts} />}
+      <div className="title-bar">
+        <img src={fizitLogo} alt="FIZIT Logo" className="logo" />
+        <nav className="nav-links">
+          <a href="#">How it works</a>
+          <a href="#">Resources</a>
+          <a href="#">Industries</a>
+          <a href="#">Careers</a>
+          <a href="#">About us</a>
+        </nav>
+        {username ? (
+          <div className="user-dropdown">
+            <span>Hello {username}</span>
+            <div className="dropdown-content">
+              <button onClick={handleLogout}>Logout</button>
+            </div>
+          </div>
+        ) : (
+          <div className="auth-links">
+            <a href="/login" className="login-link">Log In</a>
+            <a href="/register" className="register-link">Register</a>
+          </div>
+        )}
       </div>
-    </div> 
+      <GetPaidFaster /> 
+      <div className="contract-scroll-section">
+        <Contracts contracts={contracts} />
+      </div>
+      <div className="footer-bar">
+        <div className="footer-column">
+          <h3>Account</h3>
+          <a href="#">Register</a>
+          <a href="#">Login</a>
+          <a href="#">Logout</a>
+          <a href="#">Get a Quote</a>
+          <a href="#">Become an Ambassador</a>
+        </div>
+        <div className="footer-column">
+          <h3>About</h3>
+          <a href="#">How FIZIT Works</a>
+          <a href="#">Our Story</a>
+          <a href="#">Careers</a>
+          <a href="#">Contact Us</a>
+        </div>
+        <div className="footer-column">
+          <h3>Resources</h3>
+          <a href="#">Help Center</a>
+          <a href="#">Press Room</a>
+          <a href="#">Whitepapers</a>
+        </div>
+        <div className="footer-column">
+          <h3>Industries</h3>
+          <a href="#">Wastewater</a>
+          <a href="#">Offshore Drilling</a>
+          <a href="#">Construction</a>
+        </div>
+        <div className="footer-column">
+          <h3>Follow Us</h3>
+          <a href="#">X</a>
+          <a href="#">LinkedIn</a>
+          <a href="#">YouTube</a>
+          <a href="#">Instagram</a>
+        </div>
+      </div>
+      <div className="footer-bottom">
+        <p>©2024 by FIZIT, Inc.</p>
+      </div>
+    </div>
   );
 };
 
