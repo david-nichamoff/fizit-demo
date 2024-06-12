@@ -91,12 +91,16 @@ def generate_transactions(contract_idx, variables, sample_values, extended_data_
 
 def post_transactions(contract_idx, transactions):
     headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
-    response = requests.post(env_var["url"] + f"/api/contracts/{contract_idx}/transactions/", json=transactions, headers=headers)
-    if response.status_code == 201:
-        print("Transactions successfully created.")
-    else:
-        print(f"Failed to create transactions. Status code: {response.status_code}")
-        print("Response content:", response.content.decode())
+    batch_size = 10
+
+    for i in range(0, len(transactions), batch_size):
+        batch = transactions[i:i + batch_size]
+        response = requests.post(env_var["url"] + f"/api/contracts/{contract_idx}/transactions/", json=batch, headers=headers)
+        if response.status_code == 201:
+            print(f"Batch {i//batch_size + 1} of transactions successfully created.")
+        else:
+            print(f"Failed to create batch {i//batch_size + 1} of transactions. Status code: {response.status_code}")
+            print("Response content:", response.content.decode())
 
 def main():
     contracts = get_contracts()

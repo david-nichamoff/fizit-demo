@@ -47,7 +47,6 @@ def delete_existing_parties(contract_idx):
 
 def add_parties(contract_idx, parties):
     headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
-    print(parties)
     response = requests.post(env_var["url"] + f'/api/contracts/{contract_idx}/parties/', json=parties, headers=headers)
     if response.status_code != 201:
         print(f"Failed to add parties'. Status code: {response.status_code}")

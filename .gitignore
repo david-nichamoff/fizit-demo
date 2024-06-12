@@ -31,7 +31,8 @@ truffle/package.json
 # ignore configuration files that need to be set manually
 config/private_keys.json
 config/public_env.json
-config/admin.txt
+config/dev_keys.txt
+config/test_keys.txt
 .env.dev
 webpack.config.js
 
