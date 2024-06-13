@@ -4,7 +4,7 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 
-def homepage(request):
+def index(request):
     return render(request, 'index.html') 
 
 @login_required
