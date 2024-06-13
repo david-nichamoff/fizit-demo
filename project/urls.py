@@ -4,9 +4,8 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, Sp
 from django.conf import settings
 from django.conf.urls.static import static
 
-# Define urlpatterns
 urlpatterns = [
-    path("", include("frontend.urls")),
+    path("", include("frontend.urls")),  
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')), 
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),

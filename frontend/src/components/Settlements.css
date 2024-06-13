@@ -1,0 +1,42 @@
+@import url('./Palette.css');
+
+.settlement-container {
+  padding: 20px;
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+  border: 1px solid var(--color-grey);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+  margin-top: 0px;
+}
+
+.settlement-detail-container {
+  margin-bottom: 20px;
+}
+
+.settlement-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+.header-row {
+    font-weight: bold;
+    border: 1px solid var(--color-grey);
+    padding: 5px;
+    grid-column: span 2;
+    background-color: var(--color-lightgrey); 
+  }
+  
+.json-key,
+.json-value {
+    border: 1px solid var(--color-grey);
+    padding: 5px;
+    word-wrap: break-word;
+    text-align: left;
+} 

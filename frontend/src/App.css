@@ -1,44 +1,61 @@
 @import url('./components/Palette.css');
 
+:root {
+    --font-size-default: 12px;
+    --font-size-xlarge: calc(var(--font-size-default) + 4px);
+    --font-size-large: calc(var(--font-size-default) + 2px);
+    --font-size-medium: calc(var(--font-size-default) - 1px);
+    --font-size-small: calc(var(--font-size-default) - 2px);
+    --font-size-smaller: calc(var(--font-size-default) - 3px);
+    --font-size-smallest: calc(var(--font-size-default) - 4px);
+}
+
 body {
     margin: 0;
     padding: 0;
-    overflow-y: auto;
     font-family: 'Roboto', sans-serif;
-    font-size: 12px;
+    font-size: var(--font-size-default);
+    overflow: visible;
 }
 
 .app-container {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    height: 100vh;
-    overflow-y: auto;
+    min-height: 100vh;
+    margin-top: 40px;
 }
 
 .title-bar {
+    position: fixed; 
+    top: 0;
+    width: 100%;
+    height: 50px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     background-color: var(--color-darkblue);
-    padding: 10px 20px;
+    padding: 0 20px;
     color: white;
+    z-index: 1000;
 }
 
 .logo {
     width: 125px;
     height: auto;
+    margin-right: 50px;
 }
 
 .nav-links {
     display: flex;
     gap: 20px;
+    margin-right: auto;
+    align-items: center;
 }
 
 .nav-links a {
     color: white;
     text-decoration: none;
-    font-size: 16px;
+    font-size: var(--font-size-default);
     transition: color 0.3s ease;
 }
 
@@ -46,8 +63,24 @@ body {
     color: var(--color-green);
 }
 
+.contracts-link {
+    color: white;
+    text-decoration: none;
+    font-size: var(--font-size-large);
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: var(--color-lightblue);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.contracts-link:hover {
+    background-color: var(--color-darkblue);
+    color: var(--color-green);
+}
+
 .user-dropdown {
     position: relative;
+    margin-right: 40px;
     display: inline-block;
 }
 
@@ -89,8 +122,9 @@ body {
 .login-link {
     color: white;
     text-decoration: none;
-    font-size: 16px;
+    font-size: var(--font-size-default);
     transition: color 0.3s ease;
+    align-self: center;
 }
 
 .login-link:hover {
@@ -100,24 +134,24 @@ body {
 .register-link {
     color: white;
     text-decoration: none;
-    font-size: 16px;
+    font-size: var(--font-size-large);
     padding: 5px 10px;
     border-radius: 20px;
     background-color: var(--color-lightblue);
     transition: background-color 0.3s ease, color 0.3s ease;
+    margin-right: 40px;
 }
 
 .register-link:hover {
-    background-color: var(--color-blue);
+    background-color: var(--color-darkblue);
     color: var(--color-green);
 }
 
-.contract-scroll-section {
+.content-section {
     flex: 1;
-    display: flex;
-    overflow-x: auto;
     padding: 20px;
-    background-color: #f9f9f9;
+    background-color: var(--color-background);
+    overflow-y: auto;
 }
 
 .footer-bar {
@@ -136,14 +170,14 @@ body {
 
 .footer-column h3 {
     margin-bottom: 10px;
-    font-size: 16px;
+    font-size: var(--font-size-large);
 }
 
 .footer-column a {
     color: white;
     text-decoration: none;
     margin-bottom: 5px;
-    font-size: 14px;
+    font-size: var(--font-size-default);
     transition: color 0.3s ease;
 }
 
@@ -156,4 +190,34 @@ body {
     padding: 10px 0;
     background-color: var(--color-darkblue);
     color: white;
+}
+
+.footer-logo {
+    width: 80px;
+    height: auto;
+    margin-bottom: 10px;
+}
+
+@media (max-width: 1200px) {
+    :root {
+        --font-size-default: 11px;
+    }
+}
+
+@media (max-width: 992px) {
+    :root {
+        --font-size-default: 10px;
+    }
+}
+
+@media (max-width: 768px) {
+    :root {
+        --font-size-default: 9px;
+    }
+}
+
+@media (max-width: 576px) {
+    :root {
+        --font-size-default: 8px;
+    }
 }
