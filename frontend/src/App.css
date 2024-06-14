@@ -149,7 +149,7 @@ body {
 
 .content-section {
     flex: 1;
-    padding: 20px;
+    padding: 0px;
     background-color: var(--color-background);
     overflow-y: auto;
 }

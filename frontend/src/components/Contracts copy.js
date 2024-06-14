@@ -106,10 +106,10 @@ const Contracts = ({ contracts, user }) => {
 
   const renderTransactions = (contractIdx) => {
     return (transactions[contractIdx] || []).map((transaction, index) => (
-      <div key={index} className={`transaction-item ${expandedTransactions.includes(index) ? 'expanded' : ''}`}>
+      <div key={index} className="transaction-item">
         <div className="transaction-header-container">
           <span>{`Transaction Date: ${formatDate(transaction.transact_dt)}, Amount: ${formatCurrency(transaction.transact_amt)}, Amount Advanced: ${formatCurrency(transaction.advance_amt)}`}</span>
-          <button className="expand-button" onClick={(e) => { e.stopPropagation(); handleTransactionExpandClick(index); }}>
+          <button className="expand-button" onClick={(e) => { e.stopPropagation(); handleTransactionExpandClick(contractIdx, index); }}>
             {expandedTransactions.includes(index) ? '▼' : '▶'}
           </button>
         </div>
@@ -146,7 +146,7 @@ const Contracts = ({ contracts, user }) => {
     }
   };
 
-  const handleTransactionExpandClick = (index) => {
+  const handleTransactionExpandClick = (contractIdx, index) => {
     if (expandedTransactions.includes(index)) {
       setExpandedTransactions(expandedTransactions.filter(i => i !== index));
     } else {
