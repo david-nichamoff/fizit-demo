@@ -29635,12 +29635,12 @@
     "1108743": {
       "events": {},
       "links": {},
-      "address": "0xf115A6745B46f62C670e020E77e65787aC1d5941",
-      "transactionHash": "0x0953db0ddead3f0627dfaada89edb0bcd1f85febfc409495e774bf1097089885"
+      "address": "0x52a948E15e2732CaE068F42C2748f67e730720A1",
+      "transactionHash": "0x342fd2b3c2bed4cb0ddfac1d8ccab1cdb7de6ed4c68ae41a54cee92ff4bb5612"
     }
   },
   "schemaVersion": "3.4.16",
-  "updatedAt": "2024-06-10T21:07:25.905Z",
+  "updatedAt": "2024-06-19T14:11:32.302Z",
   "networkType": "ethereum",
   "devdoc": {
     "kind": "dev",

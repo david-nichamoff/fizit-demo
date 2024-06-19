@@ -2,7 +2,6 @@ import requests
 import os
 import datetime
 import requests
-import babel.numbers
 import decimal
 import time
 

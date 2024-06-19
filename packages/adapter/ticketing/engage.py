@@ -25,7 +25,7 @@ def get_tickets(contract, engage_src, engage_dest, start_date, end_date):
                 "ticket_id"     : engage_detail["ticketID"],
                 "approved_dt"   : engage_detail["approveDate"],
                 "ticket_amt"    : round(engage_detail["totalAmount"], 2),
-                "ticket_data"   : {}
+                "ticket_data"   : engage_detail,
             }
             tickets.append(ticket)
 
