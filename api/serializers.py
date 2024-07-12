@@ -1,18 +1,21 @@
 from rest_framework import serializers
-from .models import DataDictionary
+from .models import DataDictionary, ContractEvent
 
 class ContractSerializer(serializers.Serializer):
-    extended_data = serializers.JSONField()
     contract_idx = serializers.IntegerField(read_only=True)
+    extended_data = serializers.JSONField()
     contract_name = serializers.CharField(max_length=50)
     contract_type = serializers.CharField(max_length=50)
     funding_instr = serializers.JSONField()
     service_fee_pct = serializers.FloatField(default=0.50,min_value=0.00,max_value=1.00)
+    service_fee_max = serializers.FloatField(default=0.50,min_value=0.00,max_value=1.00)
     service_fee_amt = serializers.FloatField(default=0.00,min_value=0.00)
     advance_pct = serializers.FloatField(default=0.80,min_value=0.00,max_value=1.00)
     late_fee_pct = serializers.FloatField(default=0.22,min_value=0.00,max_value=1.00)
     transact_logic = serializers.JSONField()
+    notes = serializers.CharField(max_length=255)
     is_active = serializers.BooleanField()
+    is_quote = serializers.BooleanField()
 
     def update(self, instance, validated_data):
         instance['extended_data'] = validated_data.get('extended_data', instance['extended_data'])
@@ -20,15 +23,19 @@ class ContractSerializer(serializers.Serializer):
         instance['contract_type'] = validated_data.get('contract_type', instance['contract_name'])
         instance['funding_instr'] = validated_data.get('funding_instr', instance['funding_instr'])
         instance['service_fee_pct'] = validated_data.get('service_fee_pct', instance['service_fee_pct'])
+        instance['service_fee_max'] = validated_data.get('service_fee_max', instance['service_fee_max'])
         instance['service_fee_amt'] = validated_data.get('service_fee_amt', instance['service_fee_amt'])
         instance['advance_pct'] = validated_data.get('advance_pct', instance['advance_pct'])
         instance['late_fee_pct'] = validated_data.get('late_fee_pct', instance['late_fee_pct'])
         instance['transact_logic'] = validated_data.get('transact_logic', instance['transact_logic'])
+        instance['notes'] = validated_data.get('notes', instance['notes'])
         instance['is_active'] = validated_data.get('is_active', instance['is_active'])
+        instance['is_quote'] = validated_data.get('is_quote', instance['is_quote'])
         return instance
 
 class PartySerializer(serializers.Serializer):
     contract_idx = serializers.IntegerField(read_only=True)
+    party_idx = serializers.IntegerField(read_only=True)
     party_code = serializers.CharField(max_length=50)
     party_type = serializers.CharField(max_length=50)
 
@@ -76,6 +83,12 @@ class TicketSerializer(serializers.Serializer):
     approved_dt = serializers.DateField()
     ticket_amt = serializers.FloatField()
 
+class InvoiceSerializer(serializers.Serializer):
+    contract_idx = serializers.IntegerField(read_only=True)
+    contract_name = serializers.CharField(max_length=50, read_only=True)
+    invoice_data = serializers.JSONField()
+    invoice_id = serializers.IntegerField()
+
 class DepositSerializer(serializers.Serializer):
     bank = serializers.CharField(max_length=50)
     account_id = serializers.UUIDField()
@@ -107,3 +120,8 @@ class DataDictionarySerializer(serializers.ModelSerializer):
     class Meta:
         model = DataDictionary
         fields = ['type', 'field_code', 'language_code', 'display_name']
+
+class ContractEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContractEvent 
+        fields = ['event_idx', 'contract_idx', 'event_type', 'details', 'event_dt']

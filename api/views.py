@@ -8,11 +8,10 @@ from rest_framework.authentication import SessionAuthentication
 from rest_framework import viewsets, status
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
-from .serializers import ContractSerializer, SettlementSerializer, TransactionSerializer, TicketSerializer
+from .serializers import ContractSerializer, SettlementSerializer, TransactionSerializer, PartySerializer
+from .serializers import InvoiceSerializer, TicketSerializer, DepositSerializer
 from .serializers import ArtifactSerializer, AccountSerializer, RecipientSerializer
-from .serializers import PartySerializer
-from .serializers import DepositSerializer
-from .serializers import DataDictionarySerializer
+from .serializers import DataDictionarySerializer, ContractEventSerializer
 
 from packages.interface import get_contract, get_contracts, add_contract, update_contract
 from packages.interface import get_contract_parties, add_parties, delete_parties
@@ -21,11 +20,11 @@ from packages.interface import get_contract_transactions, get_transactions, add_
 from packages.interface import pay_residual, pay_advance, get_deposits
 from packages.interface import get_accounts, get_recipients
 from packages.interface import get_contract_artifacts, add_artifacts, delete_artifacts
-from packages.interface import get_contract_tickets
+from packages.interface import get_contract_tickets, get_contract_invoices
 
 from packages.privacy import is_master_key
 
-from .models import DataDictionary
+from .models import DataDictionary, ContractEvent
 from .permissions import HasCustomAPIKey
 from .authentication import CustomAPIKeyAuthentication
 
@@ -57,21 +56,6 @@ class ContractViewSet(viewsets.ViewSet):
             return Response(str(e), status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(
-        operation_id="retrieve contracts",
-        tags=["Contracts"],
-        responses={status.HTTP_200_OK: ContractSerializer(many=True)},
-        summary="Get Contract",
-        description="Retrieve a contract"
-    )
-    def retrieve(self, request, contract_idx=None):
-        try:
-            contract = get_contract(contract_idx)
-            serializer = ContractSerializer(contract, many=False)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response(str(e), status=status.HTTP_404_NOT_FOUND)
-
-    @extend_schema(
         tags=["Contracts"],
         request=ContractSerializer,
         responses={status.HTTP_201_CREATED: int},
@@ -91,6 +75,22 @@ class ContractViewSet(viewsets.ViewSet):
                 return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @extend_schema(
+        operation_id="retrieve contract",
+        tags=["Contracts"],
+        responses={status.HTTP_200_OK: ContractSerializer(many=True)},
+        summary="Get Contract",
+        description="Retrieve a contract"
+    )
+    def retrieve(self, request, contract_idx=None):
+        try:
+            contract = get_contract(contract_idx)
+            serializer = ContractSerializer(contract, many=False)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_404_NOT_FOUND)
+
             
     @extend_schema(
         tags=["Contracts"],
@@ -355,6 +355,31 @@ class TicketViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+class InvoiceViewSet(viewsets.ViewSet):
+    authentication_classes = [SessionAuthentication , CustomAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated | HasCustomAPIKey]
+
+    @extend_schema(
+        tags=["Invoices"],
+        parameters=[
+            OpenApiParameter(name='start_date', description='Start date for filtering invoices', required=True, type=str, default=(datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')),
+            OpenApiParameter(name='end_date', description='End date for filtering invoices', required=True, type=str, default=(datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')), 
+        ],
+        responses={status.HTTP_200_OK: InvoiceSerializer(many=True)},
+        summary="List Invoices from Host",
+        description="Retrieve a list of all invoices associated with a contract from host"
+    )
+    def list_contract(self, request, contract_idx=None):
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        try:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d')
+            end_date = datetime.strptime(end_date, '%Y-%m-%d')
+            tickets = get_contract_invoices(contract_idx, start_date, end_date)
+            return Response(tickets, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_404_NOT_FOUND)
+
 
 class ArtifactViewSet(viewsets.ViewSet):
     authentication_classes = [SessionAuthentication , CustomAPIKeyAuthentication]
@@ -514,6 +539,8 @@ class RecipientViewSet(viewsets.ViewSet):
             return Response(str(e), status=status.HTTP_404_NOT_FOUND)
 
 class DataDictionaryViewSet(viewsets.ViewSet):
+    authentication_classes = [SessionAuthentication , CustomAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
         tags=["Data Dictionary"],
@@ -526,3 +553,19 @@ class DataDictionaryViewSet(viewsets.ViewSet):
         serializer = DataDictionarySerializer(queryset, many=True)
         return Response(serializer.data)
 
+class ContractEventViewSet(viewsets.ViewSet):
+    authentication_classes = [SessionAuthentication , CustomAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated | HasCustomAPIKey]
+
+    @extend_schema(
+        tags=["Contract Events"],
+        parameters=[
+            OpenApiParameter(name='contract_idx', description='Contract_idx for filtering contract events', required=False, type=int),
+        ],
+        summary="Retrieve Contract Events",
+        description="Retrieve the list of contract events"
+    )
+    def list(self, request):
+        queryset = ContractEvent.objects.filter(contract_idx=request.query_params.get('contract_idx'))
+        serializer = ContractEventSerializer(queryset, many=True)
+        return Response(serializer.data)

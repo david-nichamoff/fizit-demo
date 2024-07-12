@@ -4,9 +4,12 @@
     "contract_type"    : "advance",
     "funding_instr"    : {"bank": "mercury", "account_id" : "61396d72-e780-11ee-b69b-137ed758771c", "recipient_id" : "627ecace-e780-11ee-b69b-f311fd81fcb4"},
     "service_fee_pct"  : 0.00,
+    "service_fee_max"  : 0.00,
     "service_fee_amt"  : 0.00,
     "advance_pct"      : 1.00,
     "late_fee_pct"     : 0.22,
     "transact_logic"   : {"var" : "invoice_amt"},
-    "is_active"        : true
+    "notes"            : "test contract",
+    "is_active"        : true,
+    "is_quote"         : false
 }

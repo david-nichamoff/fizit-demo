@@ -26,16 +26,6 @@ class EngageDest(models.Model):
         verbose_name = "Engage Destination"
         verbose_name_plural = "Engage Destinations"
 
-class Accounts(models.Model):
-    account_idx = models.AutoField(primary_key=True)
-    account_id = models.UUIDField(unique=True)
-    bank = models.CharField(max_length=50)
-
-class Recipients(models.Model):
-    account_idx = models.AutoField(primary_key=True)
-    account_id = models.UUIDField(unique=True)
-    bank = models.CharField(max_length=50)
-
 class CustomAPIKey(AbstractAPIKey):
     parties = models.CharField(max_length=255, blank=True, null=True, help_text="Comma-separated list of party codes this API key can access.")
 
@@ -55,3 +45,17 @@ class DataDictionary(models.Model):
     class Meta:
         unique_together = ('type', 'field_code', 'language_code')
         verbose_name_plural = 'Data Dictionary'
+
+class ContractEvent(models.Model):
+    event_idx = models.AutoField(primary_key=True) 
+    contract_idx = models.IntegerField()
+    event_type = models.CharField(max_length=50)
+    details = models.CharField(max_length=255)
+    event_dt = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Contract {self.contract_idx} updated at {self.event_dt}'
+
+    class Meta:
+        verbose_name = "Contract Event"
+        verbose_name_plural = "Contract Events"

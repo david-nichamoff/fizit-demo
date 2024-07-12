@@ -1,0 +1,123 @@
+.footer {
+  align-items: center;
+  background-color: var(--color-navy-main);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 24px 0px;
+  position: relative;
+  width: 100%;
+  margin-top: 50px;
+}
+
+.footer .container {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  justify-content: space-between;
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.footer .nav-left,
+.footer .nav-right {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.footer .nav-left {
+  flex: 1;
+  display: flex;
+  justify-content: flex-start;
+  padding-left: 5%;
+}
+
+.footer .nav-center {
+  align-items: center;
+  display: flex;
+  gap: 10%;
+  margin: 0 auto;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.footer .nav-right {
+  flex-direction: column;
+  gap: 32px;
+}
+
+.footer .logo-instance {
+  height: 40px !important;
+  width: 110px !important;
+}
+
+.footer .instance-node {
+  flex: 0 0 auto !important;
+}
+
+
+.footer .grid {
+  align-items: center;
+  display: inline-flex;
+  gap: 16px;
+  justify-content: flex-end;
+}
+
+.footer .nav-item-instance {
+  color: var(--color-purple-darker) !important;
+  font-family: var(--body-bold-font-family) !important;
+  font-weight: var(--body-bold-font-weight) !important;
+}
+
+.footer-bottom {
+  width: 100%;
+  padding: 10px 5%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.footer .white-line {
+  border-top: 1px solid var(--color-white);
+  width: 90%;
+  margin-bottom: 10px;
+}
+
+.footer .copyright-text {
+  color: var(--color-white);
+  font-family: var(--body-small-font-family);
+  font-size: var(--body-small-font-size);
+  text-align: left;
+  width: 90%;
+}
+
+.footer .button-instance {
+  color: var(--color-white) !important;
+}
+
+@media (max-width: 1200px) {
+  .footer .nav-center {
+    gap: 8%;
+  }
+}
+
+@media (max-width: 992px) {
+  .footer .nav-center {
+    gap: 6%;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer .nav-center {
+    gap: 4%;
+  }
+}
+
+@media (max-width: 576px) {
+  .footer .nav-center {
+    gap: 3%;
+  }
+}

@@ -35,11 +35,14 @@ def get_contract_dict(contract_idx):
     contract_dict["contract_type"] = contract[2]
     contract_dict["funding_instr"] = json.loads(contract[3].replace("'",'"'))
     contract_dict["service_fee_pct"] = contract[4] / 10000
-    contract_dict["service_fee_amt"] = contract[5] / 100
-    contract_dict["advance_pct"] = contract[6] / 10000
-    contract_dict["late_fee_pct"] = contract[7] / 10000
-    contract_dict["transact_logic"] = json.loads(contract[8].replace("'",'"'))
-    contract_dict["is_active"] = contract[9]
+    contract_dict["service_fee_max"] = contract[5] / 10000
+    contract_dict["service_fee_amt"] = contract[6] / 100
+    contract_dict["advance_pct"] = contract[7] / 10000
+    contract_dict["late_fee_pct"] = contract[8] / 10000
+    contract_dict["transact_logic"] = json.loads(contract[9].replace("'",'"'))
+    contract_dict["notes"] = contract[10]
+    contract_dict["is_active"] = contract[11]
+    contract_dict["is_quote"] = contract[12]
     contract_dict["contract_idx"] = contract_idx
     return contract_dict
 
@@ -66,11 +69,14 @@ def build_contract(contract_dict):
     contract.append(contract_dict["contract_type"])
     contract.append(str(contract_dict["funding_instr"]))
     contract.append(int(contract_dict["service_fee_pct"] * 10000))
+    contract.append(int(contract_dict["service_fee_max"] * 10000))
     contract.append(int(contract_dict["service_fee_amt"] * 100))
     contract.append(int(contract_dict["advance_pct"] * 10000))
     contract.append(int(contract_dict["late_fee_pct"] * 10000 ))
     contract.append(str(contract_dict["transact_logic"] ))
+    contract.append(contract_dict["notes"])
     contract.append(contract_dict["is_active"])
+    contract.append(contract_dict["is_quote"])
     return contract
 
 def update_contract(contract_idx, contract_dict):
@@ -90,19 +96,20 @@ def add_contract(contract_dict):
     tx_receipt = web3_client.get_tx_receipt(call_function)
     return contract_idx if tx_receipt["status"] == 1 else False
 
-def get_party_dict(party, contract_idx):
+def get_party_dict(party, party_idx, contract_idx):
     party_dict = {}
     party_dict["party_code"] = party[0]
     party_dict["party_address"] = party[1]
     party_dict["party_type"] = party[2]
     party_dict["contract_idx"] = contract_idx
+    party_dict["party_idx"] = party_idx
     return party_dict
 
 def get_contract_parties(contract_idx):
     parties = []
     parties_ = w3_contract.functions.getParties(contract_idx).call() 
     for party in parties_:
-        party_dict = get_party_dict(party, contract_idx)
+        party_dict = get_party_dict(party, len(parties), contract_idx)
         parties.append(party_dict)
 
     return parties
@@ -260,6 +267,18 @@ def get_contract_tickets(contract_idx, start_date, end_date):
             tickets = adapter.ticketing.engage.get_tickets(contract, engage_src, engage_dest, start_date, end_date)
 
     return tickets 
+
+def get_contract_invoices(contract_idx, start_date, end_date):
+    contract = get_contract(contract_idx)
+    invoices = []
+
+    if contract["contract_type"] == "ticketing": 
+        if contract["extended_data"]["provider"] == "engage":
+            engage_src = EngageSrc.objects.get(src_code=contract["extended_data"]["src_code"])
+            engage_dest = EngageDest.objects.get(dest_code=contract["extended_data"]["dest_code"])
+            tickets = adapter.ticketing.engage.get_invoices(contract, engage_src, engage_dest, start_date, end_date)
+
+    return invoices 
 
 def get_contract_artifacts(contract_idx):
     artifacts = []

@@ -1,0 +1,8 @@
+.how-it-works {
+    align-items: center;
+    background-color: var(--color-white);
+    display: inline-flex;
+    flex-direction: column;
+    position: relative;
+  }
+    
