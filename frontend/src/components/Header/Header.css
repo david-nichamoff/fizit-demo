@@ -95,6 +95,24 @@
 
 @media (max-width: 576px) {
   .header .nav-center {
-    gap: 3%;
+    gap: 10%;
+    flex-direction: column;
+    align-items: center;
+    position: static;
+    transform: none;
+  }
+
+  .header .nav-left {
+    justify-content: center;
+    padding-left: 0;
+  }
+
+  .header .logo-instance {
+    margin-bottom: 10px;
+  }
+
+  .header .container {
+    flex-direction: column;
+    align-items: center;
   }
 }

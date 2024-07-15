@@ -13,8 +13,8 @@ import paymentsIcon from "../../../static/assets/icon/payments.png";
 import riArrowDownLineIcon from "../../../static/assets/icon/ri_arrow-down-line.png";
 import arrowIcon from "../../../static/assets/icon/arrow.png"; 
 
-import personImage from "../../../static/assets/image/mask-group.png";
-import chartImage from "../../../static/assets/image/chart.png";
+import personImage from "../../../static/assets/image/man.png";
+import chartImage from "../../../static/assets/image/eps_chart.png";
 
 import getPaidImmediatelyImage from "../../../static/assets/image/get_paid_immediately.png";
 import checkersCheckingImage from "../../../static/assets/image/checkers_checking.png";
@@ -150,7 +150,7 @@ export const Frontpage = () => {
           <div className="grid-wrapper">
             <div className="div-wrapper">
               <p className="blade-text-wrapper">
-                Accelerate Cash Conversion
+                Improve your Earnings Per Share
               </p>
             </div>
           </div>

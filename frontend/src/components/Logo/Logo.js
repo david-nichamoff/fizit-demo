@@ -17,8 +17,4 @@ Logo.propTypes = {
   logoType: PropTypes.oneOf(["default", "reverse"]).isRequired,
 };
 
-Logo.defaultProps = {
-  logoType: "default",
-};
-
 export default Logo;

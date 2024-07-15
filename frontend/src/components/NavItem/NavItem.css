@@ -43,6 +43,6 @@
 
 @media (max-width: 576px) {
   .nav-item {
-    font-size: calc(var(--body-regular-font-size) - 4px);
+    font-size: var(--body-regular-font-size);
   }
 }
