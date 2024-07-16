@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import json
 
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -7,6 +8,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 from rest_framework import viewsets, status
 from drf_spectacular.utils import extend_schema, OpenApiParameter
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 
 from .serializers import ContractSerializer, SettlementSerializer, TransactionSerializer, PartySerializer
 from .serializers import InvoiceSerializer, TicketSerializer, DepositSerializer
@@ -24,7 +27,7 @@ from packages.interface import get_contract_tickets, get_contract_invoices
 
 from packages.privacy import is_master_key
 
-from .models import DataDictionary, ContractEvent
+from .models import DataDictionary, ContractEvent, ContactRequest
 from .permissions import HasCustomAPIKey
 from .authentication import CustomAPIKeyAuthentication
 
@@ -62,7 +65,7 @@ class ContractViewSet(viewsets.ViewSet):
         summary="Create Contract",
         description="Create a new contract"
     )
-    def create(self, request):
+    def add(self, request):
         if not is_master_key(request):
             raise PermissionDenied("You do not have permission to perform this action.")
         serializer = ContractSerializer(data=request.data)
@@ -83,7 +86,7 @@ class ContractViewSet(viewsets.ViewSet):
         summary="Get Contract",
         description="Retrieve a contract"
     )
-    def retrieve(self, request, contract_idx=None):
+    def get(self, request, contract_idx=None):
         try:
             contract = get_contract(contract_idx)
             serializer = ContractSerializer(contract, many=False)
@@ -99,7 +102,7 @@ class ContractViewSet(viewsets.ViewSet):
         summary="Update Contract",
         description="Partial update of an existing contract"
     )
-    def partial_update(self, request, contract_idx=None):
+    def patch(self, request, contract_idx=None):
         if not is_master_key(request):
             raise PermissionDenied("You do not have permission to perform this action.")
         try:
@@ -137,7 +140,7 @@ class PartyViewSet(viewsets.ViewSet):
         summary="Create Parties",
         description="Add a list of parties to an existing contract",
     )
-    def create(self, request, contract_idx=None):
+    def add(self, request, contract_idx=None):
         if not is_master_key(request):
             raise PermissionDenied("You do not have permission to perform this action.")
         serializer = PartySerializer(data=request.data, many=True)
@@ -156,7 +159,7 @@ class PartyViewSet(viewsets.ViewSet):
         summary="Delete Parties",
         description="Delete all parties from a contract",
     )
-    def delete(self, request, contract_idx=None):
+    def delete_contract(self, request, contract_idx=None):
         if not is_master_key(request):
             raise PermissionDenied("You do not have permission to perform this action.")
         try:
@@ -212,7 +215,7 @@ class SettlementViewSet(viewsets.ViewSet):
         summary="Create Settlements",
         description="Add a list of settlements to an existing contract",
     )
-    def create(self, request, contract_idx=None):
+    def add(self, request, contract_idx=None):
         if not is_master_key(request):
             raise PermissionDenied("You do not have permission to perform this action.")
         serializer = SettlementSerializer(data=request.data, many=True)
@@ -231,7 +234,7 @@ class SettlementViewSet(viewsets.ViewSet):
         summary="Delete Settlements",
         description="Delete all settlements from a contract",
     )
-    def delete(self, request, contract_idx=None):
+    def delete_contract(self, request, contract_idx=None):
         if not is_master_key(request):
             raise PermissionDenied("You do not have permission to perform this action.")
         try:
@@ -285,7 +288,7 @@ class TransactionViewSet(viewsets.ViewSet):
         summary="Create Transactions",
         description="Add a list of transactions to an existing contract",
     )
-    def create(self, request, contract_idx=None):
+    def add(self, request, contract_idx=None):
         if not is_master_key(request):
             raise PermissionDenied("You do not have permission to perform this action.")
         serializer = TransactionSerializer(data=request.data, many=True)
@@ -305,7 +308,7 @@ class TransactionViewSet(viewsets.ViewSet):
         summary="Delete Transactions",
         description="Delete all transactions from a contract",
     )
-    def delete(self, request, contract_idx=None):
+    def delete_contract(self, request, contract_idx=None):
         if not is_master_key(request):
             raise PermissionDenied("You do not have permission to perform this action.")
         try:
@@ -404,7 +407,7 @@ class ArtifactViewSet(viewsets.ViewSet):
         summary="Create Artifacts",
         description="Search file system for artifacts for a contract",
     )
-    def create(self, request, contract_idx=None):
+    def add(self, request, contract_idx=None):
         if not is_master_key(request):
             raise PermissionDenied("You do not have permission to perform this action.")
         try:
@@ -420,7 +423,7 @@ class ArtifactViewSet(viewsets.ViewSet):
         summary="Delete Artifacts",
         description="Delete all artifacts from a contract",
     )
-    def delete(self, request, contract_idx=None):
+    def delete_contract(self, request, contract_idx=None):
         if not is_master_key(request):
             raise PermissionDenied("You do not have permission to perform this action.")
         try:
@@ -569,3 +572,19 @@ class ContractEventViewSet(viewsets.ViewSet):
         queryset = ContractEvent.objects.filter(contract_idx=request.query_params.get('contract_idx'))
         serializer = ContractEventSerializer(queryset, many=True)
         return Response(serializer.data)
+
+@csrf_exempt
+def submit_quote(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        name = data.get('name')
+        email = data.get('email')
+        company = data.get('company')
+        message = data.get('message')
+
+        # Save to the database
+        ContactRequest.objects.create(name=name, email=email, company=company, message=message)
+        
+        return JsonResponse({'status': 'success'})
+
+    return JsonResponse({'status': 'failed'}, status=400)

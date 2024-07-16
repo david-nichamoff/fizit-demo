@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Footer } from "../../components/Footer/Footer";
 import { Header } from "../../components/Header/Header";
 
@@ -23,7 +22,7 @@ export const GetAQuote = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    fetch("http://localhost:3001/send", {
+    fetch("/submit-quote/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -32,7 +31,7 @@ export const GetAQuote = () => {
     })
       .then((response) => response.json())
       .then((data) => {
-        if (data.success) {
+        if (data.status === "success") {
           alert("Your message has been sent!");
           setFormData({
             name: "",
@@ -41,12 +40,11 @@ export const GetAQuote = () => {
             message: "",
           });
         } else {
-          alert("There was an error sending your message. Please try again.");
+          alert("There was an error. Please try again.");
         }
       })
       .catch((error) => {
-        console.error("Error sending email:", error);
-        alert("There was an error sending your message. Please try again.");
+        console.error("Error sending form data:", error);
       });
   };
 

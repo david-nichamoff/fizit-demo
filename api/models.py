@@ -59,3 +59,16 @@ class ContractEvent(models.Model):
     class Meta:
         verbose_name = "Contract Event"
         verbose_name_plural = "Contract Events"
+
+class ContactRequest(models.Model):
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+    company = models.CharField(max_length=100, blank=True)
+    message = models.TextField()
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Contract Request"
+        verbose_name_plural = "Contract Requests"

@@ -2,7 +2,7 @@ from django.contrib import admin
 from rest_framework_api_key.models import APIKey
 from rest_framework_api_key.admin import APIKeyModelAdmin
 from .models import EngageSrc, EngageDest
-from .models import CustomAPIKey, DataDictionary, ContractEvent
+from .models import CustomAPIKey, DataDictionary, ContractEvent, ContactRequest
 
 # Unregister the default APIKey model if it is registered
 if APIKey in admin.site._registry:
@@ -40,3 +40,9 @@ class ContractEventAdmin(admin.ModelAdmin):
     list_display = ('event_idx','contract_idx','event_type','details','event_dt')
     search_fields = ('event_idx','contract_idx','event_type')
     list_filter = ('event_idx','contract_idx','event_type')
+
+@admin.register(ContactRequest)
+class ContactRequestAdmin(admin.ModelAdmin):
+    list_display = ('name', 'email', 'company', 'message')
+    search_fields = ('name', 'email', 'company')
+    list_display = ('name', 'email', 'company')
