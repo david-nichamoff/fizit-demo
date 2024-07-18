@@ -70,5 +70,5 @@ class ContactRequest(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = "Contract Request"
-        verbose_name_plural = "Contract Requests"
+        verbose_name = "Contact Request"
+        verbose_name_plural = "Contact Requests"

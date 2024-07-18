@@ -22,4 +22,5 @@ urlpatterns = [
     path('recipients/', views.RecipientViewSet.as_view({'get':'list'}), name='recipient-list'),
     path('data-dictionary/', views.DataDictionaryViewSet.as_view({'get': 'list'}), name='data-dictionary-list'),  
     path('contract-events/', views.ContractEventViewSet.as_view({'get': 'list'}), name='contract-event-list'),  
+    path('contact-request/', views.contact_request, name='contact-request')
 ]

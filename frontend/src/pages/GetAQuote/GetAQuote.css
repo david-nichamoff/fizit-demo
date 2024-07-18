@@ -10,7 +10,6 @@
   width: 100%;
   max-width: 600px;
   padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   background-color: var(--color-light-grey);
 }
@@ -19,6 +18,12 @@ h1 {
   text-align: center;
   margin-bottom: 20px;
   color: var(--color-black);
+  font-family: var(--heading-2-font-family);
+  font-size: var(--heading-2-font-size);
+  font-style: var(--heading-2-font-style);
+  font-weight: var(--heading-2-font-weight);
+  letter-spacing: var(--heading-2-letter-spacing);
+  line-height: var(--heading-2-line-height);
 }
 
 .quote-form {
@@ -33,6 +38,12 @@ h1 {
 label {
   font-size: 14px;
   color: var(--color-black);
+  font-family: var(--body-large-font-family);
+  font-size: var(--body-large-font-size);
+  font-style: var(--body-large-font-style);
+  font-weight: var(--body-large-font-weight);
+  letter-spacing: var(--body-large-letter-spacing);
+  line-height: var(--body-large-line-height);
   margin-bottom: 5px;
   display: block;
 }
@@ -51,16 +62,26 @@ textarea {
 }
 
 .submit-button {
+  width: 25%;
   padding: 10px 15px;
+  background-color: var(--color-purple-main);
   color: var(--color-white);
-  background-color: var(--color-primary);
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 16px;
-  transition: background-color 0.3s ease;
+  align-self: center; 
+  font-size: var(--body-regular-font-size); 
+  letter-spacing: var(--body-regular-letter-spacing); 
+  line-height: var(--body-regular-line-height); 
 }
 
 .submit-button:hover {
-  background-color: var(--color-primary-dark);
+  background-color: var(--color-purple-darker);
+}
+
+@media (max-width: 576px) {
+  .submit-button {
+    width: 50%;
+  }
 }

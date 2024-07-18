@@ -8,6 +8,31 @@
   font-weight: var(--body-regular-font-weight);
   letter-spacing: var(--body-regular-letter-spacing);
   line-height: var(--body-regular-line-height);
+  color: var(--color-black);
+  white-space: nowrap; 
+  text-decoration: none;
+  border: none;
+}
+
+.nav-item.small {
+  font-family: var(--body-small-font-family);
+  font-size: var(--body-small-font-size);
+  font-style: var(--body-small-font-style);
+  font-weight: var(--body-small-font-weight);
+  letter-spacing: var(--body-small-letter-spacing);
+  line-height: var(--body-small-line-height);
+}
+
+.dropdown-content .nav-item {
+  color: var(--color-black);
+  padding: 6px 6px;
+  display: block;
+  text-decoration: none; 
+  border: none;
+}
+
+.nav-item a, .dropdown-content .nav-item a {
+  text-decoration: none;
 }
 
 .nav-item.regular {
@@ -18,31 +43,51 @@
   color: var(--color-white);
 }
 
-.nav-item.active {
+.nav-item.regular.active {
   background-color: var(--color-gray-main);
   color: var(--color-black);
 }
 
+.nav-item.reverse.active {
+  text-decoration: underline;
+}
+
 @media (max-width: 1200px) {
-  .nav-item {
-    font-size: calc(var(--body-regular-font-size) - 1px);
+  .nav-item.regular {
+    font-size: calc(var(--body-regular-font-size) - 2px);
+  }
+
+  .nav-item.small {
+    font-size: calc(var(--body-small-font-size) - 1px);
   }
 }
 
 @media (max-width: 992px) {
-  .nav-item {
-    font-size: calc(var(--body-regular-font-size) - 2px);
+  .nav-item.regular {
+    font-size: calc(var(--body-regular-font-size) - 4px);
+  }
+
+  .nav-item.small {
+    font-size: calc(var(--body-small-font-size) - 2px);
   }
 }
 
 @media (max-width: 768px) {
-  .nav-item {
-    font-size: calc(var(--body-regular-font-size) - 3px);
+  .nav-item.regular {
+    font-size: calc(var(--body-regular-font-size) - 6px);
+  }
+
+  .nav-item.small {
+    font-size: calc(var(--body-small-font-size) - 3px);
   }
 }
 
 @media (max-width: 576px) {
-  .nav-item {
+  .nav-item.regular {
     font-size: var(--body-regular-font-size);
+  }
+
+  .nav-item.small {
+    font-size: var(--body-small-font-size);
   }
 }

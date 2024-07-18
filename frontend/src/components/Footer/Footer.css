@@ -36,13 +36,29 @@
 }
 
 .footer .nav-center {
-  align-items: center;
+  align-items: flex-start;
   display: flex;
   gap: 10%;
   margin: 0 auto;
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+}
+
+.footer .column-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.footer .column-text {
+  font-family: var(--body-bold-font-family);
+  font-size: var(--body-bold-font-size);
+  font-weight: var(--body-bold-font-weight);
+  font-style: var(--body-bold-font-style);
+  margin-bottom: 8px;
+  color: var(--color-white);
+  white-space: nowrap; 
 }
 
 .footer .nav-right {
@@ -53,24 +69,6 @@
 .footer .logo-instance {
   height: 40px !important;
   width: 110px !important;
-}
-
-.footer .instance-node {
-  flex: 0 0 auto !important;
-}
-
-
-.footer .grid {
-  align-items: center;
-  display: inline-flex;
-  gap: 16px;
-  justify-content: flex-end;
-}
-
-.footer .nav-item-instance {
-  color: var(--color-purple-darker) !important;
-  font-family: var(--body-bold-font-family) !important;
-  font-weight: var(--body-bold-font-weight) !important;
 }
 
 .footer-bottom {
@@ -95,10 +93,6 @@
   width: 90%;
 }
 
-.footer .button-instance {
-  color: var(--color-white) !important;
-}
-
 @media (max-width: 1200px) {
   .footer .nav-center {
     gap: 8%;
@@ -114,14 +108,24 @@
 @media (max-width: 768px) {
   .footer .nav-center {
     gap: 4%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  .footer .column-header {
+    margin-bottom: 20px; /* Adjust margin as needed */
   }
 }
 
 @media (max-width: 576px) {
   .footer .nav-center {
     gap: 10%;
-    flex-direction: column;
-    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
     position: static;
     transform: none;
   }

@@ -574,7 +574,7 @@ class ContractEventViewSet(viewsets.ViewSet):
         return Response(serializer.data)
 
 @csrf_exempt
-def submit_quote(request):
+def contact_request(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         name = data.get('name')
@@ -582,9 +582,7 @@ def submit_quote(request):
         company = data.get('company')
         message = data.get('message')
 
-        # Save to the database
         ContactRequest.objects.create(name=name, email=email, company=company, message=message)
         
         return JsonResponse({'status': 'success'})
-
     return JsonResponse({'status': 'failed'}, status=400)

@@ -9,6 +9,7 @@ import chartImage from "../../../static/assets/image/contracts_chart.png";
 import iotImage from "../../../static/assets/image/iot.png";
 import proofImage from "../../../static/assets/image/proof.png";
 import trustImage from "../../../static/assets/image/trust.png";
+import avalancheImage from "../../../static/assets/image/avalanche.png";
 
 import "./HowItWorks.css";
 
@@ -16,21 +17,6 @@ export const HowItWorks = () => {
   return (
     <div className="how-it-works">
       <Header loginState="default" />
-      <div className="blade">
-        <div className="hero-container">
-          <div className="hero-grid">
-            <div className="hero-frame">
-              <div className="hero-text-frame">
-                <p className="hero-heading">How Does it Work?</p>
-              </div>
-            </div>
-          </div>
-          <div className="hero-image">
-            <img className="person" alt="Person" src={personImage} />
-            <img className="chart" alt="Chart" src={chartImage} />
-          </div>
-        </div>
-      </div>
       <div className="blade">
         <div className="blade-container">
           <div className="blade-grid">
@@ -60,7 +46,7 @@ export const HowItWorks = () => {
               <div className="blade-text-frame">
                 <p className="blade-heading">Use Proof of Delivery</p>
                 <p className="blade-text">
-                  We use the proof of delivery and the existing commercial 
+                  FIZIT uses the proof of delivery and the existing commercial 
                   contract between the buyer and seller to calculate payment 
                   due. We don't need to wait a month for some checker to check 
                   if the delivery was accurate. If the devices are good enough 

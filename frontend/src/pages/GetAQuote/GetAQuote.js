@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+
 import { Footer } from "../../components/Footer/Footer";
 import { Header } from "../../components/Header/Header";
 
@@ -22,17 +23,23 @@ export const GetAQuote = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    fetch("/submit-quote/", {
+    console.log("Form data being sent:", formData); 
+    fetch("/api/contact-request/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(formData),
     })
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        return response.json();
+      })
       .then((data) => {
         if (data.status === "success") {
-          alert("Your message has been sent!");
+          alert("Thank you for your interest in FIZIT.  We will contact you soon.");
           setFormData({
             name: "",
             email: "",
@@ -96,7 +103,12 @@ export const GetAQuote = () => {
               required
             />
           </div>
-          <button type="submit" className="submit-button">Submit</button>
+          <button
+            type="submit"
+            className="submit-button"
+          >
+            Submit
+          </button>
         </form>
       </div>
       <Footer loginState="default" />
