@@ -1,4 +1,4 @@
-.why-fizit {
+.for-buyers {
   align-items: center;
   background-color: var(--color-white);
   display: flex;
@@ -7,7 +7,7 @@
   width: 100%;
 }
 
-.why-fizit .blade {
+.for-buyers .blade {
   align-items: center;
   align-self: stretch;
   display: flex;
@@ -21,29 +21,29 @@
   margin-right: auto;
 }
 
-.why-fizit .hero-container {
+.for-buyers .hero-container {
   display: flex;
   width: 100%;
 }
 
-.why-fizit .hero-grid {
+.for-buyers .hero-grid {
   width: 100%;
 }
 
-.why-fizit .hero-frame {
+.for-buyers .hero-frame {
   display: inline-flex;
   gap: 32px;
   justify-content: center; 
   width: 100%;
 }
 
-.why-fizit .hero-text-frame {
+.for-buyers .hero-text-frame {
   gap: 16px;
   text-align: center; 
   width: 100%;
 }
 
-.why-fizit .hero-heading {
+.for-buyers .hero-heading {
   color: var(--color-black);
   font-family: var(--heading-2-font-family);
   font-size: var(--heading-2-font-size);
@@ -57,7 +57,7 @@
   width: 100%;
 }
 
-.why-fizit .hero-text {
+.for-buyers .hero-text {
   color: var(--color-black);
   font-family: var(--body-large-font-family);
   font-size: var(--body-large-font-size);
@@ -72,26 +72,25 @@
   text-align: center; 
 }
 
-.why-fizit .quote-blade {
+.for-buyers .quote-blade {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
-  padding: 40px 0;
-  margin: 40px 0;
+  padding: 20px 0;
 }
 
-.why-fizit .quote-container {
+.for-buyers .quote-container {
   background-color: var(--color-purple-main);
   width: 75%;
-  padding: 20px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
 }
 
-.why-fizit .quote-text {
+.for-buyers .quote-text {
   color: var(--color-white);
   font-family: var(--body-large-font-family);
   font-size: var(--body-large-font-size);
@@ -103,7 +102,7 @@
   max-width: 100%;
 }
 
-.why-fizit .attribution-text {
+.for-buyers .attribution-text {
   color: var(--color-white);
   font-family: var(--body-small-font-family);
   font-size: var(--body-small-font-size);
@@ -116,25 +115,25 @@
   margin-top: 10px;
 }
 
-.why-fizit .blade-container {
+.for-buyers .blade-container {
   display: flex;
   width: 100%;
 }
 
-.why-fizit .blade-grid {
+.for-buyers .blade-grid {
   width: 100%;
 }
 
-.why-fizit .blade-frame {
+.for-buyers .blade-frame {
   display: inline-flex;
   gap: 32px;
 }
 
-.why-fizit .blade-text-frame {
+.for-buyers .blade-text-frame {
   gap: 16px;
 }
 
-.why-fizit .blade-heading {
+.for-buyers .blade-heading {
   color: var(--color-black);
   font-family: var(--heading-2-font-family);
   font-size: var(--heading-2-font-size);
@@ -148,7 +147,17 @@
   width: 100%;
 }
 
-.why-fizit .cash-image {
+.for-buyers .blade-text {
+  font-family: var(--body-regular-font-family);
+  font-size: var(--body-regular-font-size);
+  font-style: var(--body-regular-font-style);
+  font-weight: var(--body-regular-font-weight);
+  letter-spacing: var(--body-regular-letter-spacing);
+  line-height: var(--body-regular-line-height);
+  margin-right: 20px;
+}
+
+.for-buyers .cash-image {
   position: relative;
   width: 70%;
   display: flex; 
@@ -156,57 +165,57 @@
   align-items: center;
 }
 
-.why-fizit .cash-image img {
+.for-buyers .cash-image img {
   width: 100%;
 }
 
 @media (max-width: 1200px) {
-  .why-fizit .blade-heading {
+  .for-buyers .blade-heading {
     font-size: calc(var(--heading-2-font-size) - 5px) !important; 
   }
 
-  .why-fizit .cash-image {
+  .for-buyers .cash-image {
     width: 65%;
   }
 }
 
 @media (max-width: 992px) {
-  .why-fizit .blade-heading {
+  .for-buyers .blade-heading {
     font-size: calc(var(--heading-2-font-size) - 10px) !important;
   }
 
-  .why-fizit .cash-image {
+  .for-buyers .cash-image {
     width: 70%;
   }
 }
 
 @media (max-width: 768px) {
-  .why-fizit .blade-heading {
+  .for-buyers .blade-heading {
     font-size: calc(var(--heading-2-font-size) - 20px) !important;
   }
 
-  .why-fizit .blade-container {
+  .for-buyers .blade-container {
     flex-direction: column;
     align-items: center;
   }
 
-  .why-fizit .cash-image {
+  .for-buyers .cash-image {
     margin-top: 40px;
     width: 70%;
   }
 }
 
 @media (max-width: 576px) {
-  .why-fizit .blade-heading {
+  .for-buyers .blade-heading {
     font-size: calc(var(--heading-2-font-size) - 30px) !important;
   }
 
-  .why-fizit .blade-container {
+  .for-buyers .blade-container {
     flex-direction: column;
     align-items: center;
   }
 
-  .why-fizit .cash-image {
+  .for-buyers .cash-image {
     margin-top: 40px;
     width: 50%;
   }

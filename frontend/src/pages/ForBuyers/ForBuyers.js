@@ -12,7 +12,7 @@ import "./ForBuyers.css";
 export const ForBuyers = () => {
   const navigate = useNavigate()
   return (
-    <div className="why-fizit">
+    <div className="for-buyers">
       <Header loginState="default" />
       <div className="blade">
         <div className="hero-container">
