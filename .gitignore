@@ -48,3 +48,7 @@ webpack-stats.json
 
 # schema file
 schema.yml
+
+# static files
+static/
+frontend/static/frontend/
