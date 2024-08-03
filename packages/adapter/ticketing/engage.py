@@ -1,12 +1,15 @@
 import requests
 from datetime import datetime, timedelta
-import env_var
 
-env_var = env_var.get_env()
+import packages.load_keys as load_keys
+import packages.load_config as load_config
+
+keys = load_keys.load_keys()
+config = load_config.load_config()
 
 def get_tickets(contract, engage_src, engage_dest, start_date, end_date):
     tickets = []
-    url = f'{env_var["engage_uri"]}/v2/tickets'
+    url = f'{config["engage_uri"]}/v2/tickets'
     headers = {
         'x-api-key': engage_src.api_key,
         'businessID': str(engage_src.src_id),  
@@ -17,7 +20,7 @@ def get_tickets(contract, engage_src, engage_dest, start_date, end_date):
     response = requests.get(url, headers=headers, params=params)
 
     for engage_ticket in response.json()["data"]:
-        engage_detail = requests.get(f'{env_var["engage_uri"]}/v2/tickets/' + str(engage_ticket['ID']) + '/tali', headers=headers).json()["data"]
+        engage_detail = requests.get(f'{config["engage_uri"]}/v2/tickets/' + str(engage_ticket['ID']) + '/tali', headers=headers).json()["data"]
         ticket = {
             "contract_idx"  : contract["contract_idx"],
             "contract_name" : contract["contract_name"],
@@ -32,7 +35,7 @@ def get_tickets(contract, engage_src, engage_dest, start_date, end_date):
 
 def get_invoices(contract, engage_src, engage_dest, start_date, end_date):
     invoices = []
-    url = f'{env_var["engage_uri"]}/invoicev1/invoiceGroup'
+    url = f'{config["engage_uri"]}/invoicev1/invoiceGroup'
     headers = {
         'x-api-key': engage_src.api_key,
         'businessID': str(engage_src.src_id),  
@@ -45,7 +48,7 @@ def get_invoices(contract, engage_src, engage_dest, start_date, end_date):
         invoice = {
              "contract_idx"  : contract["contract_idx"],
              "contract_name" : contract["contract_name"],
-             "invoice_data"  : invoice_detail 
+ #            "invoice_data"  : invoice_detail 
          }
 
         invoices.append(invoice)

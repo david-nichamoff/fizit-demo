@@ -16,16 +16,16 @@ from .serializers import InvoiceSerializer, TicketSerializer, DepositSerializer
 from .serializers import ArtifactSerializer, AccountSerializer, RecipientSerializer
 from .serializers import DataDictionarySerializer, ContractEventSerializer
 
-from packages.interface import get_contract, get_contracts, add_contract, update_contract
-from packages.interface import get_contract_parties, add_parties, delete_parties
-from packages.interface import get_contract_settlements, get_settlements, add_settlements, delete_settlements
-from packages.interface import get_contract_transactions, get_transactions, add_transactions, delete_transactions
-from packages.interface import pay_residual, pay_advance, get_deposits
-from packages.interface import get_accounts, get_recipients
-from packages.interface import get_contract_artifacts, add_artifacts, delete_artifacts
-from packages.interface import get_contract_tickets, get_contract_invoices
+from packages.api_interface import get_contract, get_contracts, add_contract, update_contract
+from packages.api_interface import get_contract_parties, add_parties, delete_parties
+from packages.api_interface import get_contract_settlements, get_settlements, add_settlements, delete_settlements
+from packages.api_interface import get_contract_transactions, get_transactions, add_transactions, delete_transactions
+from packages.api_interface import pay_residual, pay_advance, get_deposits
+from packages.api_interface import get_accounts, get_recipients
+from packages.api_interface import get_contract_artifacts, add_artifacts, delete_artifacts
+from packages.api_interface import get_contract_tickets, get_contract_invoices
 
-from packages.privacy import is_master_key
+from packages.check_privacy import is_master_key
 
 from .models import DataDictionary, ContractEvent, ContactRequest
 from .permissions import HasCustomAPIKey

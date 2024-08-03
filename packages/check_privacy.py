@@ -1,15 +1,4 @@
 from rest_framework_api_key.crypto import KeyGenerator
-from django.contrib.auth.models import Group
-from api.models import CustomAPIKey
-
-def is_master_key(request):
-    api_key = request.META.get('HTTP_AUTHORIZATION', '').split(' ')[-1]
-    hashed_api_key = KeyGenerator().hash(api_key)
-    response = CustomAPIKey.objects.filter(hashed_key=hashed_api_key, name="FIZIT_MASTER_KEY").exists()
-    return response
-
-from rest_framework_api_key.crypto import KeyGenerator
-from django.contrib.auth.models import Group
 from api.models import CustomAPIKey
 
 def is_master_key(request):
@@ -34,6 +23,7 @@ def is_user_authorized(request, parties):
         for party_code in party_codes:
             if party_code in api_parties:
                 return True
+
     elif user and user.is_authenticated:
         # User authorization
         if user.is_staff:

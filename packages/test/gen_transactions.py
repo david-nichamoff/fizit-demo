@@ -2,13 +2,13 @@ import json
 import requests
 from datetime import datetime, timedelta
 import random
-import env_var
+import packages.load_keys as load_keys
 
-env_var = env_var.get_env()
+load_keys = load_keys.get_env()
 
 def get_contracts():
-    headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
-    response = requests.get(env_var["url"] + "/api/contracts", headers=headers)
+    headers = { 'Authorization': f'Api-Key {load_keys["FIZIT_MASTER_KEY"]}' }
+    response = requests.get(load_keys["url"] + "/api/contracts", headers=headers)
     if response.status_code == 200:
         return json.loads(response.text)
     else:
@@ -30,8 +30,8 @@ def prompt_user_for_contract(contracts):
             print("Invalid input. Please enter a number.")
 
 def delete_transactions(contract_idx):
-    url =  env_var["url"] + f"/api/contracts/{contract_idx}/transactions/"
-    headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
+    url =  load_keys["url"] + f"/api/contracts/{contract_idx}/transactions/"
+    headers = { 'Authorization': f'Api-Key {load_keys["FIZIT_MASTER_KEY"]}' }
     response = requests.delete(url, headers=headers)
     if response.status_code == 204:
         print("Current transactions deleted successfully.")
@@ -90,12 +90,12 @@ def generate_transactions(contract_idx, variables, sample_values, extended_data_
     return transactions
 
 def post_transactions(contract_idx, transactions):
-    headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
+    headers = { 'Authorization': f'Api-Key {load_keys["FIZIT_MASTER_KEY"]}' }
     batch_size = 10
 
     for i in range(0, len(transactions), batch_size):
         batch = transactions[i:i + batch_size]
-        response = requests.post(env_var["url"] + f"/api/contracts/{contract_idx}/transactions/", json=batch, headers=headers)
+        response = requests.post(load_keys["url"] + f"/api/contracts/{contract_idx}/transactions/", json=batch, headers=headers)
         if response.status_code == 201:
             print(f"Batch {i//batch_size + 1} of transactions successfully created.")
         else:

@@ -3,8 +3,8 @@ import os
 import requests
 from datetime import datetime
 
-import env_var
-env_var = env_var.get_env()
+import packages.load_keys as load_keys
+load_keys = load_keys.get_env()
 
 def contract_exists(contracts, contract_name):
     for contract in contracts:
@@ -30,24 +30,24 @@ def prompt_user_for_file(json_files):
             print("Invalid input. Please enter a number.")
 
 def partial_update(contract_data, contract_idx):
-    headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
-    response = requests.patch(env_var["url"] + f'/api/contracts/{contract_idx}/', json=contract_data, headers=headers)
+    headers = { 'Authorization': f'Api-Key {load_keys["FIZIT_MASTER_KEY"]}' }
+    response = requests.patch(load_keys["url"] + f'/api/contracts/{contract_idx}/', json=contract_data, headers=headers)
     return response
 
 def create_contract(contract_data):
-    headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
-    response = requests.post(env_var["url"] + '/api/contracts/', json=contract_data, headers=headers)
+    headers = { 'Authorization': f'Api-Key {load_keys["FIZIT_MASTER_KEY"]}' }
+    response = requests.post(load_keys["url"] + '/api/contracts/', json=contract_data, headers=headers)
     return response
 
 def delete_existing_parties(contract_idx):
-    headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
-    response = requests.delete(env_var["url"] + f'/api/contracts/{contract_idx}/parties/', headers=headers)
+    headers = { 'Authorization': f'Api-Key {load_keys["FIZIT_MASTER_KEY"]}' }
+    response = requests.delete(load_keys["url"] + f'/api/contracts/{contract_idx}/parties/', headers=headers)
     if response.status_code != 204:
         print(f"Failed to delete parties for contract {contract_idx}. Status code: {response.status_code}")
 
 def add_parties(contract_idx, parties):
-    headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
-    response = requests.post(env_var["url"] + f'/api/contracts/{contract_idx}/parties/', json=parties, headers=headers)
+    headers = { 'Authorization': f'Api-Key {load_keys["FIZIT_MASTER_KEY"]}' }
+    response = requests.post(load_keys["url"] + f'/api/contracts/{contract_idx}/parties/', json=parties, headers=headers)
     if response.status_code != 201:
         print(f"Failed to add parties'. Status code: {response.status_code}")
 
@@ -73,8 +73,8 @@ def main():
         print("The selected JSON file does not contain a 'contract_name' key in the 'contract' section.")
         return
 
-    headers = { 'Authorization': f'Api-Key {env_var["FIZIT_MASTER_KEY"]}' }
-    response = requests.get(env_var["url"] + '/api/contracts', headers=headers)
+    headers = { 'Authorization': f'Api-Key {load_keys["FIZIT_MASTER_KEY"]}' }
+    response = requests.get(load_keys["url"] + '/api/contracts', headers=headers)
     contracts = json.loads(response.text)
     contract_idx = contract_exists(contracts, contract_name)
 

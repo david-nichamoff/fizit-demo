@@ -1,0 +1,133 @@
+{
+  "contract" :
+    {
+      "extended_data"    : {}, 
+      "contract_name"    : "Daily Drilling",
+      "contract_type"    : "drilling",
+      "funding_instr"    : {"bank":"mercury","account_id":"61396d72-e780-11ee-b69b-137ed758771c","recipient_id":"627ecace-e780-11ee-b69b-f311fd81fcb4"},
+      "service_fee_pct"  : 0.02,
+      "service_fee_max"  : 0.02,
+      "service_fee_amt"  : 0.00,
+      "advance_pct"      : 0.85,
+      "late_fee_pct"     : 0.22,
+      "is_active"        : true,
+      "is_quote"         : false,
+      "notes"            : "test contract",
+      "transact_logic"   : 
+      {
+        "if": {
+            "==": [
+                {
+                    "var": "status"
+                },
+                "drilling"
+            ],
+            "then": 25000,
+            "else": {
+                "if": {
+                "==": [
+                        {
+                        "var": "status"
+                        },
+                        "standby"
+                        ]
+                    },
+                "then": 15000,
+                "else": {
+                    "if": {
+                        "==": [
+                    {
+                        "var": "status"
+                    },
+                    "mobilization"
+                    ]
+                },
+                "then": 20000,
+                "else": {
+                    "if": {
+                        "==": [
+                    {
+                      "var": "status"
+                    },
+                    "demobilization"
+                  ]
+                },
+                "then": 22000,
+                "else": 0
+              }
+            }
+          }
+        },
+        "adjusted_day_rate": {
+          "if": {
+            "==": [
+              {
+                "var": "modifier"
+              },
+              "none"
+            ]
+          },
+          "then": {
+            "var": "day_rate"
+          },
+          "else": {
+            "if": {
+              "==": [
+                {
+                  "var": "modifier"
+                },
+                "HSE"
+              ]
+            },
+            "then": {
+              "*": [
+                {
+                  "var": "day_rate"
+                },
+                0.8  
+              ]
+            },
+    "else": {
+        "if": {
+                "==": [
+                {
+                    "var": "modifier"
+                },
+                "weather"
+            ]
+        },
+        "then": {
+            "*": [
+                {
+                    "var": "day_rate"
+                },
+                  0.6  
+            ]
+        },
+        "else": {
+            "if": {
+                "==": [
+                    {
+                      "var": "modifier"
+                    },
+                    "down"
+                ]
+            },
+                "then": 0,  
+                "else": {
+                            "var": "day_rate"
+                        }
+                    }
+                }
+            }
+        }
+    }
+  },
+  "parties":
+  [
+    {"party_code" : "Acme", "party_type" : "Seller"},   
+    {"party_code" : "BP", "party_type" : "Buyer"},   
+    {"party_code" : "US Bank", "party_type" : "Funder"}  
+  ]
+}
+

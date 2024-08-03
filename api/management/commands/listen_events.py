@@ -1,12 +1,11 @@
 import time
 from django.core.management.base import BaseCommand
 from api.models import ContractEvent
-import packages.web3_client
-import packages.env_var
 
-env_var = packages.env_var.get_env()
-w3 = packages.web3_client.get_web3_instance()
-w3_contract = packages.web3_client.get_web3_contract()
+import packages.load_web3 as load_web3
+
+w3 = load_web3.get_web3_instance()
+w3_contract = load_web3.get_web3_contract()
 
 class Command(BaseCommand):
     def handle(self, *args, **kwargs):

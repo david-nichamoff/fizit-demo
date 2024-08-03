@@ -127,6 +127,21 @@ contract Delivery {
         contracts[contract_idx] = contract_;
     }
 
+    function deleteContract(uint contract_idx) public onlyOwner {
+        require(contract_idx < contracts.length, "Invalid contract index");
+        require(settlements[contract_idx].length == 0, "Cannot delete contract: settlements exist");
+        require(transactions[contract_idx].length == 0, "Cannot delete contract: transactions exist");
+        require(artifacts[contract_idx].length == 0, "Cannot delete contract: artifacts exist");
+        require(parties[contract_idx].length == 0, "Cannot delete contract: parties exist");
+
+        for (uint i = contract_idx; i < contracts.length - 1; i++) {
+            contracts[i] = contracts[i + 1];
+        }
+
+        contracts.pop();
+        emit ContractEvent(contract_idx, "ContractDeleted", uintToString(contract_idx));
+    }
+
     function getParties(uint contract_idx) public view returns (Party[] memory) {
         require(contract_idx < contracts.length, "Invalid contract index");
         return parties[contract_idx];

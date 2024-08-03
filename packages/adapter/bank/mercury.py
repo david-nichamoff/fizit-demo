@@ -1,13 +1,17 @@
 import requests
 import json
-import env_var
+import packages.load_keys as load_keys
 import uuid
 
-env_var = env_var.get_env()
+import packages.load_keys as load_keys
+import packages.load_config as load_config
+
+keys = load_keys.load_keys()
+config = load_config.load_config()
 
 def get_accounts():
     try:
-        response = requests.get(env_var["mercury_url"] + '/accounts', auth=(env_var["mercury_token"], ''))
+        response = requests.get(config["mercury_url"] + '/accounts', auth=(keys["mercury_token"], ''))
         response.raise_for_status()
         account_data = json.loads(response.text)['accounts']
 
@@ -22,7 +26,7 @@ def get_accounts():
 
 def get_recipients():
     try:
-        response = requests.get(env_var["mercury_url"] + '/recipients', auth=(env_var["mercury_token"], ''))
+        response = requests.get(config["mercury_url"] + '/recipients', auth=(keys["mercury_token"], ''))
         response.raise_for_status()
         recipient_data = json.loads(response.text)['recipients']
 
@@ -36,12 +40,12 @@ def get_recipients():
 
 def get_deposits(start_date, end_date, account_id):
     deposits = []
-    url = f"{env_var["mercury_url"]}/account/{account_id}/transactions"
+    url = f"{config["mercury_url"]}/account/{account_id}/transactions"
     payload = { "start" : start_date.strftime('%Y-%m-%d'), "end" : end_date.strftime('%Y-%m-%d') }
     headers = { "accept" : "application/json" }
 
     try:
-        response = requests.get(url, auth=(env_var['mercury_token'],''), headers=headers, params=payload)
+        response = requests.get(url, auth=(keys['mercury_token'],''), headers=headers, params=payload)
         deposit_data = json.loads(response.text)['transactions']
 
         for deposit in deposit_data:
@@ -56,11 +60,11 @@ def get_deposits(start_date, end_date, account_id):
 
 def make_payment(account_id, recipient_id, amount):
     idem = str(uuid.uuid1())
-    url = f"{env_var["mercury_url"]}/account/{account_id}/request-send-money"
+    url = f"{config["mercury_url"]}/account/{account_id}/request-send-money"
     payload = { "recipientId" : recipient_id, "amount" : float(amount), "paymentMethod" : "ach", "idempotencyKey" : idem }
 
     try:
-        response = requests.post(url, auth=(env_var["mercury_token"], ''), json=payload)
+        response = requests.post(url, auth=(keys["mercury_token"], ''), json=payload)
         response.raise_for_status()
         return True, None
     except requests.exceptions.RequestException as e:
