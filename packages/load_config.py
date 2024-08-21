@@ -1,6 +1,6 @@
 import os
 
-from api.models import Configuration
+from api.models.configuration_models import Configuration
 
 _env_config = None
 

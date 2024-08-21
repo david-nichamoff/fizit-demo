@@ -5,6 +5,7 @@ from rest_framework_api_key.admin import APIKeyModelAdmin
 from .models import EngageSrc, EngageDest
 from .models import CustomAPIKey, DataDictionary 
 from .models import ContractEvent, ContactRequest, Configuration
+from .models import PartyCode, PartyType
 
 # Unregister the default APIKey model if it is registered
 if APIKey in admin.site._registry:
@@ -39,9 +40,9 @@ class DataDictionaryAdmin(admin.ModelAdmin):
 
 @admin.register(ContractEvent)
 class ContractEventAdmin(admin.ModelAdmin):
-    list_display = ('event_idx','contract_idx','event_type','details','event_dt')
-    search_fields = ('event_idx','contract_idx','event_type')
-    list_filter = ('event_idx','contract_idx','event_type')
+    list_display = ('event_idx','contract_idx','contract_addr','event_type','details','event_dt')
+    search_fields = ('event_idx','contract_idx','contract_addr','event_type')
+    list_filter = ('event_idx','contract_idx','contract_addr','event_type')
 
 @admin.register(ContactRequest)
 class ContactRequestAdmin(admin.ModelAdmin):
@@ -54,3 +55,15 @@ class ConfigurationAdmin(admin.ModelAdmin):
     list_display = ('key', 'config_type', 'value')
     search_fields = ('key', 'config_type')
     list_filter = ('config_type',)
+
+@admin.register(PartyCode)
+class PartyAdmin(admin.ModelAdmin):
+    list_display = ('party_code', 'address')
+    search_fields = ('party_code',)
+    list_filter = ('party_code',)
+
+@admin.register(PartyType)
+class PartyTypeAdmin(admin.ModelAdmin):
+    list_display = ('party_type',)
+    search_fields = ('party_type',)
+    list_filter = ('party_type',)

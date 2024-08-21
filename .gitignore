@@ -48,3 +48,9 @@ schema.yml
 # static files
 static/
 frontend/static/frontend/
+
+# dev specific start and stop scripts
+./start.sh
+./stop.sh
+./coverage.sh
+./pids.txt

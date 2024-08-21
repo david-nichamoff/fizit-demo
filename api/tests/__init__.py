@@ -1,0 +1,1 @@
+from .test_load_contracts import *

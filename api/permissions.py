@@ -1,7 +1,7 @@
 # permissions.py
 from rest_framework.permissions import BasePermission
 
-from .models import CustomAPIKey
+from .models.api_key_models import CustomAPIKey
 
 class HasCustomAPIKey(BasePermission):
     def has_permission(self, request, view):

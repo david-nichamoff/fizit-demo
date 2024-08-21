@@ -1,7 +1,7 @@
 # authentication.py
 from rest_framework.authentication import BaseAuthentication
 
-from .models import CustomAPIKey
+from .models.api_key_models import CustomAPIKey
 
 class CustomAPIKeyAuthentication(BaseAuthentication):
     model = CustomAPIKey

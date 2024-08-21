@@ -1,5 +1,5 @@
 from rest_framework_api_key.crypto import KeyGenerator
-from api.models import CustomAPIKey
+from api.models.api_key_models import CustomAPIKey
 
 def is_master_key(request):
     api_key = request.META.get('HTTP_AUTHORIZATION', '').split(' ')[-1]

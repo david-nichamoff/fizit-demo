@@ -27,6 +27,8 @@ contract Delivery {
         uint advance_pct;               // amount of money that will be advanced to seller for every transaction
         uint late_fee_pct;              // an APR, daily rate calculated as late_fee_pct / 365
         string transact_logic;          // jsonlogic formula for calculating transaction amount
+        int min_threshold;              // minimum expected amount for a deliverable (could be negative)
+        int max_threshold;              // maximum expected amount for a deliverable
         string notes;                   // contract notes, can be used for additonal data requests
         bool is_active;                 // instead of deleting, clear this flag to False
         bool is_quote;                  // true if still in the quote stage
@@ -127,18 +129,10 @@ contract Delivery {
         contracts[contract_idx] = contract_;
     }
 
+    // Mark a contract as inactive 
     function deleteContract(uint contract_idx) public onlyOwner {
         require(contract_idx < contracts.length, "Invalid contract index");
-        require(settlements[contract_idx].length == 0, "Cannot delete contract: settlements exist");
-        require(transactions[contract_idx].length == 0, "Cannot delete contract: transactions exist");
-        require(artifacts[contract_idx].length == 0, "Cannot delete contract: artifacts exist");
-        require(parties[contract_idx].length == 0, "Cannot delete contract: parties exist");
-
-        for (uint i = contract_idx; i < contracts.length - 1; i++) {
-            contracts[i] = contracts[i + 1];
-        }
-
-        contracts.pop();
+        contracts[contract_idx].is_active = false;
         emit ContractEvent(contract_idx, "ContractDeleted", uintToString(contract_idx));
     }
 
@@ -247,6 +241,7 @@ contract Delivery {
 
         for (uint i = 0; i < settlements[contract_idx].length; i++) {
             Settlement storage settlement = settlements[contract_idx][i];
+            // minimum date is inclusive, maximum date is exclusive
             if (transact_dt >= settlement.transact_min_dt && transact_dt < settlement.transact_max_dt) {
                 settlement.transact_count++;
                 updateSettlementAmounts(settlement, contracts[contract_idx], transact_amt);
@@ -274,18 +269,13 @@ contract Delivery {
                 settlement.settle_exp_amt = 0;
             }
         
-            // Ensure residual_exp_amt doesn't go below 0
-            uint adjustment = abs_transact_amt * contract_.advance_pct / 10000;
-            if (settlement.residual_exp_amt >= adjustment) {
-                settlement.residual_exp_amt -= adjustment;
-            } else {
-                settlement.residual_exp_amt = 0;
-            }
+            // Recalculate residual_exp_amt based on the updated settle_exp_amt
         } else {
             uint uint_transact_amt = uint(transact_amt);
             settlement.settle_exp_amt += uint_transact_amt;
-            settlement.residual_exp_amt += uint_transact_amt * (10000 - contract_.advance_pct) / 10000;
         }
+
+        settlement.residual_exp_amt = settlement.settle_exp_amt * (10000 - contract_.advance_pct) / 10000;
     }
 
     function calculateAdvanceAmount(Transaction memory transact, Contract storage contract_) internal view {
