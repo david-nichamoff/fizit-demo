@@ -21,7 +21,7 @@ class SettlementViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
-        tags=["Settlement Periods"],
+        tags=["Settlements"],
         request=SettlementSerializer(many=True),
         responses={status.HTTP_200_OK: SettlementSerializer(many=True)},
         summary="List Settlements",
@@ -36,7 +36,7 @@ class SettlementViewSet(viewsets.ViewSet):
             return Response(str(e), status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(
-        tags=["Settlement Periods"],
+        tags=["Settlements"],
         request=SettlementSerializer(many=True),
         responses={status.HTTP_201_CREATED: int},
         summary="Create Settlements",
@@ -56,7 +56,7 @@ class SettlementViewSet(viewsets.ViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)   
 
     @extend_schema(
-        tags=["Settlement Periods"],
+        tags=["Settlements"],
         responses={status.HTTP_204_NO_CONTENT: int},
         summary="Delete Settlements",
         description="Delete all settlements from a contract",

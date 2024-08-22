@@ -16,7 +16,7 @@ class RecipientViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
-        tags=["Float Accounts"],
+        tags=["Accounts"],
         parameters=[
             OpenApiParameter(name='bank', description='Funding bank', required=False, type=str)
         ],

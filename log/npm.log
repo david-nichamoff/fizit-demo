@@ -2,7 +2,7 @@
 > fizit_dev@1.0.0 dev
 > webpack --config webpack.config.js --watch --mode development
 
-(node:3606) [DEP_WEBPACK_TEMPLATE_PATH_PLUGIN_REPLACE_PATH_VARIABLES_HASH] DeprecationWarning: [hash] is now [fullhash] (also consider using [chunkhash] or [contenthash], see documentation for details)
+(node:58723) [DEP_WEBPACK_TEMPLATE_PATH_PLUGIN_REPLACE_PATH_VARIABLES_HASH] DeprecationWarning: [hash] is now [fullhash] (also consider using [chunkhash] or [contenthash], see documentation for details)
 (Use `node --trace-deprecation ...` to show where the warning was created)
 asset frontend-0d83bd12fe2ec9cc3c6a.js 1.7 MiB [emitted] [immutable] (name: frontend)
 asset images/c3f0858230aa96db713ca8d15c2c55e6.png 373 KiB [emitted] [immutable] [from: frontend/static/assets/image/eps_chart.png] (auxiliary name: frontend)
@@ -29,4 +29,4 @@ modules by path ./frontend/ 94.7 KiB
     modules by path ./frontend/static/assets/image/*.png 1.02 KiB 12 modules
     modules by path ./frontend/static/assets/icon/*.png 435 bytes 5 modules
 modules by path ./node_modules/ 1.4 MiB 26 modules
-webpack 5.91.0 compiled successfully in 1289 ms
+webpack 5.91.0 compiled successfully in 1164 ms

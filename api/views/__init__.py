@@ -8,6 +8,8 @@ from .artifact_views import ArtifactViewSet
 from .account_views import AccountViewSet
 from .deposit_views import DepositViewSet
 from .recipient_views import RecipientViewSet
-from .event_views import ContractEventViewSet
-from .address_views import ContractAddressViewSet
+from .event_views import EventViewSet
+from .address_views import AddressViewSet
+from .advance_views import AdvanceViewSet
+from .residual_views import ResidualViewSet
 from .csrf_token_views import *

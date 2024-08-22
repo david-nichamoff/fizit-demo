@@ -1,6 +1,6 @@
 from django.db import models
 
-class ContactRequest(models.Model):
+class Contact(models.Model):
     name = models.CharField(max_length=100)
     email = models.EmailField()
     company = models.CharField(max_length=100, blank=True)
@@ -10,5 +10,5 @@ class ContactRequest(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = "Contact Request"
-        verbose_name_plural = "Contact Requests"
+        verbose_name = "Contact"
+        verbose_name_plural = "Contacts"

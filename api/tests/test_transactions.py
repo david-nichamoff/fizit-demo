@@ -1,0 +1,108 @@
+import os
+import json
+
+from datetime import datetime
+from decimal import Decimal, ROUND_DOWN
+
+from django.test import TestCase
+from rest_framework import status
+
+from .contract_operations import ContractOperations
+from .party_operations import PartyOperations
+from .settlement_operations import SettlementOperations
+from .transaction_operations import TransactionOperations
+from .utils import Utils
+
+import packages.load_keys as load_keys
+import packages.load_config as load_config
+
+keys = load_keys.load_keys()
+config = load_config.load_config()
+
+class TransactionTests(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        pass
+
+    def setUp(self):
+        self.current_date = datetime.now().replace(microsecond=0).isoformat()
+        self.headers = {
+            'Authorization': f'Api-Key {keys["FIZIT_MASTER_KEY"]}',
+            'Content-Type': 'application/json'
+        }
+        self.contract_ops = ContractOperations(self.headers, config)
+        self.party_ops = PartyOperations(self.headers, config)
+        self.settlement_ops = SettlementOperations(self.headers, config)
+        self.transaction_ops = TransactionOperations(self.headers, config)
+        self.utils = Utils(self.headers, config)
+        self.delay = 5
+        self.retries = 3
+
+    def test_transactions(self):
+        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_transactions')
+        for filename in os.listdir(fixtures_dir):
+            if filename.endswith('.json'):
+                with open(os.path.join(fixtures_dir, filename), 'r') as file:
+                    try:
+                        data = json.load(file)
+                        print(f"Loading data from file: {filename}")
+                        self._run_transaction_test(data)
+                    except json.JSONDecodeError as e:
+                        self.fail(f'Error decoding JSON from file: {filename}, Error: {str(e)}')
+                    except KeyError as e:
+                        self.fail(f'Missing key in JSON from file: {filename}, Error: {str(e)}')
+
+    def _run_transaction_test(self, data):
+        # Load the contract
+        response = self.contract_ops.load_contract(data['contract'])
+        if response.status_code != status.HTTP_201_CREATED:
+            self.fail(f"Failed to load contract. Status code: {response.status_code}\nResponse: {response.text}")
+
+        contract_idx = response.json()
+
+        # Add parties
+        response = self.party_ops.add_parties(contract_idx, data['parties'])
+        if response.status_code != status.HTTP_201_CREATED:
+            self.fail(f"Failed to add parties. Status code: {response.status_code}\nResponse: {response.text}")
+
+        # Add settlements
+        response = self.settlement_ops.post_settlements(contract_idx, data['settlements'])
+        if response.status_code != status.HTTP_201_CREATED:
+            self.fail(f"Failed to add settlements. Status code: {response.status_code}\nResponse: {response.text}")
+
+        # Add transactions
+        response = self.transaction_ops.post_transactions(contract_idx, data['transactions'])
+        if response.status_code != status.HTTP_201_CREATED:
+            self.fail(f"Failed to add transactions. Status code: {response.status_code}\nResponse: {response.text}")
+
+        # Validate settlements
+        response = self.settlement_ops.get_settlements(contract_idx)
+        if response.status_code != status.HTTP_200_OK:
+            self.fail(f"Failed to retrieve settlements. Status code: {response.status_code}\nResponse: {response.text}")
+
+        settlements = response.json()
+        self._validate_settlements(settlements)
+
+    def _validate_settlements(self, settlements):
+        for settlement in settlements:
+            extended_data = settlement.get("extended_data", {})
+            expected_transact_count = extended_data.get("transact_count")
+            expected_settle_exp_amt = Decimal(extended_data.get("settle_exp_amt", 0))
+
+            # Assert transact_count
+            self.assertEqual(
+                settlement["transact_count"],
+                expected_transact_count,
+                f"Expected transact_count to be {expected_transact_count}, but got {settlement['transact_count']}."
+            )
+
+            # Assert settle_exp_amt
+            actual_settle_exp_amt = Decimal(settlement["settle_exp_amt"])
+            self.assertEqual(
+                actual_settle_exp_amt.quantize(Decimal('0.01'), rounding=ROUND_DOWN),
+                expected_settle_exp_amt.quantize(Decimal('0.01'), rounding=ROUND_DOWN),
+                f"Expected settle_exp_amt to be {expected_settle_exp_amt}, but got {actual_settle_exp_amt}."
+            )
+
+        print("All settlement validations passed.")

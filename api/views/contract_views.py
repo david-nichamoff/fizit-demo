@@ -23,21 +23,13 @@ class ContractViewSet(viewsets.ViewSet):
     @extend_schema(
         operation_id="list_contracts",
         tags=["Contracts"],
-        parameters=[
-            OpenApiParameter(name='bank', description='Funding bank', required=False, type=str),
-            OpenApiParameter(name='account_ids', description='Funding account_id list, comma separated ', required=False, type=str),
-        ],
         responses={status.HTTP_200_OK: ContractSerializer(many=True)},
         summary="List Contracts",
         description="Retrieve a list of contracts"
     )
     def list(self, request):
-        bank = request.query_params.get('bank')
-        account_ids = request.query_params.get('account_ids')
-        if account_ids is not None:
-            account_ids = account_ids.split(',')
         try:
-            contracts = get_contracts(request, bank, account_ids)
+            contracts = get_contracts(request)
             serializer = ContractSerializer(contracts, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:

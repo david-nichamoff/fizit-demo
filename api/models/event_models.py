@@ -1,7 +1,7 @@
 from django.db import models
 from rest_framework_api_key.models import AbstractAPIKey
 
-class ContractEvent(models.Model):
+class Event(models.Model):
     event_idx = models.AutoField(primary_key=True) 
     
     # combination of contract_idx and contract_addr should be unique
@@ -16,5 +16,5 @@ class ContractEvent(models.Model):
         return f'Contract {self.contract_idx} updated at {self.event_dt}'
 
     class Meta:
-        verbose_name = "Contract Event"
-        verbose_name_plural = "Contract Events"
+        verbose_name = "Event"
+        verbose_name_plural = "Events"

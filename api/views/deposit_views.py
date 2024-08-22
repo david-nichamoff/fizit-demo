@@ -14,7 +14,7 @@ class DepositViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
-        tags=["Float Accounts"],
+        tags=["Accounts"],
         parameters=[
             OpenApiParameter(
                 name='start_date', 

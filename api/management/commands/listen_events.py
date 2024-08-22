@@ -23,7 +23,7 @@ class Command(BaseCommand):
             if event_type == 'ContractEvent':
                 ContractEvent.objects.create(
                     contract_idx=event_args['contract_idx'],
-                    contract_addr = contract_addr,
+                    contract_addr=contract_addr,
                     event_type=event_args['eventType'],
                     details=event_args['details'],
                     event_dt=event['blockNumber']  
@@ -32,11 +32,16 @@ class Command(BaseCommand):
             else:
                 logger.warning(f'Unknown event type: {event_type}')
 
-        try:
-            event_filter = w3_contract.events.ContractEvent.create_filter(fromBlock='latest')
-        except ValueError as e:
-            logger.error(f'Error creating filter: {e}')
-            self.stdout.write(self.style.ERROR(f'Error creating filter: {e}'))
+        def create_event_filter():
+            try:
+                return w3_contract.events.ContractEvent.create_filter(fromBlock='latest')
+            except ValueError as e:
+                logger.error(f'Error creating filter: {e}')
+                self.stdout.write(self.style.ERROR(f'Error creating filter: {e}'))
+                return None
+
+        event_filter = create_event_filter()
+        if event_filter is None:
             return
 
         self.stdout.write(self.style.SUCCESS('Started listening for contract events...'))
@@ -52,6 +57,11 @@ class Command(BaseCommand):
             except ValueError as e:
                 logger.error(f'Error getting new entries: {e}')
                 self.stdout.write(self.style.ERROR(f'Error getting new entries: {e}'))
+                if 'filter not found' in str(e):
+                    logger.info('Recreating the event filter...')
+                    event_filter = create_event_filter()
+                    if event_filter is None:
+                        return
             except Exception as e:
                 logger.error(f'Unexpected error: {e}')
                 self.stdout.write(self.style.ERROR(f'Unexpected error: {e}'))

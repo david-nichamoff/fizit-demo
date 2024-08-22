@@ -47,15 +47,13 @@ def get_contract_dict(contract_idx):
 
     return contract_dict
 
-def get_contracts(request, bank, account_ids):
+def get_contracts(request):
     contracts = []
     for contract_idx in range(get_contract_count()):
         contract_dict = get_contract_dict(contract_idx)
         parties = get_contract_parties(contract_idx)
-        if (account_ids is None or contract_dict['funding_instr']['account_id'] in account_ids) and \
-            (bank is None or bank == contract_dict['funding_instr']['bank']):
-            if is_user_authorized(request, parties):
-                contracts.append(contract_dict)
+        if is_user_authorized(request, parties):
+            contracts.append(contract_dict)
 
     return contracts
 

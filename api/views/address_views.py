@@ -9,12 +9,12 @@ from api.models.configuration_models import Configuration
 from api.permissions import HasCustomAPIKey
 from api.authentication import CustomAPIKeyAuthentication
 
-class ContractAddressViewSet(viewsets.ViewSet):
+class AddressViewSet(viewsets.ViewSet):
     authentication_classes = [SessionAuthentication , CustomAPIKeyAuthentication]
     permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
-        tags=["Contract Address"], 
+        tags=["Address"], 
         summary="Retrieves the current active contract address",
         description="Retrieve the curent active contract address"
     )

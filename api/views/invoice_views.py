@@ -19,7 +19,7 @@ class InvoiceViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
-        tags=["Invoices"],
+        tags=["Tickets"],
         parameters=[
             OpenApiParameter(name='start_date', description='Start date for filtering invoices (ISO 8601 format)', required=True, type=str, default=(datetime.now() - timedelta(days=1)).isoformat()),
             OpenApiParameter(name='end_date', description='End date for filtering invoices (ISO 8601 format)', required=True, type=str, default=(datetime.now() - timedelta(days=1)).isoformat()), 

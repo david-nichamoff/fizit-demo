@@ -3,8 +3,8 @@ from rest_framework_api_key.models import APIKey
 from rest_framework_api_key.admin import APIKeyModelAdmin
 
 from .models import EngageSrc, EngageDest
-from .models import CustomAPIKey, DataDictionary 
-from .models import ContractEvent, ContactRequest, Configuration
+from .models import CustomAPIKey
+from .models import Event, Contact, Configuration
 from .models import PartyCode, PartyType
 
 # Unregister the default APIKey model if it is registered
@@ -32,20 +32,14 @@ class CustomAPIKeyModelAdmin(APIKeyModelAdmin):
             obj.hashed_key = api_key.hashed_key
         super().save_model(request, obj, form, change)
 
-@admin.register(DataDictionary)
-class DataDictionaryAdmin(admin.ModelAdmin):
-    list_display = ('type', 'field_code', 'display_name', 'language_code')
-    search_fields = ('type', 'field_code', 'display_name', 'language_code')
-    list_filter = ('type', 'language_code')
-
-@admin.register(ContractEvent)
-class ContractEventAdmin(admin.ModelAdmin):
+@admin.register(Event)
+class EventAdmin(admin.ModelAdmin):
     list_display = ('event_idx','contract_idx','contract_addr','event_type','details','event_dt')
     search_fields = ('event_idx','contract_idx','contract_addr','event_type')
     list_filter = ('event_idx','contract_idx','contract_addr','event_type')
 
-@admin.register(ContactRequest)
-class ContactRequestAdmin(admin.ModelAdmin):
+@admin.register(Contact)
+class ContactAdmin(admin.ModelAdmin):
     list_display = ('name', 'email', 'company', 'message')
     search_fields = ('name', 'email', 'company')
     list_display = ('name', 'email', 'company')

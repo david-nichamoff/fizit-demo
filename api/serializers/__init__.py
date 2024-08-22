@@ -2,11 +2,11 @@ from .account_serializer import AccountSerializer
 from .artifact_serializer import ArtifactSerializer
 from .contract_serializer import ContractSerializer
 from .deposit_serializer import DepositSerializer
-from .dictionary_serializer import DictionarySerializer
-from .event_serializer import ContractEventSerializer
+from .event_serializer import EventSerializer
 from .invoice_serializer import InvoiceSerializer
 from .party_serializer import PartySerializer
 from .recipient_serializer import RecipientSerializer
 from .settlement_serializer import SettlementSerializer
 from .ticket_serializer import TicketSerializer
 from .transaction_serializer import TransactionSerializer
+from .advance_serializer import AdvanceSerializer
