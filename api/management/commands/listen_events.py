@@ -1,6 +1,6 @@
 import time
 from django.core.management.base import BaseCommand
-from api.models.event_models import ContractEvent
+from api.models.event_models import Event
 import packages.load_web3 as load_web3
 
 w3 = load_web3.get_web3_instance()
@@ -21,7 +21,7 @@ class Command(BaseCommand):
             logger.info(f'Handling event: {event_type} with args: {event_args}')
 
             if event_type == 'ContractEvent':
-                ContractEvent.objects.create(
+                Event.objects.create(
                     contract_idx=event_args['contract_idx'],
                     contract_addr=contract_addr,
                     event_type=event_args['eventType'],

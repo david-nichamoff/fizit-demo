@@ -18,7 +18,7 @@ class PartyViewSet(viewsets.ViewSet):
         summary="List Parties",
         description="Retrieve a list of parties associated with a contract"
     )
-    def list_contract(self, request, contract_idx=None):
+    def list(self, request, contract_idx=None):
         try:
             parties = get_contract_parties(int(contract_idx))
             return Response(parties, status=status.HTTP_200_OK)

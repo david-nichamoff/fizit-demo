@@ -19,7 +19,7 @@ class AdvanceViewSet(viewsets.ViewSet):
     @extend_schema(
         tags=["Advances"],
         responses={status.HTTP_200_OK: AdvanceSerializer(many=True)},
-        summary="Get a the current advance amount for a contract",
+        summary="Get Advance Amount",
         description="Get a the current advance amount for a contract",
     )
     def list(self, request):
@@ -36,7 +36,7 @@ class AdvanceViewSet(viewsets.ViewSet):
         description="Initiate advance payment"
     )
     @action(detail=True, methods=['post'], url_path='pay-advance')
-    def pay_advance(self, request, account_id=None):
+    def add(self, request, account_id=None):
         try:
             response = pay_advance(account_id)
             return Response(response, status=status.HTTP_200_OK)

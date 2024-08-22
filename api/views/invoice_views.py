@@ -28,7 +28,7 @@ class InvoiceViewSet(viewsets.ViewSet):
         summary="List Invoices from Host",
         description="Retrieve a list of all invoices associated with a contract from host"
     )
-    def list_contract(self, request, contract_idx=None):
+    def list(self, request, contract_idx=None):
         start_date_str = request.query_params.get('start_date')
         end_date_str = request.query_params.get('end_date')
         try:

@@ -8,7 +8,7 @@ import packages.load_config as load_config
 config = load_config.load_config()
 
 def validate_events(contract_idx, contract_addr, headers, expected_events, retries=3, delay=5):
-    url = f"{config['url']}/api/contract-events/?contract_idx={contract_idx}&contract_addr={contract_addr}"
+    url = f"{config['url']}/api/events/?contract_idx={contract_idx}&contract_addr={contract_addr}"
     time.sleep(delay)
 
     for attempt in range(retries):

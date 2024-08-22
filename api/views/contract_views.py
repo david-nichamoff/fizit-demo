@@ -21,7 +21,6 @@ class ContractViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
-        operation_id="list_contracts",
         tags=["Contracts"],
         responses={status.HTTP_200_OK: ContractSerializer(many=True)},
         summary="List Contracts",

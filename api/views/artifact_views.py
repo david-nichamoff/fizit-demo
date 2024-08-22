@@ -24,7 +24,7 @@ class ArtifactViewSet(viewsets.ViewSet):
         summary="List Artifacts",
         description="Retrieve a list of artifacts associated with a contract"
     )
-    def list_contract(self, request, contract_idx=None):
+    def list(self, request, contract_idx=None):
         try:
             artifacts = get_contract_artifacts(int(contract_idx))
             return Response(artifacts, status=status.HTTP_200_OK)

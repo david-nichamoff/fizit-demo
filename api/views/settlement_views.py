@@ -27,7 +27,7 @@ class SettlementViewSet(viewsets.ViewSet):
         summary="List Settlements",
         description="Retrieve a list of settlements associated with a contract"
     )
-    def list_contract(self, request, contract_idx=None):
+    def list(self, request, contract_idx=None):
         try:
             settlements = get_contract_settlements(int(contract_idx))
             logging.debug("Settlements: %s", settlements)

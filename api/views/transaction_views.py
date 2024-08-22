@@ -31,7 +31,7 @@ class TransactionViewSet(viewsets.ViewSet):
         summary="List Transactions",
         description="Retrieve a list of transactions associated with a contract"
     )
-    def list_contract(self, request, contract_idx=None):
+    def list(self, request, contract_idx=None):
         transact_min_dt_str = request.query_params.get('transact_min_dt')
         transact_max_dt_str = request.query_params.get('transact_max_dt')
 
