@@ -40,7 +40,8 @@ contract Delivery {
         uint transact_min_dt;           // min date the transaction is made 
         uint transact_max_dt;           // max date the transaction is made 
         uint transact_count;            // number of transactions in this current settlement period 
-        int advance_amt;                // the dollar amount that was advanced in this period
+        int advance_amt;                // the dollar amount that was advanced in this period (net amt)
+        int advance_amt_gross;          // the dollar amount that was advanced in this period less fees
         uint settle_pay_dt;             // when the settlement was paid
         int settle_exp_amt;             // expected amount of settlement 0
         int settle_pay_amt;             // actual amount paid from the buyer
@@ -247,27 +248,27 @@ contract Delivery {
 
         bool settle_found = false;
         int transact_advance_amt = 0;
+        int transact_advance_amt_gross = 0;
         int service_fee_amt = 0;
 
         for (uint i = 0; i < settlements[contract_idx].length; i++) {
             Settlement storage settlement = settlements[contract_idx][i];
             // minimum date is inclusive, maximum date is exclusive
             if (transact_dt >= settlement.transact_min_dt && transact_dt < settlement.transact_max_dt) {
-
                 if (transact_amt > 0) {
                     service_fee_amt = int((contracts[contract_idx].service_fee_pct * uint(transact_amt)) / 10000) + int(contracts[contract_idx].service_fee_amt);
-                    int advance_amt_calculated = int((uint(transact_amt) * contracts[contract_idx].advance_pct) / 10000);
+                    transact_advance_amt_gross = int((uint(transact_amt) * contracts[contract_idx].advance_pct) / 10000);
 
                     // Determine the final advance amount after subtracting the service fee
-                    if (advance_amt_calculated >= service_fee_amt) {
-                        transact_advance_amt = advance_amt_calculated - service_fee_amt;
+                    if (transact_advance_amt_gross >= service_fee_amt) {
+                        transact_advance_amt = transact_advance_amt_gross - service_fee_amt;
                     }
                 }
 
-                // Store the advance amount back into the transaction
                 settlement.settle_exp_amt += transact_amt;
                 settlement.advance_amt += transact_advance_amt;
-                settlement.residual_exp_amt = settlement.settle_exp_amt - settlement.advance_amt;
+                settlement.advance_amt_gross += transact_advance_amt_gross;
+                settlement.residual_exp_amt = settlement.settle_exp_amt - settlement.advance_amt_gross;
                 settlement.transact_count++;
                 transact.advance_amt = transact_advance_amt;
                 transact.service_fee_amt = service_fee_amt;

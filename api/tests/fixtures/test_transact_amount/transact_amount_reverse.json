@@ -23,7 +23,7 @@
     ],
     "settlements": [
         {
-            "extended_data": {"transact_count": 2, "settle_exp_amt" : "100.00", "residual_exp_amt":"-50.00"},
+            "extended_data": {"transact_count": 2, "settle_exp_amt" : "100.00", "residual_exp_amt":"-60.00"},
             "settle_due_dt": "2024-10-01T00:00:00",
             "transact_min_dt": "2024-08-01T00:00:00",
             "transact_max_dt": "2024-09-01T00:00:00"

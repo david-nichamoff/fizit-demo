@@ -11,6 +11,7 @@ class SettlementSerializer(serializers.Serializer):
     transact_max_dt =  serializers.DateTimeField() 
     transact_count = serializers.IntegerField(read_only=True)
     advance_amt = serializers.CharField(max_length=20, default = "0.00")
+    advance_amt_gross = serializers.CharField(max_length=20, default = "0.00")
     settle_pay_dt =  serializers.DateTimeField(read_only=True) 
     settle_exp_amt = serializers.CharField(max_length=20, default = "0.00")
     settle_pay_amt = serializers.CharField(max_length=20, default = "0.00")

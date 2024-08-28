@@ -30,7 +30,7 @@
             "extended_data": {
                 "transact_count": 12,
                 "settle_exp_amt": "1675.00",
-                "residual_exp_amt": "201.25"
+                "residual_exp_amt": "55.00"
             },
             "settle_due_dt": "2024-10-01T00:00:00",
             "transact_min_dt": "2024-08-01T00:00:00",

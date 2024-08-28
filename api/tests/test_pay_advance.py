@@ -1,5 +1,6 @@
 import os
 import json
+import time
 
 from decimal import Decimal
 from datetime import datetime
@@ -10,6 +11,7 @@ from rest_framework import status
 import packages.load_keys as load_keys
 import packages.load_config as load_config
 
+from .utils import Utils
 from .payment_operations import PaymentOperations
 from .contract_operations import ContractOperations
 from .party_operations import PartyOperations
@@ -31,11 +33,12 @@ class PayAdvanceTests(TestCase):
             'Authorization': f'Api-Key {keys["FIZIT_MASTER_KEY"]}',
             'Content-Type': 'application/json'
         }
-        self.bank_ops = PaymentOperations(self.headers, config)
+        self.payment_ops = PaymentOperations(self.headers, config)
         self.contract_ops = ContractOperations(self.headers, config)
         self.party_ops = PartyOperations(self.headers, config)
         self.settlement_ops = SettlementOperations(self.headers, config)
         self.transaction_ops = TransactionOperations(self.headers, config)
+        self.utils = Utils(self.headers, config)
 
     def test_pay_advance(self):
         fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_pay_advance')
@@ -47,8 +50,11 @@ class PayAdvanceTests(TestCase):
                         print(f"Loading contract data from file: {filename}")
                         contract_idx = self._test_create_contract(data['contract'])
                         self._test_load_parties(contract_idx, data['parties'])
+                        print (f"Parties loaded for contract: {contract_idx}")
                         self._test_load_settlements(contract_idx, data['settlements'])
+                        print (f"Settlements loaded for contract: {contract_idx}")
                         self._test_load_transactions(contract_idx, data['transactions'])
+                        print (f"Transactions loaded for contract: {contract_idx}")
                         self._test_get_advance(contract_idx, data['contract'])
                     except json.JSONDecodeError as e:
                         self.fail(f'Error decoding JSON from file: {filename}, Error: {str(e)}')
@@ -76,15 +82,43 @@ class PayAdvanceTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, f"Failed to add transactions to contract {contract_idx}.")
 
     def _test_get_advance(self, contract_idx, contract_data):
-        expected_advance_amt = contract_data["extended_data"]["advance_amt"]
+            expected_advance_count = contract_data["extended_data"].get("advance_count")
 
-        response = self.bank_ops.get_advance(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_200_OK, f"Failed to get advance amount for contract {contract_idx}.")
-        print(response.txt)
+            # First, get the advances
+            response = self.payment_ops.get_advance(contract_idx)
+            print(f"Advances loaded for contract: {contract_idx}")
+            self.assertEqual(response.status_code, status.HTTP_200_OK, f"Failed to get advance amount for contract {contract_idx}.")
 
-        actual_advance_amt = response.json().get("advance_amt")
-        self.assertEqual(
-            Decimal(actual_advance_amt),
-            Decimal(expected_advance_amt),
-            f"Expected advance amount {expected_advance_amt} does not match actual amount {actual_advance_amt} for contract {contract_idx}."
-        )
+            advances = response.json()  
+            self.assertEqual(
+                len(advances),
+                expected_advance_count,
+                f"Expected advance count {expected_advance_count} does not match actual count {len(advances)} for contract {contract_idx}."
+            )
+
+            # Now, call the payment_ops.add_advance function with the advances
+            csrf_token = self.utils._get_csrf_token()
+            add_advance_response = self.payment_ops.add_advance(contract_idx, advances, csrf_token)
+            self.assertEqual(
+                add_advance_response.status_code, 
+                status.HTTP_201_CREATED,
+                f"Failed to add advances for contract {contract_idx}. Status code: {add_advance_response.status_code}\nResponse: {add_advance_response.text}"
+            )
+
+            print(f"Successfully added advances for contract: {contract_idx}")
+
+            # Wait for 15 seconds
+            time.sleep(15)
+
+            # Get the advances again after the delay
+            response = self.payment_ops.get_advance(contract_idx)
+            self.assertEqual(response.status_code, status.HTTP_200_OK, f"Failed to get advance amount for contract {contract_idx} after waiting.")
+
+            advances_after_payment = response.json()
+            self.assertEqual(
+                len(advances_after_payment),
+                0,
+                f"Expected advance count to be 0 after payment, but got {len(advances_after_payment)} for contract {contract_idx}."
+            )
+
+            print(f"Advances successfully processed and cleared for contract: {contract_idx}")
