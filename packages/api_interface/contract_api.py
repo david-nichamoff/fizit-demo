@@ -1,5 +1,3 @@
-import datetime
-import os
 import logging
 import json
 
@@ -10,7 +8,7 @@ from packages.check_privacy import is_user_authorized
 import packages.load_web3 as load_web3
 import packages.load_config as load_config
 
-from .party_api import get_contract_parties
+from .party_api import get_parties
 from .util_api import is_valid_json
 
 config = load_config.load_config()
@@ -51,7 +49,7 @@ def get_contracts(request):
     contracts = []
     for contract_idx in range(get_contract_count()):
         contract_dict = get_contract_dict(contract_idx)
-        parties = get_contract_parties(contract_idx)
+        parties = get_parties(contract_idx)
         if is_user_authorized(request, parties):
             contracts.append(contract_dict)
 

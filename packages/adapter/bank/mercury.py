@@ -61,7 +61,12 @@ def get_deposits(start_date, end_date, account_id):
 def make_payment(account_id, recipient_id, amount):
     idem = str(uuid.uuid1())
     url = f"{config["mercury_url"]}/account/{account_id}/request-send-money"
-    payload = { "recipientId" : recipient_id, "amount" : float(amount), "paymentMethod" : "ach", "idempotencyKey" : idem }
+    payload = {
+        "recipientId": str(recipient_id), 
+        "amount": float(amount),
+        "paymentMethod": "ach",
+        "idempotencyKey": idem
+    }
 
     try:
         response = requests.post(url, auth=(keys["mercury_token"], ''), json=payload)

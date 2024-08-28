@@ -1,9 +1,9 @@
 from rest_framework import serializers
 
 class AdvanceSerializer(serializers.Serializer):
+    contract_idx = serializers.IntegerField()
+    transact_idx = serializers.IntegerField()
     bank = serializers.CharField(max_length=50)
     account_id = serializers.UUIDField()
-    account_name = serializers.CharField(max_length=255)
-    available_balance = serializers.CharField(max_length=20)
+    recipient_id = serializers.UUIDField()
     advance_amt = serializers.CharField(max_length=20)
-    transact_count = serializers.IntegerField(read_only=True)

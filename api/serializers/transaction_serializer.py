@@ -8,6 +8,7 @@ class TransactionSerializer(serializers.Serializer):
     funding_instr = serializers.JSONField(read_only=True)
     transact_dt = serializers.DateTimeField()
     transact_amt = serializers.CharField(max_length=20, default = "0.00")
+    service_fee_amt = serializers.CharField(max_length=20, default = "0.00")
     advance_amt = serializers.CharField(max_length=20, default = "0.00")
     transact_data = serializers.JSONField()
     advance_pay_dt = serializers.DateTimeField(read_only=True)

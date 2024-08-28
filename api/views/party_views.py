@@ -5,7 +5,7 @@ from drf_spectacular.utils import extend_schema
 
 from api.serializers.party_serializer import PartySerializer
 
-from packages.api_interface import get_contract_parties, add_parties
+from packages.api_interface import get_parties, add_parties
 from packages.api_interface import delete_parties, delete_party
 
 from packages.check_privacy import is_master_key
@@ -20,7 +20,7 @@ class PartyViewSet(viewsets.ViewSet):
     )
     def list(self, request, contract_idx=None):
         try:
-            parties = get_contract_parties(int(contract_idx))
+            parties = get_parties(int(contract_idx))
             return Response(parties, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(str(e), status=status.HTTP_404_NOT_FOUND)

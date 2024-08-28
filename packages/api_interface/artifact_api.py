@@ -15,7 +15,7 @@ ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 w3 = load_web3.get_web3_instance()
 w3_contract = load_web3.get_web3_contract()
 
-def get_contract_artifacts(contract_idx):
+def get_artifacts(contract_idx):
     artifacts = []
     contract = get_contract(contract_idx)
 

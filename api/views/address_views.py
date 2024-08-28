@@ -15,8 +15,8 @@ class AddressViewSet(viewsets.ViewSet):
 
     @extend_schema(
         tags=["Address"], 
-        summary="Retrieves the current active contract address",
-        description="Retrieve the curent active contract address"
+        summary="Get Contract Address",
+        description="Retrieve the current active contract address"
     )
     def get(self, request):
         try:

@@ -23,7 +23,7 @@ contract Delivery {
         string funding_instr;           // buyer funding instructions
         uint service_fee_pct;           // service fee pct <= service_fee_max
         uint service_fee_max;           // maximum fee that can be charged if the rate is variable
-        uint service_fee_amt;           // flat rate amt if not percentage based
+        int service_fee_amt;            // flat rate amt if not percentage based
         uint advance_pct;               // amount of money that will be advanced to seller for every transaction
         uint late_fee_pct;              // an APR, daily rate calculated as late_fee_pct / 365
         string transact_logic;          // jsonlogic formula for calculating transaction amount
@@ -40,26 +40,28 @@ contract Delivery {
         uint transact_min_dt;           // min date the transaction is made 
         uint transact_max_dt;           // max date the transaction is made 
         uint transact_count;            // number of transactions in this current settlement period 
+        int advance_amt;                // the dollar amount that was advanced in this period
         uint settle_pay_dt;             // when the settlement was paid
-        uint settle_exp_amt;            // expected amount of settlement 0
-        uint settle_pay_amt;            // actual amount paid from the buyer
+        int settle_exp_amt;             // expected amount of settlement 0
+        int settle_pay_amt;             // actual amount paid from the buyer
         string settle_confirm;          // confirmation from payment source
-        uint dispute_amt;               // if expected  < actual, assume there was a dispute
+        int dispute_amt;                // if expected < actual, assume there was a dispute
         string dispute_reason;          // if dispute_amt > 0, what was the reason (if provided)
         uint days_late;                 // number of days late the payment was made
-        uint late_fee_amt;              // amount of the late fee, will be taken out of the residual
+        int late_fee_amt;               // amount of the late fee, will be taken out of the residual
         uint residual_pay_dt;           // date and time the residual was paid
-        uint residual_pay_amt;          // will equal residual_calc_amt after payment intitiated
+        int residual_pay_amt;           // will equal residual_calc_amt after payment intitiated
         string residual_confirm;        // residual confirmation from the payment source
-        uint residual_exp_amt;          // expected amount of the residual
-        uint residual_calc_amt;         // what the actual residual will be (exp - late_fee - dispute)
+        int residual_exp_amt;           // expected amount of the residual
+        int residual_calc_amt;          // what the actual residual will be (exp - late_fee - dispute)
     }
 
     struct Transaction {
         string extended_data;           // json extended data
         uint transact_dt;               // date and time of the transaction
         int transact_amt;               // calculated value of a transaction, negative if an adjustment
-        uint advance_amt;               // advance_amt * advance_pct - service_fee_amt
+        int service_fee_amt;            // calculated fee for a transaction
+        int advance_amt;                // advance_amt * advance_pct - service_fee_amt
         string transact_data;           // data regarding transaction for jsonlogic    
         uint advance_pay_dt;            // payment of advance
         uint advance_pay_amt;           // will equal advance amt after payment initiated
@@ -119,7 +121,7 @@ contract Delivery {
         logContractChange(contract_idx, "funding_instr", contracts[contract_idx].funding_instr, contract_.funding_instr);
         logContractChange(contract_idx, "service_fee_pct", uintToString(contracts[contract_idx].service_fee_pct), uintToString(contract_.service_fee_pct));
         logContractChange(contract_idx, "service_fee_max", uintToString(contracts[contract_idx].service_fee_max), uintToString(contract_.service_fee_max));
-        logContractChange(contract_idx, "service_fee_amt", uintToString(contracts[contract_idx].service_fee_amt), uintToString(contract_.service_fee_amt));
+        logContractChange(contract_idx, "service_fee_amt", intToString(contracts[contract_idx].service_fee_amt), intToString(contract_.service_fee_amt));
         logContractChange(contract_idx, "advance_pct", uintToString(contracts[contract_idx].advance_pct), uintToString(contract_.advance_pct));
         logContractChange(contract_idx, "late_fee_pct", uintToString(contracts[contract_idx].late_fee_pct), uintToString(contract_.late_fee_pct));
         logContractChange(contract_idx, "transact_logic", contracts[contract_idx].transact_logic, contract_.transact_logic);
@@ -228,6 +230,12 @@ contract Delivery {
         return transactions[contract_idx];
     }
 
+    function deleteTransactions(uint contract_idx) public onlyOwner {
+        require(contract_idx < contracts.length, "Invalid contract index");
+        delete transactions[contract_idx];
+        emit ContractEvent(contract_idx, "TransactionsDeleted", "");
+    }
+
     function addTransaction(uint contract_idx, string memory extended_data, uint transact_dt, int transact_amt, string memory transact_data) public onlyOwner {
         require(contract_idx < contracts.length, "Invalid contract index");
 
@@ -238,66 +246,41 @@ contract Delivery {
         transact.transact_data = transact_data;
 
         bool settle_found = false;
+        int transact_advance_amt = 0;
+        int service_fee_amt = 0;
 
         for (uint i = 0; i < settlements[contract_idx].length; i++) {
             Settlement storage settlement = settlements[contract_idx][i];
             // minimum date is inclusive, maximum date is exclusive
             if (transact_dt >= settlement.transact_min_dt && transact_dt < settlement.transact_max_dt) {
+
+                if (transact_amt > 0) {
+                    service_fee_amt = int((contracts[contract_idx].service_fee_pct * uint(transact_amt)) / 10000) + int(contracts[contract_idx].service_fee_amt);
+                    int advance_amt_calculated = int((uint(transact_amt) * contracts[contract_idx].advance_pct) / 10000);
+
+                    // Determine the final advance amount after subtracting the service fee
+                    if (advance_amt_calculated >= service_fee_amt) {
+                        transact_advance_amt = advance_amt_calculated - service_fee_amt;
+                    }
+                }
+
+                // Store the advance amount back into the transaction
+                settlement.settle_exp_amt += transact_amt;
+                settlement.advance_amt += transact_advance_amt;
+                settlement.residual_exp_amt = settlement.settle_exp_amt - settlement.advance_amt;
                 settlement.transact_count++;
-                updateSettlementAmounts(settlement, contracts[contract_idx], transact_amt);
+                transact.advance_amt = transact_advance_amt;
+                transact.service_fee_amt = service_fee_amt;
                 settle_found = true;
             }
         }
 
         if (settle_found) {
-            calculateAdvanceAmount(transact, contracts[contract_idx]);
             transactions[contract_idx].push(transact);
             emit ContractEvent(contract_idx, "TransactionAdded", transact.extended_data);
         } else {
             emit ContractEvent(contract_idx, "TransactionError", "No valid settlement period");
         }
-    }
-
-    function updateSettlementAmounts(Settlement storage settlement, Contract storage contract_, int transact_amt) internal {
-        if (transact_amt < 0) {
-            uint abs_transact_amt = uint(-transact_amt);
-        
-            // Ensure settle_exp_amt doesn't go below 0
-            if (settlement.settle_exp_amt >= abs_transact_amt) {
-                settlement.settle_exp_amt -= abs_transact_amt;
-            } else {
-                settlement.settle_exp_amt = 0;
-            }
-        
-            // Recalculate residual_exp_amt based on the updated settle_exp_amt
-        } else {
-            uint uint_transact_amt = uint(transact_amt);
-            settlement.settle_exp_amt += uint_transact_amt;
-        }
-
-        settlement.residual_exp_amt = settlement.settle_exp_amt * (10000 - contract_.advance_pct) / 10000;
-    }
-
-    function calculateAdvanceAmount(Transaction memory transact, Contract storage contract_) internal view {
-        if (transact.transact_amt > 0) {
-            uint uint_transact_amt = uint(transact.transact_amt);
-            uint service_fee = (contract_.service_fee_pct * uint_transact_amt / 10000) + contract_.service_fee_amt;
-            uint advance_amt_calculated = (uint_transact_amt * contract_.advance_pct / 10000);
-
-            if (advance_amt_calculated >= service_fee) {
-                transact.advance_amt = advance_amt_calculated - service_fee;
-            } else {
-                transact.advance_amt = 0;
-            }
-        } else {
-            transact.advance_amt = 0;
-        }
-    }
-
-    function deleteTransactions(uint contract_idx) public onlyOwner {
-        require(contract_idx < contracts.length, "Invalid contract index");
-        delete transactions[contract_idx];
-        emit ContractEvent(contract_idx, "TransactionsDeleted", "");
     }
 
     function payAdvance(uint contract_idx, uint transact_idx, uint advance_pay_dt, uint advance_pay_amt, string memory advance_confirm) public onlyOwner {
@@ -308,7 +291,7 @@ contract Delivery {
         emit ContractEvent(contract_idx, "PayAdvance", "");
     }
 
-    function postSettlement(uint contract_idx, uint settle_idx, uint settle_pay_dt, uint settle_pay_amt, string memory settle_confirm, string memory dispute_reason) public onlyOwner {
+    function postSettlement(uint contract_idx, uint settle_idx, uint settle_pay_dt, int settle_pay_amt, string memory settle_confirm, string memory dispute_reason) public onlyOwner {
         require(contract_idx < contracts.length, "Invalid contract index");
         settlements[contract_idx][settle_idx].settle_pay_dt = settle_pay_dt;
         settlements[contract_idx][settle_idx].settle_pay_amt = settle_pay_amt;
@@ -316,8 +299,13 @@ contract Delivery {
 
         if (settle_pay_dt > settlements[contract_idx][settle_idx].settle_due_dt) {
             settlements[contract_idx][settle_idx].days_late = (settle_pay_dt - settlements[contract_idx][settle_idx].settle_due_dt) / 60 / 60 / 24;
-            settlements[contract_idx][settle_idx].late_fee_amt = (settlements[contract_idx][settle_idx].days_late * 
-                ((contracts[contract_idx].late_fee_pct * 100000) / 365) * settlements[contract_idx][settle_idx].settle_exp_amt) / 1000000000;
+
+            // Convert necessary values to int to match types and avoid errors
+            int days_late = int(settlements[contract_idx][settle_idx].days_late);
+            int late_fee_pct = int(contracts[contract_idx].late_fee_pct);
+            int settle_exp_amt = settlements[contract_idx][settle_idx].settle_exp_amt;
+
+            settlements[contract_idx][settle_idx].late_fee_amt = (days_late * ((late_fee_pct * 100000) / 365) * settle_exp_amt) / 1000000000;
         }
 
         if (settle_pay_amt < settlements[contract_idx][settle_idx].residual_exp_amt) {
@@ -335,7 +323,7 @@ contract Delivery {
         emit ContractEvent(contract_idx, "PostSettlement", "");
     }
 
-    function payResidual(uint contract_idx, uint settle_idx, uint residual_pay_dt, uint residual_pay_amt, string memory residual_confirm) public onlyOwner {
+    function payResidual(uint contract_idx, uint settle_idx, uint residual_pay_dt, int residual_pay_amt, string memory residual_confirm) public onlyOwner {
         require(contract_idx < contracts.length, "Invalid contract index");
         settlements[contract_idx][settle_idx].residual_pay_dt = residual_pay_dt;
         settlements[contract_idx][settle_idx].residual_pay_amt = residual_pay_amt;
@@ -364,6 +352,47 @@ contract Delivery {
         }
         return string(bstr);
     }
+
+   function intToString(int v) internal pure returns (string memory) {
+        if (v == 0) {
+            return "0";
+        }
+
+        bool negative = v < 0;
+        uint len = 0;
+        uint i;
+        int temp = v;
+
+        if (negative) {
+            temp = -temp;
+            len++;
+        }
+
+        i = uint(temp);
+
+        while (i != 0) {
+            len++;
+            i /= 10;
+        }
+
+        bytes memory bstr = new bytes(len);
+        uint k = len;
+        i = uint(temp);
+
+        while (i != 0) {
+            k = k - 1;
+            uint8 tempDigit = (48 + uint8(i - i / 10 * 10));
+            bytes1 b1 = bytes1(tempDigit);
+            bstr[k] = b1;
+            i /= 10;
+        }
+
+        if (negative) {
+            bstr[0] = '-';
+        }
+
+        return string(bstr);
+    } 
 
     function boolToString(bool v) internal pure returns (string memory) {
         return v ? "true" : "false";

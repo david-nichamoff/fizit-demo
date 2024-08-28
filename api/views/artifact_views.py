@@ -8,7 +8,7 @@ from drf_spectacular.utils import extend_schema
 from api.serializers.artifact_serializer import ArtifactSerializer
 
 from packages.api_interface import get_contract
-from packages.api_interface import get_contract_artifacts, add_artifacts, delete_artifacts
+from packages.api_interface import get_artifacts, add_artifacts, delete_artifacts
 from packages.check_privacy import is_master_key
 
 from api.permissions import HasCustomAPIKey
@@ -26,7 +26,7 @@ class ArtifactViewSet(viewsets.ViewSet):
     )
     def list(self, request, contract_idx=None):
         try:
-            artifacts = get_contract_artifacts(int(contract_idx))
+            artifacts = get_artifacts(int(contract_idx))
             return Response(artifacts, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(str(e), status=status.HTTP_404_NOT_FOUND)

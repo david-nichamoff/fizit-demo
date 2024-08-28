@@ -1,6 +1,7 @@
 import os
 import json
 
+from decimal import Decimal
 from datetime import datetime
 
 from django.test import TestCase
@@ -9,7 +10,7 @@ from rest_framework import status
 import packages.load_keys as load_keys
 import packages.load_config as load_config
 
-from .bank_operations import BankOperations
+from .payment_operations import PaymentOperations
 from .contract_operations import ContractOperations
 from .party_operations import PartyOperations
 from .settlement_operations import SettlementOperations
@@ -18,26 +19,26 @@ from .transaction_operations import TransactionOperations
 keys = load_keys.load_keys()
 config = load_config.load_config()
 
-class BankInterfaceTests(TestCase):
+class PayAdvanceTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
         pass
-"""
+
     def setUp(self):
         self.current_date = datetime.now().replace(microsecond=0).isoformat()
         self.headers = {
             'Authorization': f'Api-Key {keys["FIZIT_MASTER_KEY"]}',
             'Content-Type': 'application/json'
         }
-        self.bank_ops = BankOperations(self.headers, config)
+        self.bank_ops = PaymentOperations(self.headers, config)
         self.contract_ops = ContractOperations(self.headers, config)
         self.party_ops = PartyOperations(self.headers, config)
         self.settlement_ops = SettlementOperations(self.headers, config)
         self.transaction_ops = TransactionOperations(self.headers, config)
 
-    def test_bank_interface(self):
-        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_bank_interface')
+    def test_pay_advance(self):
+        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_pay_advance')
         for filename in os.listdir(fixtures_dir):
             if filename.endswith('.json'):
                 with open(os.path.join(fixtures_dir, filename), 'r') as file:
@@ -48,8 +49,7 @@ class BankInterfaceTests(TestCase):
                         self._test_load_parties(contract_idx, data['parties'])
                         self._test_load_settlements(contract_idx, data['settlements'])
                         self._test_load_transactions(contract_idx, data['transactions'])
-                        self._test_account_endpoint(data['contract'])
-                        self._test_recipient_endpoint(data['contract'])
+                        self._test_get_advance(contract_idx, data['contract'])
                     except json.JSONDecodeError as e:
                         self.fail(f'Error decoding JSON from file: {filename}, Error: {str(e)}')
                     except KeyError as e:
@@ -60,6 +60,7 @@ class BankInterfaceTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, "Failed to create contract.")
         contract_idx = response.json()
         self.assertIsNotNone(contract_idx, 'Contract index should not be None')
+        print(f'Successfully added contract {contract_idx}')
         return contract_idx
 
     def _test_load_parties(self, contract_idx, parties_data):
@@ -74,36 +75,16 @@ class BankInterfaceTests(TestCase):
         response = self.transaction_ops.post_transactions(contract_idx, transactions_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, f"Failed to add transactions to contract {contract_idx}.")
 
-    def _test_account_endpoint(self, contract_data):
-        bank = contract_data['funding_instr']['bank']
-        account_id = contract_data['funding_instr']['account_id']
+    def _test_get_advance(self, contract_idx, contract_data):
+        expected_advance_amt = contract_data["extended_data"]["advance_amt"]
 
-        response = self.bank_ops.get_accounts(bank)
-        
-        # Check if the response is JSON
-        if response.headers['Content-Type'] != 'application/json':
-            self.fail(f"Expected JSON response but got {response.headers['Content-Type']}.\nResponse content: {response.content.decode('utf-8')}")
+        response = self.bank_ops.get_advance(contract_idx)
+        self.assertEqual(response.status_code, status.HTTP_200_OK, f"Failed to get advance amount for contract {contract_idx}.")
+        print(response.txt)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK, f"Failed to get accounts for bank {bank}.")
-        
-        accounts = response.json()
-        account_ids = [account['account_id'] for account in accounts]
-        self.assertIn(account_id, account_ids, f"Account ID {account_id} not found in response.")
-
-    def _test_recipient_endpoint(self, contract_data):
-        bank = contract_data['funding_instr']['bank']
-        recipient_id = contract_data['funding_instr']['recipient_id']
-
-        response = self.bank_ops.get_recipients(bank)
-        
-        # Check if the response is JSON
-        if response.headers['Content-Type'] != 'application/json':
-            self.fail(f"Expected JSON response but got {response.headers['Content-Type']}.\nResponse content: {response.content.decode('utf-8')}")
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK, f"Failed to get recipients for bank {bank}.")
-        
-        recipients = response.json()
-        recipient_ids = [recipient['recipient_id'] for recipient in recipients]
-        self.assertIn(recipient_id, recipient_ids, f"Recipient ID {recipient_id} not found in response.")
-
-"""
+        actual_advance_amt = response.json().get("advance_amt")
+        self.assertEqual(
+            Decimal(actual_advance_amt),
+            Decimal(expected_advance_amt),
+            f"Expected advance amount {expected_advance_amt} does not match actual amount {actual_advance_amt} for contract {contract_idx}."
+        )

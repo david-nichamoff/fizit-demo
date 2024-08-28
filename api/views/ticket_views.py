@@ -10,7 +10,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from api.serializers.ticket_serializer import TicketSerializer
 
-from packages.api_interface import get_contract_tickets
+from packages.api_interface import get_tickets
 
 from packages.check_privacy import is_master_key
 
@@ -37,7 +37,7 @@ class TicketViewSet(viewsets.ViewSet):
         try:
             start_date = datetime.fromisoformat(start_date_str)
             end_date = datetime.fromisoformat(end_date_str)
-            tickets = get_contract_tickets(contract_idx, start_date, end_date)
+            tickets = get_tickets(contract_idx, start_date, end_date)
             return Response(tickets, status=status.HTTP_200_OK)
         except ValueError:
             return Response("Invalid date format. Expected ISO 8601 format.", status=status.HTTP_400_BAD_REQUEST)

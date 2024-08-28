@@ -1,6 +1,6 @@
 import requests
 
-class BankOperations:
+class PaymentOperations:
     def __init__(self, headers, config):
         self.headers = headers
         self.config = config
@@ -21,21 +21,20 @@ class BankOperations:
         )
         return response
 
-    def get_deposits(self, bank):
+    def get_advance(self, contract_idx):
         response = requests.get(
-            f"{self.config['url']}/api/deposits/",
-            headers=self.headers,
-            params={"bank": bank}
+            f"{self.config['url']}/api/contracts/{contract_idx}/advance/",
+            headers=self.headers
         )
         return response
 
-    def pay_advance(self, account_id, amount, currency="USD"):
+    def add_advance(self, account_id, amount, currency="USD"):
         payload = {
             "amount": amount,
             "currency": currency
         }
         response = requests.post(
-            f"{self.config['url']}/api/accounts/{account_id}/pay_advance/",
+            f"{self.config['url']}/api/accounts/{account_id}/add_advance/",
             headers=self.headers,
             json=payload
         )

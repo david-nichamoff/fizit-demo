@@ -10,7 +10,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from api.serializers.settlement_serializer import SettlementSerializer
 
-from packages.api_interface import get_contract_settlements, add_settlements, delete_settlements
+from packages.api_interface import get_settlements, add_settlements, delete_settlements
 from packages.check_privacy import is_master_key
 
 from api.permissions import HasCustomAPIKey
@@ -29,7 +29,7 @@ class SettlementViewSet(viewsets.ViewSet):
     )
     def list(self, request, contract_idx=None):
         try:
-            settlements = get_contract_settlements(int(contract_idx))
+            settlements = get_settlements(int(contract_idx))
             logging.debug("Settlements: %s", settlements)
             return Response(settlements, status=status.HTTP_200_OK)
         except Exception as e:

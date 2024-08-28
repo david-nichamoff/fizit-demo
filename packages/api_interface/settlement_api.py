@@ -4,8 +4,6 @@ import logging
 
 import json
 
-from packages.check_privacy import is_user_authorized
-
 import packages.load_web3 as load_web3
 import packages.load_config as load_config
 
@@ -29,19 +27,20 @@ def get_settle_dict(settle, settle_idx, contract):
     settle_dict["transact_min_dt"] = from_timestamp(settle[2])
     settle_dict["transact_max_dt"] = from_timestamp(settle[3])
     settle_dict["transact_count"] = settle[4]
-    settle_dict["settle_pay_dt"] = from_timestamp(settle[5])
-    settle_dict["settle_exp_amt"] = f'{Decimal(settle[6]) / 100:.2f}'
-    settle_dict["settle_pay_amt"] = f'{Decimal(settle[7]) / 100:.2f}'
-    settle_dict["settle_confirm"] = settle[8]
-    settle_dict["dispute_amt"] = f'{Decimal(settle[9]) / 100:.2f}'
-    settle_dict["dispute_reason"] = settle[10]
-    settle_dict["days_late"] = settle[11]
-    settle_dict["late_fee_amt"] = f'{Decimal(settle[12]) / 100:.2f}'
-    settle_dict["residual_pay_dt"] = from_timestamp(settle[13]) 
-    settle_dict["residual_pay_amt"] = f'{Decimal(settle[14]) / 100:.2f}'
-    settle_dict["residual_confirm"] = settle[15]
-    settle_dict["residual_exp_amt"] = f'{Decimal(settle[16]) / 100:.2f}'
-    settle_dict["residual_calc_amt"] = f'{Decimal(settle[17]) / 100:.2f}'
+    settle_dict["advance_amt"] = f'{Decimal(settle[5]) / 100:.2f}'
+    settle_dict["settle_pay_dt"] = from_timestamp(settle[6])
+    settle_dict["settle_exp_amt"] = f'{Decimal(settle[7]) / 100:.2f}'
+    settle_dict["settle_pay_amt"] = f'{Decimal(settle[8]) / 100:.2f}'
+    settle_dict["settle_confirm"] = settle[9]
+    settle_dict["dispute_amt"] = f'{Decimal(settle[10]) / 100:.2f}'
+    settle_dict["dispute_reason"] = settle[11]
+    settle_dict["days_late"] = settle[12]
+    settle_dict["late_fee_amt"] = f'{Decimal(settle[13]) / 100:.2f}'
+    settle_dict["residual_pay_dt"] = from_timestamp(settle[14]) 
+    settle_dict["residual_pay_amt"] = f'{Decimal(settle[15]) / 100:.2f}'
+    settle_dict["residual_confirm"] = settle[16]
+    settle_dict["residual_exp_amt"] = f'{Decimal(settle[17]) / 100:.2f}'
+    settle_dict["residual_calc_amt"] = f'{Decimal(settle[18]) / 100:.2f}'
     settle_dict["contract_idx"] = contract['contract_idx']
     settle_dict["contract_name"] = contract['contract_name']
     settle_dict["funding_instr"] = contract['funding_instr']
@@ -52,7 +51,7 @@ def get_settle_dict(settle, settle_idx, contract):
 
     return settle_dict
 
-def get_contract_settlements(contract_idx):
+def get_settlements(contract_idx):
     settlements = []
     contract = get_contract(contract_idx)
     settles = w3_contract.functions.getSettlements(contract['contract_idx']).call() 

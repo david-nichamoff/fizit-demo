@@ -2,6 +2,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 from rest_framework import viewsets, status
+
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from api.serializers.account_serializer import AccountSerializer
@@ -18,7 +19,7 @@ class AccountViewSet(viewsets.ViewSet):
     @extend_schema(
         tags=["Accounts"],
         parameters=[
-            OpenApiParameter(name='bank', description='Funding bank', required=False, type=str),
+            OpenApiParameter(name='bank', description='Funding bank', required=True, type=str),
         ],
         responses={status.HTTP_200_OK: AccountSerializer(many=True)},
         summary="List Accounts",

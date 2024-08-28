@@ -19,7 +19,7 @@ import packages.load_config as load_config
 keys = load_keys.load_keys()
 config = load_config.load_config()
 
-class TransactionTests(TestCase):
+class TransactionAmountTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
@@ -40,7 +40,7 @@ class TransactionTests(TestCase):
         self.retries = 3
 
     def test_transactions(self):
-        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_transactions')
+        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_transact_amount')
         for filename in os.listdir(fixtures_dir):
             if filename.endswith('.json'):
                 with open(os.path.join(fixtures_dir, filename), 'r') as file:
@@ -60,6 +60,7 @@ class TransactionTests(TestCase):
             self.fail(f"Failed to load contract. Status code: {response.status_code}\nResponse: {response.text}")
 
         contract_idx = response.json()
+        print(f'Successfully added contract {contract_idx}')
 
         # Add parties
         response = self.party_ops.add_parties(contract_idx, data['parties'])
@@ -84,11 +85,20 @@ class TransactionTests(TestCase):
         settlements = response.json()
         self._validate_settlements(settlements)
 
+        # Validate transactions
+        response = self.transaction_ops.get_transactions(contract_idx)
+        if response.status_code != status.HTTP_200_OK:
+            self.fail(f"Failed to retrieve transactions. Status code: {response.status_code}\nResponse: {response.text}")
+
+        transactions = response.json()
+        self._validate_transactions(transactions)
+
     def _validate_settlements(self, settlements):
         for settlement in settlements:
             extended_data = settlement.get("extended_data", {})
             expected_transact_count = extended_data.get("transact_count")
             expected_settle_exp_amt = Decimal(extended_data.get("settle_exp_amt", 0))
+            expected_residual_exp_amt = Decimal(extended_data.get("residual_exp_amt", 0))
 
             # Assert transact_count
             self.assertEqual(
@@ -105,4 +115,36 @@ class TransactionTests(TestCase):
                 f"Expected settle_exp_amt to be {expected_settle_exp_amt}, but got {actual_settle_exp_amt}."
             )
 
+            # Assert residual_exp_amt
+            actual_residual_exp_amt = Decimal(settlement["residual_exp_amt"])
+            self.assertEqual(
+                actual_residual_exp_amt.quantize(Decimal('0.01'), rounding=ROUND_DOWN),
+                expected_residual_exp_amt.quantize(Decimal('0.01'), rounding=ROUND_DOWN),
+                f"Expected residual_exp_amt to be {expected_residual_exp_amt}, but got {actual_residual_exp_amt}."
+            )
+
         print("All settlement validations passed.")
+
+    def _validate_transactions(self, transactions):
+        for transaction in transactions:
+            extended_data = transaction.get("extended_data", {})
+            expected_advance_amt = Decimal(extended_data.get("advance_amt", 0))
+            expected_service_fee_amt = Decimal(extended_data.get("service_fee_amt", 0))
+
+            # Assert advance_amt
+            actual_advance_amt = Decimal(transaction["advance_amt"])
+            self.assertEqual(
+                actual_advance_amt.quantize(Decimal('0.01'), rounding=ROUND_DOWN),
+                expected_advance_amt.quantize(Decimal('0.01'), rounding=ROUND_DOWN),
+                f"Expected advance_amt to be {expected_advance_amt}, but got {actual_advance_amt}."
+            )
+
+            # Assert service_fee_amt
+            actual_service_fee_amt = Decimal(transaction["service_fee_amt"])
+            self.assertEqual(
+                actual_service_fee_amt.quantize(Decimal('0.01'), rounding=ROUND_DOWN),
+                expected_service_fee_amt.quantize(Decimal('0.01'), rounding=ROUND_DOWN),
+                f"Expected service_fee_amt to be {expected_service_fee_amt}, but got {actual_service_fee_amt}."
+            )
+
+        print("All transaction validations passed.")

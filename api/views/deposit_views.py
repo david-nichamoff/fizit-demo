@@ -14,7 +14,7 @@ class DepositViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
-        tags=["Accounts"],
+        tags=["Deposits"],
         parameters=[
             OpenApiParameter(
                 name='start_date', 
@@ -32,8 +32,8 @@ class DepositViewSet(viewsets.ViewSet):
             ),
         ],
         responses={status.HTTP_200_OK: DepositSerializer(many=True)},
-        summary="List Deposits",
-        description="Retrieve a list of all pending bank deposits"
+        summary="Get Deposit",
+        description="Retrieve a list of potential bank deposits for a contract"
     )
     def list(self, request, account_id=None):
         start_date = request.query_params.get('start_date')

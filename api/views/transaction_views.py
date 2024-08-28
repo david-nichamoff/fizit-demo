@@ -10,7 +10,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from api.serializers.transaction_serializer import TransactionSerializer
 
 from packages.api_interface import get_contract
-from packages.api_interface import get_contract_transactions, add_transactions, delete_transactions
+from packages.api_interface import get_transactions, add_transactions, delete_transactions
 
 from packages.check_privacy import is_master_key
 
@@ -51,7 +51,7 @@ class TransactionViewSet(viewsets.ViewSet):
                 return Response("Invalid format for transact_max_dt. Expected ISO 8601 format.", status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            transactions = get_contract_transactions(
+            transactions = get_transactions(
                 int(contract_idx), 
                 transact_min_dt=transact_min_dt, 
                 transact_max_dt=transact_max_dt

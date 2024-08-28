@@ -73,7 +73,7 @@ const PaymentsPage = ({ accounts, transactions, settlements }) => {
 
   const handlePayResidual = async () => {
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/api/accounts/${selectedAccountId}/pay_residual`);
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/accounts/${selectedAccountId}/add_residual`);
       alert('Residual payment successfully processed.');
     } catch (error) {
       console.error('Error processing residual payment:', error);

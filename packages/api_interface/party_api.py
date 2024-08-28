@@ -1,5 +1,3 @@
-from packages.check_privacy import is_user_authorized
-
 from django.core.exceptions import ObjectDoesNotExist
 
 import packages.load_web3 as load_web3
@@ -23,7 +21,7 @@ def get_party_dict(party, party_idx, contract_idx):
     party_dict["party_idx"] = party_idx
     return party_dict
 
-def get_contract_parties(contract_idx):
+def get_parties(contract_idx):
     parties = []
     parties_ = w3_contract.functions.getParties(contract_idx).call() 
     for party in parties_:

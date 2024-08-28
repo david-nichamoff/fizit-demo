@@ -14,7 +14,7 @@ config = load_config.load_config()
 w3 = load_web3.get_web3_instance()
 w3_contract = load_web3.get_web3_contract()
 
-def get_contract_tickets(contract_idx, start_date, end_date):
+def get_tickets(contract_idx, start_date, end_date):
     contract = get_contract(contract_idx)
     tickets = []
 

@@ -20,8 +20,8 @@ class EventViewSet(viewsets.ViewSet):
             OpenApiParameter(name='contract_idx', description='Contract_idx for filtering contract events', required=False, type=int),
             OpenApiParameter(name='contract_addr', description='Contract address for filtering contract events', required=False, type=str),
         ],
-        summary="Retrieve Contract Events",
-        description="Retrieve the list of contract events"
+        summary="List Events",
+        description="Retrieve the list of events"
     )
     def list(self, request):
         contract_idx = request.query_params.get('contract_idx')

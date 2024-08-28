@@ -8,7 +8,7 @@ from json_logic import jsonLogic
 import packages.load_web3 as load_web3
 import packages.load_config as load_config
 
-from .contract_api import get_contracts, get_contract
+from .contract_api import get_contract
 
 from .util_api import is_valid_json
 
@@ -25,11 +25,12 @@ def get_transact_dict(transact, transact_idx, contract):
     transact_dict["extended_data"] = json.loads(transact[0].replace("'", '"'))
     transact_dict["transact_dt"] = from_timestamp(transact[1])
     transact_dict["transact_amt"] = f'{Decimal(transact[2]) / 100:.2f}'
-    transact_dict["advance_amt"] = f'{Decimal(transact[3]) / 100:.2f}'
-    transact_dict["transact_data"] = json.loads(transact[4].replace("'", '"'))
-    transact_dict["advance_pay_dt"] = from_timestamp(transact[5])
-    transact_dict["advance_pay_amt"] = f'{Decimal(transact[6]) / 100:.2f}'
-    transact_dict["advance_confirm"] = transact[7]
+    transact_dict["service_fee_amt"] = f'{Decimal(transact[3]) / 100:.2f}'
+    transact_dict["advance_amt"] = f'{Decimal(transact[4]) / 100:.2f}'
+    transact_dict["transact_data"] = json.loads(transact[5].replace("'", '"'))
+    transact_dict["advance_pay_dt"] = from_timestamp(transact[6])
+    transact_dict["advance_pay_amt"] = f'{Decimal(transact[7]) / 100:.2f}'
+    transact_dict["advance_confirm"] = transact[8]
     transact_dict["contract_idx"] = contract['contract_idx']
     transact_dict["funding_instr"] = contract['funding_instr']
     transact_dict["transact_idx"] = transact_idx
@@ -39,7 +40,7 @@ def get_transact_dict(transact, transact_idx, contract):
 
     return transact_dict
 
-def get_contract_transactions(contract_idx, transact_min_dt=None, transact_max_dt=None):
+def get_transactions(contract_idx, transact_min_dt=None, transact_max_dt=None):
     transactions = []
     contract = get_contract(contract_idx)
 
