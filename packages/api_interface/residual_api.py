@@ -56,8 +56,8 @@ def add_residuals(contract_idx, residuals):
             current_time = int(datetime.datetime.now().timestamp())
             payment_amt = int(residual["residual_exp_amt"] * 100)
 
-            call_function = w3_contract.functions.payAdvance(
-                contract_idx, residual["transact_idx"], current_time, payment_amt, "completed"
+            call_function = w3_contract.functions.payResidual(
+                contract_idx, residual["settle_idx"], current_time, payment_amt, "completed"
             ).build_transaction({
                 "from": config["wallet_addr"],
                 "nonce": nonce,

@@ -27,7 +27,7 @@ class PartyOperations:
         headers_with_csrf['X-CSRFToken'] = csrf_token
 
         for attempt in range(retries):
-            delete_url = f"{self.config['url']}/api/contracts/{contract_idx}/parties/{party_idx}"
+            delete_url = f"{self.config['url']}/api/contracts/{contract_idx}/parties/{party_idx}/"
             response = requests.delete(
                 delete_url,
                 headers=headers_with_csrf,

@@ -38,8 +38,10 @@ def get_recipients():
         print(f"Error fetching recipients: {e}")
         return []
 
-def get_deposits(start_date, end_date, account_id):
+def get_deposits(start_date, end_date, contract):
     deposits = []
+    account_id = contract["funding_instr"]["account_id"]
+
     url = f"{config["mercury_url"]}/account/{account_id}/transactions"
     payload = { "start" : start_date.strftime('%Y-%m-%d'), "end" : end_date.strftime('%Y-%m-%d') }
     headers = { "accept" : "application/json" }
