@@ -1,4 +1,5 @@
 import secrets
+import string
 from django.core.management.base import BaseCommand
 
 class Command(BaseCommand):
@@ -18,4 +19,6 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'Generated API Key: {new_api_key}'))
 
     def generate_api_key(self, length=32):
-        return secrets.token_urlsafe(length)
+        # Define a character set that excludes special characters
+        charset = string.ascii_letters + string.digits  # Includes uppercase, lowercase, and digits
+        return ''.join(secrets.choice(charset) for _ in range(length))

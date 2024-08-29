@@ -18,7 +18,7 @@ class RecipientViewSet(viewsets.ViewSet):
     @extend_schema(
         tags=["Accounts"],
         parameters=[
-            OpenApiParameter(name='bank', description='Funding bank', required=False, type=str)
+            OpenApiParameter(name='bank', description='Funding bank', required=True, default='mercury', type=str)
         ],
         responses={status.HTTP_200_OK: RecipientSerializer(many=True)},
         summary="List Recipients",
