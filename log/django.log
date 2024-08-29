@@ -502,3 +502,13 @@ INFO 2024-08-29 14:00:38,270 basehttp "GET /api/contracts/77/settlements/ HTTP/1
 INFO 2024-08-29 14:00:38,270 basehttp "GET /api/contracts/77/settlements/ HTTP/1.1" 200 786
 INFO 2024-08-29 14:00:38,437 basehttp "GET /api/contracts/77/transactions/ HTTP/1.1" 200 915
 INFO 2024-08-29 14:00:38,437 basehttp "GET /api/contracts/77/transactions/ HTTP/1.1" 200 915
+INFO 2024-08-29 14:23:21,595 basehttp "GET /api/accounts/?bank=mercury HTTP/1.1" 200 2
+INFO 2024-08-29 14:23:21,595 basehttp "GET /api/accounts/?bank=mercury HTTP/1.1" 200 2
+INFO 2024-08-29 14:23:55,619 basehttp "GET /api/contracts/ HTTP/1.1" 200 43768
+INFO 2024-08-29 14:23:55,619 basehttp "GET /api/contracts/ HTTP/1.1" 200 43768
+WARNING 2024-08-29 14:26:55,522 basehttp "POST /api/contracts/ HTTP/1.1" 403 63
+WARNING 2024-08-29 14:26:55,522 basehttp "POST /api/contracts/ HTTP/1.1" 403 63
+WARNING 2024-08-29 14:26:58,902 basehttp "POST /api/contracts/ HTTP/1.1" 403 63
+WARNING 2024-08-29 14:26:58,902 basehttp "POST /api/contracts/ HTTP/1.1" 403 63
+INFO 2024-08-29 14:28:35,293 basehttp "GET /api/contracts/4/parties/ HTTP/1.1" 200 2
+INFO 2024-08-29 14:28:35,293 basehttp "GET /api/contracts/4/parties/ HTTP/1.1" 200 2
