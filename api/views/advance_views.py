@@ -1,5 +1,4 @@
 from rest_framework.response import Response
-from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ValidationError, PermissionDenied
@@ -14,22 +13,27 @@ from api.serializers.advance_serializer import AdvanceSerializer
 from api.permissions import HasCustomAPIKey
 from api.authentication import CustomAPIKeyAuthentication
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 class AdvanceViewSet(viewsets.ViewSet):
-    authentication_classes = [SessionAuthentication , CustomAPIKeyAuthentication]
+    authentication_classes = [SessionAuthentication, CustomAPIKeyAuthentication]
     permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
         tags=["Advances"],
         responses={status.HTTP_200_OK: AdvanceSerializer(many=True)},
         summary="Get Advance Amounts",
-        description="Get a the current advance amounts for a contract as a list",
+        description="Get the current advance amounts for a contract as a list",
     )
-    def list(self, request,contract_idx=None):
+    def list(self, request, contract_idx=None):
         try:
-            advance = get_advances(int(contract_idx))
-            return Response(advance, status=status.HTTP_200_OK)
+            advances = get_advances(int(contract_idx))
+            return Response(advances, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response(str(e), status=status.HTTP_404_NOT_FOUND)
+            logger.error(f"Error retrieving advances for contract {contract_idx}: {e}")
+            return Response({"detail": str(e)}, status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(
         tags=["Advances"],
@@ -41,12 +45,18 @@ class AdvanceViewSet(viewsets.ViewSet):
     def add(self, request, contract_idx=None):
         if not is_master_key(request):
             raise PermissionDenied("You do not have permission to perform this action.")
+        
         serializer = AdvanceSerializer(data=request.data, many=True)
         if serializer.is_valid():
             try:
                 response = add_advances(int(contract_idx), serializer.validated_data)
                 return Response(response, status=status.HTTP_201_CREATED)
+            except RuntimeError as e:
+                logger.error(f"Runtime error when adding advances for contract {contract_idx}: {e}")
+                return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             except Exception as e:
-                return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+                logger.error(f"Unexpected error when adding advances for contract {contract_idx}: {e}")
+                return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         else:
+            logger.warning(f"Validation failed when adding advances for contract {contract_idx}: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

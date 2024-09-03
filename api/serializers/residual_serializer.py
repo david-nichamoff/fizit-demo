@@ -6,4 +6,4 @@ class ResidualSerializer(serializers.Serializer):
     bank = serializers.CharField(max_length=50)
     account_id = serializers.UUIDField()
     recipient_id = serializers.UUIDField()
-    residual_exp_amt = serializers.CharField(max_length=20)
+    residual_calc_amt = serializers.CharField(max_length=20)

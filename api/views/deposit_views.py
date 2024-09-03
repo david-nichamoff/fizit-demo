@@ -4,13 +4,17 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 from rest_framework import viewsets, status
 from drf_spectacular.utils import extend_schema, OpenApiParameter
+from rest_framework.exceptions import ValidationError, PermissionDenied
+
 from api.serializers.deposit_serializer import DepositSerializer
 from api.permissions import HasCustomAPIKey
 from api.authentication import CustomAPIKeyAuthentication
-from rest_framework.exceptions import ValidationError, PermissionDenied
-
 from packages.api_interface import get_deposits, add_deposits
 from packages.check_privacy import is_master_key
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 class DepositViewSet(viewsets.ViewSet):
     authentication_classes = [SessionAuthentication , CustomAPIKeyAuthentication]
@@ -47,8 +51,10 @@ class DepositViewSet(viewsets.ViewSet):
             deposits = get_deposits(start_date, end_date, int(contract_idx))
             return Response(deposits, status=status.HTTP_200_OK)
         except ValueError as e:
+            logger.error(f"Invalid date format: {str(e)}")
             return Response(f"Invalid date format: {str(e)}", status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            logger.error(f"Error retrieving deposits: {str(e)}")
             return Response(str(e), status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(
@@ -67,6 +73,7 @@ class DepositViewSet(viewsets.ViewSet):
                 response = add_deposits(int(contract_idx), serializer.validated_data)
                 return Response(response, status=status.HTTP_201_CREATED)
             except Exception as e:
+                logger.error(f"Error adding deposits: {str(e)}")
                 return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

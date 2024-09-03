@@ -5,6 +5,8 @@ from decimal import Decimal, ROUND_DOWN
 
 from packages.check_privacy import is_user_authorized
 
+from web3.exceptions import ContractLogicError, BadFunctionCallOutput
+
 import packages.load_web3 as load_web3
 import packages.load_config as load_config
 
@@ -16,52 +18,84 @@ config = load_config.load_config()
 w3 = load_web3.get_web3_instance()
 w3_contract = load_web3.get_web3_contract()
 
+logger = logging.getLogger(__name__)
+
 def get_contract_count():
-    return w3_contract.functions.getContractCount().call() 
+    try:
+        return w3_contract.functions.getContractCount().call()
+    except Exception as e:
+        logger.error(f"Error retrieving contract count: {str(e)}")
+        raise RuntimeError("Failed to retrieve contract count") from e
 
 def get_contract_dict(contract_idx):
-    contract_dict, contract = {}, []
-    contract = w3_contract.functions.getContract(contract_idx).call()
+    contract_dict = {}
 
-    contract_dict["extended_data"] = json.loads(contract[0].replace("'",'"'))
-    contract_dict["contract_name"] = contract[1]
-    contract_dict["contract_type"] = contract[2]
-    contract_dict["funding_instr"] = json.loads(contract[3].replace("'",'"'))
-    contract_dict["service_fee_pct"] = f'{Decimal(contract[4]) / 10000:.4f}'
-    contract_dict["service_fee_max"] = f'{Decimal(contract[5]) / 10000:.4f}'
-    contract_dict["service_fee_amt"] = f'{Decimal(contract[6]) / 100:.2f}'
-    contract_dict["advance_pct"] = f'{Decimal(contract[7]) / 10000:.4f}'
-    contract_dict["late_fee_pct"] = f'{Decimal(contract[8]) / 10000:.4f}'
-    contract_dict["transact_logic"] = json.loads(contract[9].replace("'",'"'))
-    contract_dict["min_threshold"] = f'{Decimal(contract[10]) / 100:.2f}'
-    contract_dict["max_threshold"] = f'{Decimal(contract[11]) / 100:.2f}'
-    contract_dict["notes"] = contract[12]
-    contract_dict["is_active"] = contract[13]
-    contract_dict["is_quote"] = contract[14]
-    contract_dict["contract_idx"] = contract_idx
+    try:
+        contract = w3_contract.functions.getContract(contract_idx).call()
+    except ContractLogicError as e:
+        logger.error(f"Contract logic error when retrieving contract {contract_idx}: {str(e)}")
+        raise
+    except BadFunctionCallOutput as e:
+        logger.error(f"Bad function call output when retrieving contract {contract_idx}: {str(e)}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error when retrieving contract {contract_idx}: {str(e)}")
+        raise RuntimeError(f"Failed to retrieve contract {contract_idx}") from e
 
-    logging.debug("Advance pct (Decimal): %s", contract_dict["advance_pct"])
-    logging.debug("Advance pct type: %s", type(contract_dict["advance_pct"]))
+    try:
+        contract_dict["extended_data"] = json.loads(contract[0].replace("'", '"'))
+        contract_dict["contract_name"] = contract[1]
+        contract_dict["contract_type"] = contract[2]
+        contract_dict["funding_instr"] = json.loads(contract[3].replace("'", '"'))
+        contract_dict["service_fee_pct"] = f'{Decimal(contract[4]) / 10000:.4f}'
+        contract_dict["service_fee_max"] = f'{Decimal(contract[5]) / 10000:.4f}'
+        contract_dict["service_fee_amt"] = f'{Decimal(contract[6]) / 100:.2f}'
+        contract_dict["advance_pct"] = f'{Decimal(contract[7]) / 10000:.4f}'
+        contract_dict["late_fee_pct"] = f'{Decimal(contract[8]) / 10000:.4f}'
+        contract_dict["transact_logic"] = json.loads(contract[9].replace("'", '"'))
+        contract_dict["min_threshold"] = f'{Decimal(contract[10]) / 100:.2f}'
+        contract_dict["max_threshold"] = f'{Decimal(contract[11]) / 100:.2f}'
+        contract_dict["notes"] = contract[12]
+        contract_dict["is_active"] = contract[13]
+        contract_dict["is_quote"] = contract[14]
+        contract_dict["contract_idx"] = contract_idx
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON decoding error for contract {contract_idx}: {str(e)}")
+        raise ValueError(f"Invalid JSON structure in contract {contract_idx}") from e
+    except Exception as e:
+        logger.error(f"Unexpected error processing contract {contract_idx}: {str(e)}")
+        raise RuntimeError(f"Failed to process contract {contract_idx}") from e
 
     return contract_dict
 
 def get_contracts(request):
     contracts = []
-    for contract_idx in range(get_contract_count()):
-        contract_dict = get_contract_dict(contract_idx)
-        parties = get_parties(contract_idx)
-        if is_user_authorized(request, parties):
-            contracts.append(contract_dict)
+    try:
+        contract_count = get_contract_count()
+    except Exception as e:
+        logger.error(f"Error retrieving contract count: {str(e)}")
+        raise RuntimeError("Failed to retrieve contract count") from e
+
+    for contract_idx in range(contract_count):
+        try:
+            contract_dict = get_contract_dict(contract_idx)
+            parties = get_parties(contract_idx)
+            if is_user_authorized(request, parties):
+                contracts.append(contract_dict)
+        except Exception as e:
+            logger.error(f"Error processing contract {contract_idx}: {str(e)}")
+            raise RuntimeError(f"Failed to process contract {contract_idx}") from e
 
     return contracts
 
 def get_contract(contract_idx):
-    contract_dict = get_contract_dict(contract_idx)
-    return contract_dict
+    try:
+        return get_contract_dict(contract_idx)
+    except Exception as e:
+        logger.error(f"Error retrieving contract {contract_idx}: {str(e)}")
+        raise RuntimeError(f"Failed to retrieve contract {contract_idx}") from e
 
 def build_contract(contract_dict):
-
-    # Validate the contract data before proceeding
     validate_contract_data(contract_dict)
 
     contract = []
@@ -83,28 +117,54 @@ def build_contract(contract_dict):
     return contract
 
 def update_contract(contract_idx, contract_dict):
-    contract = build_contract(contract_dict)
-    nonce = w3.eth.get_transaction_count(config["wallet_addr"])
-    call_function = w3_contract.functions.updateContract(contract_idx, contract).build_transaction(
-        {"from":config["wallet_addr"],"nonce":nonce,"gas":config["gas_limit"]})
-    tx_receipt = load_web3.get_tx_receipt(call_function)
-    return True if tx_receipt["status"] == 1 else False
+    try:
+        contract = build_contract(contract_dict)
+        nonce = w3.eth.get_transaction_count(config["wallet_addr"])
+        call_function = w3_contract.functions.updateContract(contract_idx, contract).build_transaction(
+            {"from": config["wallet_addr"], "nonce": nonce, "gas": config["gas_limit"]}
+        )
+        tx_receipt = load_web3.get_tx_receipt(call_function)
+        if tx_receipt["status"] != 1:
+            logger.error(f"Transaction failed for contract {contract_idx}. Receipt: {tx_receipt}")
+            raise RuntimeError(f"Failed to update contract {contract_idx}. Transaction status: {tx_receipt['status']}")
+    except Exception as e:
+        logger.error(f"Error updating contract {contract_idx}: {str(e)}")
+        raise RuntimeError(f"Failed to update contract {contract_idx}") from e
 
 def add_contract(contract_dict):
-    contract_idx = get_contract_count()
-    contract = build_contract(contract_dict)
-    nonce = w3.eth.get_transaction_count(config["wallet_addr"])
-    call_function = w3_contract.functions.addContract(contract).build_transaction(
-        {"from":config["wallet_addr"],"nonce":nonce,"gas":config["gas_limit"]})
-    tx_receipt = load_web3.get_tx_receipt(call_function)
-    return contract_idx if tx_receipt["status"] == 1 else False
+    try:
+        contract_idx = get_contract_count()
+        contract = build_contract(contract_dict)
+        nonce = w3.eth.get_transaction_count(config["wallet_addr"])
+        call_function = w3_contract.functions.addContract(contract).build_transaction(
+            {"from": config["wallet_addr"], "nonce": nonce, "gas": config["gas_limit"]}
+        )
+        
+        tx_receipt = load_web3.get_tx_receipt(call_function)
+        
+        if tx_receipt["status"] == 1:
+            return contract_idx
+        else:
+            logger.error(f"Transaction failed for contract {contract_idx}. Receipt: {tx_receipt}")
+            raise RuntimeError(f"Failed to add contract {contract_idx}. Transaction status: {tx_receipt['status']}")
+
+    except Exception as e:
+        logger.error(f"An error occurred while adding contract: {e}")
+        raise RuntimeError("Failed to add contract") from e  
 
 def delete_contract(contract_idx):
-    nonce = w3.eth.get_transaction_count(config["wallet_addr"])
-    call_function = w3_contract.functions.deleteContract(contract_idx).build_transaction(
-        {"from":config["wallet_addr"],"nonce":nonce,"gas":config["gas_limit"]})
-    tx_receipt = load_web3.get_tx_receipt(call_function)
-    return True if tx_receipt["status"] == 1 else False
+    try:
+        nonce = w3.eth.get_transaction_count(config["wallet_addr"])
+        call_function = w3_contract.functions.deleteContract(contract_idx).build_transaction(
+            {"from": config["wallet_addr"], "nonce": nonce, "gas": config["gas_limit"]}
+        )
+        tx_receipt = load_web3.get_tx_receipt(call_function)
+        if tx_receipt["status"] != 1:
+            logger.error(f"Transaction failed for contract {contract_idx}. Receipt: {tx_receipt}")
+            raise RuntimeError(f"Failed to delete contract {contract_idx}. Transaction status: {tx_receipt['status']}")
+    except Exception as e:
+        logger.error(f"Error deleting contract {contract_idx}: {str(e)}")
+        raise RuntimeError(f"Failed to delete contract {contract_idx}") from e
 
 def validate_contract_data(contract_dict):
     # Check if the provided contract type is valid

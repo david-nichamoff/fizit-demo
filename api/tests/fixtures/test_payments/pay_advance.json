@@ -1,6 +1,7 @@
 {
     "contract": {
-        "extended_data": {"advance_count" : 2},
+        "extended_data": {"advance_count" : 2, "residual_count" : 1, 
+        "late_fee_amt" : "61.47", "dispute_amt" : "100.00", "residual_calc_amt": "858.53"},
         "contract_name": "Mercury Test",
         "contract_type": "ticketing",
         "funding_instr": {"bank": "mercury", "account_id": "61396d72-e780-11ee-b69b-137ed758771c", "recipient_id": "627ecace-e780-11ee-b69b-f311fd81fcb4"},
@@ -24,26 +25,21 @@
     "settlements": [
         {
             "extended_data": {},
-            "settle_due_dt": "2024-10-01T00:00:00",
-            "transact_min_dt": "2024-08-01T00:00:00",
-            "transact_max_dt": "2024-09-01T00:00:00"
+            "settle_due_dt": "2024-03-01T00:00:00",
+            "transact_min_dt": "2024-02-01T00:00:00",
+            "transact_max_dt": "2024-03-01T00:00:00"
         }
     ],
     "transactions": [
         {
             "extended_data": {},
-            "transact_dt": "2024-08-15T00:00:00",
-            "transact_data": { "ticket_amt" : 400.00}
+            "transact_dt": "2024-02-16T00:00:00",
+            "transact_data": { "ticket_amt" : 2600.00}
         },
         {
             "extended_data": {},
-            "transact_dt": "2024-08-15T00:00:00",
-            "transact_data": { "ticket_amt" : 600.00}
-        },
-        {
-            "extended_data": {},
-            "transact_dt": "2024-08-16T00:00:00",
-            "transact_data": { "ticket_amt" : -100.00}
+            "transact_dt": "2024-02-15T00:00:00",
+            "transact_data": { "ticket_amt" : 2500.00}
         }
     ]
 }

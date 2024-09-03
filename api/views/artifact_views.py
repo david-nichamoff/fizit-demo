@@ -7,15 +7,18 @@ from drf_spectacular.utils import extend_schema
 
 from api.serializers.artifact_serializer import ArtifactSerializer
 
-from packages.api_interface import get_contract
-from packages.api_interface import get_artifacts, add_artifacts, delete_artifacts
+from packages.api_interface import get_contract, get_artifacts, add_artifacts, delete_artifacts
 from packages.check_privacy import is_master_key
 
 from api.permissions import HasCustomAPIKey
 from api.authentication import CustomAPIKeyAuthentication
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 class ArtifactViewSet(viewsets.ViewSet):
-    authentication_classes = [SessionAuthentication , CustomAPIKeyAuthentication]
+    authentication_classes = [SessionAuthentication, CustomAPIKeyAuthentication]
     permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
@@ -29,7 +32,8 @@ class ArtifactViewSet(viewsets.ViewSet):
             artifacts = get_artifacts(int(contract_idx))
             return Response(artifacts, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response(str(e), status=status.HTTP_404_NOT_FOUND)
+            logger.error(f"Error retrieving artifacts for contract {contract_idx}: {e}")
+            return Response({"detail": str(e)}, status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(
         tags=["Artifacts"],
@@ -43,13 +47,14 @@ class ArtifactViewSet(viewsets.ViewSet):
         try:
             contract_name = get_contract(contract_idx)["contract_name"]
             response = add_artifacts(contract_idx, contract_name)
-            return Response(response, status=status.HTTP_200_OK)
+            return Response(response, status=status.HTTP_201_CREATED)
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            logger.error(f"Error adding artifacts for contract {contract_idx}: {e}")
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
         tags=["Artifacts"],
-        responses={status.HTTP_204_NO_CONTENT: int},
+        responses={status.HTTP_204_NO_CONTENT: None},
         summary="Delete Artifacts",
         description="Delete all artifacts from a contract",
     )
@@ -57,7 +62,8 @@ class ArtifactViewSet(viewsets.ViewSet):
         if not is_master_key(request):
             raise PermissionDenied("You do not have permission to perform this action.")
         try:
-            response = delete_artifacts(contract_idx)
-            return Response(response, status=status.HTTP_204_NO_CONTENT)
+            delete_artifacts(contract_idx)
+            return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
-            return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+            logger.error(f"Error deleting artifacts for contract {contract_idx}: {e}")
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)

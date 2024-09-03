@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-import json
+import logging
 
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -14,12 +14,14 @@ from packages.api_interface import get_contract_invoices
 from api.permissions import HasCustomAPIKey
 from api.authentication import CustomAPIKeyAuthentication
 
+logger = logging.getLogger(__name__)
+
 class InvoiceViewSet(viewsets.ViewSet):
     authentication_classes = [SessionAuthentication, CustomAPIKeyAuthentication]
     permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
-        tags=["Tickets"],
+        tags=["Invoices"],
         parameters=[
             OpenApiParameter(name='start_date', description='Start date for filtering invoices (ISO 8601 format)', required=True, type=str, default=(datetime.now() - timedelta(days=1)).isoformat()),
             OpenApiParameter(name='end_date', description='End date for filtering invoices (ISO 8601 format)', required=True, type=str, default=(datetime.now() - timedelta(days=1)).isoformat()), 
@@ -36,7 +38,9 @@ class InvoiceViewSet(viewsets.ViewSet):
             end_date = datetime.fromisoformat(end_date_str)
             invoices = get_contract_invoices(contract_idx, start_date, end_date)
             return Response(invoices, status=status.HTTP_200_OK)
-        except ValueError:
-            return Response("Invalid date format. Expected ISO 8601 format.", status=status.HTTP_400_BAD_REQUEST)
+        except ValueError as ve:
+            logger.error(f"Invalid date format provided: {ve}")
+            return Response({"error": "Invalid date format. Expected ISO 8601 format."}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            return Response(str(e), status=status.HTTP_404_NOT_FOUND)
+            logger.error(f"Error retrieving invoices for contract {contract_idx}: {e}")
+            return Response({"error": "An error occurred while retrieving invoices."}, status=status.HTTP_404_NOT_FOUND)

@@ -4,25 +4,23 @@ from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.settings import api_settings
 from rest_framework import viewsets, status
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.utils import extend_schema
 
 from api.serializers.settlement_serializer import SettlementSerializer
-
 from packages.api_interface import get_settlements, add_settlements, delete_settlements
 from packages.check_privacy import is_master_key
-
 from api.permissions import HasCustomAPIKey
 from api.authentication import CustomAPIKeyAuthentication
 
+logger = logging.getLogger(__name__)
+
 class SettlementViewSet(viewsets.ViewSet):
-    authentication_classes = [SessionAuthentication , CustomAPIKeyAuthentication]
+    authentication_classes = [SessionAuthentication, CustomAPIKeyAuthentication]
     permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     @extend_schema(
         tags=["Settlements"],
-        request=SettlementSerializer(many=True),
         responses={status.HTTP_200_OK: SettlementSerializer(many=True)},
         summary="List Settlements",
         description="Retrieve a list of settlements associated with a contract"
@@ -30,10 +28,11 @@ class SettlementViewSet(viewsets.ViewSet):
     def list(self, request, contract_idx=None):
         try:
             settlements = get_settlements(int(contract_idx))
-            logging.debug("Settlements: %s", settlements)
+            logger.debug("Settlements retrieved for contract %s: %s", contract_idx, settlements)
             return Response(settlements, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response(str(e), status=status.HTTP_404_NOT_FOUND)
+            logger.error(f"Error retrieving settlements for contract {contract_idx}: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(
         tags=["Settlements"],
@@ -51,9 +50,11 @@ class SettlementViewSet(viewsets.ViewSet):
                 response = add_settlements(contract_idx, serializer.validated_data)
                 return Response(response, status=status.HTTP_201_CREATED)
             except Exception as e:
-                return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+                logger.error(f"Error adding settlements for contract {contract_idx}: {e}")
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)   
+            logger.warning(f"Invalid settlement data for contract {contract_idx}: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
         tags=["Settlements"],
@@ -68,4 +69,5 @@ class SettlementViewSet(viewsets.ViewSet):
             response = delete_settlements(contract_idx)
             return Response(response, status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
-            return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+            logger.error(f"Error deleting settlements for contract {contract_idx}: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

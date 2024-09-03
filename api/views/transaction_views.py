@@ -8,12 +8,8 @@ from rest_framework import viewsets, status
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from api.serializers.transaction_serializer import TransactionSerializer
-
-from packages.api_interface import get_contract
-from packages.api_interface import get_transactions, add_transactions, delete_transactions
-
+from packages.api_interface import get_contract, get_transactions, add_transactions, delete_transactions
 from packages.check_privacy import is_master_key
-
 from api.permissions import HasCustomAPIKey
 from api.authentication import CustomAPIKeyAuthentication
 
@@ -35,20 +31,19 @@ class TransactionViewSet(viewsets.ViewSet):
         transact_min_dt_str = request.query_params.get('transact_min_dt')
         transact_max_dt_str = request.query_params.get('transact_max_dt')
 
-        # Convert the string dates to datetime objects, if provided
         transact_min_dt, transact_max_dt = None, None
         
         if transact_min_dt_str:
             try:
                 transact_min_dt = datetime.fromisoformat(transact_min_dt_str)
             except ValueError:
-                return Response("Invalid format for transact_min_dt. Expected ISO 8601 format.", status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "Invalid format for transact_min_dt. Expected ISO 8601 format."}, status=status.HTTP_400_BAD_REQUEST)
         
         if transact_max_dt_str:
             try:
                 transact_max_dt = datetime.fromisoformat(transact_max_dt_str)
             except ValueError:
-                return Response("Invalid format for transact_max_dt. Expected ISO 8601 format.", status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "Invalid format for transact_max_dt. Expected ISO 8601 format."}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
             transactions = get_transactions(
@@ -58,7 +53,7 @@ class TransactionViewSet(viewsets.ViewSet):
             )
             return Response(transactions, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response(str(e), status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(
         tags=['Transactions'],
@@ -77,7 +72,7 @@ class TransactionViewSet(viewsets.ViewSet):
                 response = add_transactions(contract_idx, transact_logic, serializer.validated_data)
                 return Response(response, status=status.HTTP_201_CREATED)
             except Exception as e:
-                return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)   
 
@@ -94,4 +89,4 @@ class TransactionViewSet(viewsets.ViewSet):
             response = delete_transactions(contract_idx)
             return Response(response, status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
-            return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

@@ -309,8 +309,8 @@ contract Delivery {
             settlements[contract_idx][settle_idx].late_fee_amt = (days_late * ((late_fee_pct * 100000) / 365) * settle_exp_amt) / 1000000000;
         }
 
-        if (settle_pay_amt < settlements[contract_idx][settle_idx].residual_exp_amt) {
-            settlements[contract_idx][settle_idx].dispute_amt = settlements[contract_idx][settle_idx].residual_exp_amt - settle_pay_amt;
+        if (settle_pay_amt < settlements[contract_idx][settle_idx].settle_exp_amt) {
+            settlements[contract_idx][settle_idx].dispute_amt = settlements[contract_idx][settle_idx].settle_exp_amt - settle_pay_amt;
             settlements[contract_idx][settle_idx].dispute_reason = dispute_reason;
         } 
 

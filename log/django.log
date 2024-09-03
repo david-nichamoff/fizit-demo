@@ -1,29 +1,200 @@
-INFO 2024-08-29 18:33:52,619 autoreload Watching for file changes with StatReloader
-INFO 2024-08-29 18:33:52,619 autoreload Watching for file changes with StatReloader
-INFO 2024-08-29 18:34:01,405 basehttp "GET /api/accounts/?bank=mercury HTTP/1.1" 200 2
-INFO 2024-08-29 18:34:01,405 basehttp "GET /api/accounts/?bank=mercury HTTP/1.1" 200 2
-INFO 2024-08-29 18:35:17,880 basehttp "GET /api/accounts/?bank=mercury HTTP/1.1" 200 1009
-INFO 2024-08-29 18:35:17,880 basehttp "GET /api/accounts/?bank=mercury HTTP/1.1" 200 1009
-WARNING 2024-08-29 18:35:26,231 basehttp "GET /api/recipients/ HTTP/1.1" 404 83
-WARNING 2024-08-29 18:35:26,231 basehttp "GET /api/recipients/ HTTP/1.1" 404 83
-WARNING 2024-08-29 18:35:29,808 basehttp "GET /api/recipients/ HTTP/1.1" 404 83
-WARNING 2024-08-29 18:35:29,808 basehttp "GET /api/recipients/ HTTP/1.1" 404 83
-INFO 2024-08-29 18:35:35,617 basehttp "GET /api/recipients/?bank=mercury HTTP/1.1" 200 7799
-INFO 2024-08-29 18:35:35,617 basehttp "GET /api/recipients/?bank=mercury HTTP/1.1" 200 7799
-INFO 2024-08-29 18:36:13,917 autoreload /Users/davidnichamoff/Projects/FIZIT_DEV/api/views/recipient_views.py changed, reloading.
-INFO 2024-08-29 18:36:13,917 autoreload /Users/davidnichamoff/Projects/FIZIT_DEV/api/views/recipient_views.py changed, reloading.
-Fetching secret value for devnet/rotating-keys from AWS Secrets Manager
-Fetching secret value for devnet/static-keys from AWS Secrets Manager
-Performing system checks...
-
-Connection successful
-Contract loaded
-System check identified no issues (0 silenced).
-August 29, 2024 - 18:33:53
-Django version 5.0.5, using settings 'project.settings'
-Starting development server at http://127.0.0.1:8000/
-Quit the server with CONTROL-C.
-
-Error fetching accounts: 401 Client Error: Unauthorized for url: https://api-sandbox.mercury.com/api/v1/accounts
-INFO 2024-08-29 18:36:14,817 autoreload Watching for file changes with StatReloader
-INFO 2024-08-29 18:36:14,817 autoreload Watching for file changes with StatReloader
+INFO 2024-09-03 19:02:49,380 autoreload Watching for file changes with StatReloader
+INFO 2024-09-03 19:02:49,380 autoreload Watching for file changes with StatReloader
+INFO 2024-09-03 19:02:55,640 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+INFO 2024-09-03 19:02:55,640 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+INFO 2024-09-03 19:02:55,800 basehttp "GET /api/contracts/21/ HTTP/1.1" 200 741
+INFO 2024-09-03 19:02:55,800 basehttp "GET /api/contracts/21/ HTTP/1.1" 200 741
+INFO 2024-09-03 19:03:01,146 basehttp "POST /api/contracts/21/parties/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:03:01,146 basehttp "POST /api/contracts/21/parties/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:03:03,041 basehttp "POST /api/contracts/21/parties/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:03:03,041 basehttp "POST /api/contracts/21/parties/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:03:03,137 basehttp "GET /api/contracts/21/parties/ HTTP/1.1" 200 560
+INFO 2024-09-03 19:03:03,137 basehttp "GET /api/contracts/21/parties/ HTTP/1.1" 200 560
+INFO 2024-09-03 19:03:03,141 basehttp "GET /api/get-csrf-token/ HTTP/1.1" 200 30
+INFO 2024-09-03 19:03:03,141 basehttp "GET /api/get-csrf-token/ HTTP/1.1" 200 30
+INFO 2024-09-03 19:03:05,086 basehttp "DELETE /api/contracts/21/parties/3/ HTTP/1.1" 204 4
+INFO 2024-09-03 19:03:05,086 basehttp "DELETE /api/contracts/21/parties/3/ HTTP/1.1" 204 4
+INFO 2024-09-03 19:03:05,196 basehttp "GET /api/contracts/21/parties/ HTTP/1.1" 200 419
+INFO 2024-09-03 19:03:05,196 basehttp "GET /api/contracts/21/parties/ HTTP/1.1" 200 419
+INFO 2024-09-03 19:03:17,061 basehttp "POST /api/contracts/21/settlements/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:03:17,061 basehttp "POST /api/contracts/21/settlements/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:03:37,161 basehttp "POST /api/contracts/21/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:03:37,161 basehttp "POST /api/contracts/21/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:03:57,152 basehttp "POST /api/contracts/21/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:03:57,152 basehttp "POST /api/contracts/21/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:04:17,124 basehttp "POST /api/contracts/21/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:04:17,124 basehttp "POST /api/contracts/21/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:04:37,145 basehttp "POST /api/contracts/21/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:04:37,145 basehttp "POST /api/contracts/21/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:04:57,056 basehttp "POST /api/contracts/21/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:04:57,056 basehttp "POST /api/contracts/21/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:05:17,144 basehttp "POST /api/contracts/21/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:05:17,144 basehttp "POST /api/contracts/21/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:05:25,088 basehttp "POST /api/contracts/21/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:05:25,088 basehttp "POST /api/contracts/21/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:05:25,288 basehttp "GET /api/contracts/21/transactions/ HTTP/1.1" 200 27249
+INFO 2024-09-03 19:05:25,288 basehttp "GET /api/contracts/21/transactions/ HTTP/1.1" 200 27249
+INFO 2024-09-03 19:05:25,470 basehttp "GET /api/contracts/21/settlements/ HTTP/1.1" 200 4421
+INFO 2024-09-03 19:05:25,470 basehttp "GET /api/contracts/21/settlements/ HTTP/1.1" 200 4421
+INFO 2024-09-03 19:05:25,673 basehttp "GET /api/contracts/21/transactions/?transact_min_dt=2024-07-01T00%3A00%3A00&transact_max_dt=2024-08-01T00%3A00%3A00 HTTP/1.1" 200 13193
+INFO 2024-09-03 19:05:25,673 basehttp "GET /api/contracts/21/transactions/?transact_min_dt=2024-07-01T00%3A00%3A00&transact_max_dt=2024-08-01T00%3A00%3A00 HTTP/1.1" 200 13193
+INFO 2024-09-03 19:05:25,873 basehttp "GET /api/contracts/21/transactions/?transact_min_dt=2024-08-01T00%3A00%3A00&transact_max_dt=2024-09-01T00%3A00%3A00 HTTP/1.1" 200 13195
+INFO 2024-09-03 19:05:25,873 basehttp "GET /api/contracts/21/transactions/?transact_min_dt=2024-08-01T00%3A00%3A00&transact_max_dt=2024-09-01T00%3A00%3A00 HTTP/1.1" 200 13195
+INFO 2024-09-03 19:05:26,066 basehttp "GET /api/contracts/21/transactions/?transact_min_dt=2024-09-01T00%3A00%3A00&transact_max_dt=2024-10-01T00%3A00%3A00 HTTP/1.1" 200 851
+INFO 2024-09-03 19:05:26,066 basehttp "GET /api/contracts/21/transactions/?transact_min_dt=2024-09-01T00%3A00%3A00&transact_max_dt=2024-10-01T00%3A00%3A00 HTTP/1.1" 200 851
+INFO 2024-09-03 19:05:26,246 basehttp "GET /api/contracts/21/transactions/?transact_min_dt=2024-10-01T00%3A00%3A00&transact_max_dt=2024-11-01T00%3A00%3A00 HTTP/1.1" 200 2
+INFO 2024-09-03 19:05:26,246 basehttp "GET /api/contracts/21/transactions/?transact_min_dt=2024-10-01T00%3A00%3A00&transact_max_dt=2024-11-01T00%3A00%3A00 HTTP/1.1" 200 2
+INFO 2024-09-03 19:05:26,444 basehttp "GET /api/contracts/21/transactions/?transact_min_dt=2024-11-01T00%3A00%3A00&transact_max_dt=2024-12-01T00%3A00%3A00 HTTP/1.1" 200 2
+INFO 2024-09-03 19:05:26,444 basehttp "GET /api/contracts/21/transactions/?transact_min_dt=2024-11-01T00%3A00%3A00&transact_max_dt=2024-12-01T00%3A00%3A00 HTTP/1.1" 200 2
+INFO 2024-09-03 19:05:26,666 basehttp "GET /api/contracts/21/transactions/?transact_min_dt=2024-12-01T00%3A00%3A00&transact_max_dt=2025-01-01T00%3A00%3A00 HTTP/1.1" 200 2
+INFO 2024-09-03 19:05:26,666 basehttp "GET /api/contracts/21/transactions/?transact_min_dt=2024-12-01T00%3A00%3A00&transact_max_dt=2025-01-01T00%3A00%3A00 HTTP/1.1" 200 2
+ERROR 2024-09-03 19:05:26,777 contract_api An error occurred while adding contract: Invalid contract type: 'invalid_type'. Valid types are: ticketing, advance, construction.
+ERROR 2024-09-03 19:05:26,777 contract_views Error creating contract: Failed to add contract
+WARNING 2024-09-03 19:05:26,778 basehttp "POST /api/contracts/ HTTP/1.1" 400 35
+WARNING 2024-09-03 19:05:26,778 basehttp "POST /api/contracts/ HTTP/1.1" 400 35
+ERROR 2024-09-03 19:05:26,881 contract_api An error occurred while adding contract: Invalid value for 'service_fee_amt': '5.5'. Must be a string in the form Y.XX where Y >= 0.
+ERROR 2024-09-03 19:05:26,881 contract_views Error creating contract: Failed to add contract
+WARNING 2024-09-03 19:05:26,882 basehttp "POST /api/contracts/ HTTP/1.1" 400 35
+WARNING 2024-09-03 19:05:26,882 basehttp "POST /api/contracts/ HTTP/1.1" 400 35
+ERROR 2024-09-03 19:05:26,977 contract_api An error occurred while adding contract: 'min_threshold' (1500.00) must be less than or equal to 'max_threshold' (1000.00).
+ERROR 2024-09-03 19:05:26,977 contract_views Error creating contract: Failed to add contract
+WARNING 2024-09-03 19:05:26,978 basehttp "POST /api/contracts/ HTTP/1.1" 400 35
+WARNING 2024-09-03 19:05:26,978 basehttp "POST /api/contracts/ HTTP/1.1" 400 35
+ERROR 2024-09-03 19:05:27,071 contract_api An error occurred while adding contract: Invalid bank: 'invalid_bank'. Valid banks are: 'mercury'.
+ERROR 2024-09-03 19:05:27,071 contract_views Error creating contract: Failed to add contract
+WARNING 2024-09-03 19:05:27,072 basehttp "POST /api/contracts/ HTTP/1.1" 400 35
+WARNING 2024-09-03 19:05:27,072 basehttp "POST /api/contracts/ HTTP/1.1" 400 35
+ERROR 2024-09-03 19:05:27,167 contract_api An error occurred while adding contract: Invalid value for 'service_fee_pct': '1.2500'. Must be a string in the form X.XXXX and between 0.0000 and 1.0000.
+ERROR 2024-09-03 19:05:27,167 contract_views Error creating contract: Failed to add contract
+WARNING 2024-09-03 19:05:27,167 basehttp "POST /api/contracts/ HTTP/1.1" 400 35
+WARNING 2024-09-03 19:05:27,167 basehttp "POST /api/contracts/ HTTP/1.1" 400 35
+ERROR 2024-09-03 19:05:27,256 contract_api An error occurred while adding contract: Invalid JSON for 'transact_logic': 'invalid_json'.
+ERROR 2024-09-03 19:05:27,256 contract_views Error creating contract: Failed to add contract
+WARNING 2024-09-03 19:05:27,257 basehttp "POST /api/contracts/ HTTP/1.1" 400 35
+WARNING 2024-09-03 19:05:27,257 basehttp "POST /api/contracts/ HTTP/1.1" 400 35
+ERROR 2024-09-03 19:05:27,362 contract_api An error occurred while adding contract: 'service_fee_max' (0.0250) must be greater than or equal to 'service_fee_pct' (0.0500).
+ERROR 2024-09-03 19:05:27,362 contract_views Error creating contract: Failed to add contract
+WARNING 2024-09-03 19:05:27,363 basehttp "POST /api/contracts/ HTTP/1.1" 400 35
+WARNING 2024-09-03 19:05:27,363 basehttp "POST /api/contracts/ HTTP/1.1" 400 35
+INFO 2024-09-03 19:05:27,925 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+INFO 2024-09-03 19:05:27,925 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+ERROR 2024-09-03 19:05:27,934 party_api Validation error: PartyCode matching query does not exist.
+ERROR 2024-09-03 19:05:27,934 party_api Error adding parties to contract 22: Validation error: PartyCode matching query does not exist.
+ERROR 2024-09-03 19:05:27,934 party_views Error adding parties to contract 22: Validation error: PartyCode matching query does not exist.
+WARNING 2024-09-03 19:05:27,935 basehttp "POST /api/contracts/22/parties/ HTTP/1.1" 400 70
+WARNING 2024-09-03 19:05:27,935 basehttp "POST /api/contracts/22/parties/ HTTP/1.1" 400 70
+INFO 2024-09-03 19:05:29,512 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+INFO 2024-09-03 19:05:29,512 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+WARNING 2024-09-03 19:05:29,522 basehttp "POST /api/contracts/23/parties/ HTTP/1.1" 400 73
+WARNING 2024-09-03 19:05:29,522 basehttp "POST /api/contracts/23/parties/ HTTP/1.1" 400 73
+INFO 2024-09-03 19:05:31,162 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+INFO 2024-09-03 19:05:31,162 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+ERROR 2024-09-03 19:05:31,166 party_api Validation error: PartyCode matching query does not exist.
+ERROR 2024-09-03 19:05:31,166 party_api Error adding parties to contract 24: Validation error: PartyCode matching query does not exist.
+ERROR 2024-09-03 19:05:31,166 party_views Error adding parties to contract 24: Validation error: PartyCode matching query does not exist.
+WARNING 2024-09-03 19:05:31,166 basehttp "POST /api/contracts/24/parties/ HTTP/1.1" 400 70
+WARNING 2024-09-03 19:05:31,166 basehttp "POST /api/contracts/24/parties/ HTTP/1.1" 400 70
+INFO 2024-09-03 19:05:33,051 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+INFO 2024-09-03 19:05:33,051 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+ERROR 2024-09-03 19:05:33,060 settlement_api Validation error in settlements: Transaction maximum date must be less than or equal to settlement due date. Found: transact_max_dt=2024-09-01 13:53:36.542000+00:00, settle_due_dt=2024-08-01 13:53:36.542000+00:00
+ERROR 2024-09-03 19:05:33,060 settlement_views Error adding settlements for contract 25: Transaction maximum date must be less than or equal to settlement due date. Found: transact_max_dt=2024-09-01 13:53:36.542000+00:00, settle_due_dt=2024-08-01 13:53:36.542000+00:00
+WARNING 2024-09-03 19:05:33,060 basehttp "POST /api/contracts/25/settlements/ HTTP/1.1" 400 191
+WARNING 2024-09-03 19:05:33,060 basehttp "POST /api/contracts/25/settlements/ HTTP/1.1" 400 191
+INFO 2024-09-03 19:05:35,109 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+INFO 2024-09-03 19:05:35,109 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+ERROR 2024-09-03 19:05:35,116 settlement_api Validation error in settlements: Transaction maximum date must be less than or equal to settlement due date. Found: transact_max_dt=2024-09-01 13:53:36.542000+00:00, settle_due_dt=2024-08-01 13:53:36.542000+00:00
+ERROR 2024-09-03 19:05:35,116 settlement_views Error adding settlements for contract 26: Transaction maximum date must be less than or equal to settlement due date. Found: transact_max_dt=2024-09-01 13:53:36.542000+00:00, settle_due_dt=2024-08-01 13:53:36.542000+00:00
+WARNING 2024-09-03 19:05:35,117 basehttp "POST /api/contracts/26/settlements/ HTTP/1.1" 400 191
+WARNING 2024-09-03 19:05:35,117 basehttp "POST /api/contracts/26/settlements/ HTTP/1.1" 400 191
+INFO 2024-09-03 19:05:37,179 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+INFO 2024-09-03 19:05:37,179 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+ERROR 2024-09-03 19:05:37,186 settlement_api Validation error in settlements: Transaction minimum date must be less than maximum date. Found: transact_min_dt=2024-09-01 13:53:36.542000+00:00, transact_max_dt=2024-08-01 13:53:36.542000+00:00
+ERROR 2024-09-03 19:05:37,187 settlement_views Error adding settlements for contract 27: Transaction minimum date must be less than maximum date. Found: transact_min_dt=2024-09-01 13:53:36.542000+00:00, transact_max_dt=2024-08-01 13:53:36.542000+00:00
+WARNING 2024-09-03 19:05:37,187 basehttp "POST /api/contracts/27/settlements/ HTTP/1.1" 400 174
+WARNING 2024-09-03 19:05:37,187 basehttp "POST /api/contracts/27/settlements/ HTTP/1.1" 400 174
+INFO 2024-09-03 19:05:39,092 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+INFO 2024-09-03 19:05:39,092 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+ERROR 2024-09-03 19:05:39,190 transaction_api Transaction validation error: Invalid JSON for 'transact_data': invalid_json
+WARNING 2024-09-03 19:05:39,192 basehttp "POST /api/contracts/28/transactions/ HTTP/1.1" 400 58
+WARNING 2024-09-03 19:05:39,192 basehttp "POST /api/contracts/28/transactions/ HTTP/1.1" 400 58
+INFO 2024-09-03 19:05:41,079 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+INFO 2024-09-03 19:05:41,079 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+ERROR 2024-09-03 19:05:41,178 transaction_api Transaction validation error: Invalid JSON for 'extended_data': invalid json
+WARNING 2024-09-03 19:05:41,178 basehttp "POST /api/contracts/29/transactions/ HTTP/1.1" 400 58
+WARNING 2024-09-03 19:05:41,178 basehttp "POST /api/contracts/29/transactions/ HTTP/1.1" 400 58
+INFO 2024-09-03 19:05:43,051 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+INFO 2024-09-03 19:05:43,051 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+INFO 2024-09-03 19:05:49,184 basehttp "POST /api/contracts/30/parties/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:05:49,184 basehttp "POST /api/contracts/30/parties/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:05:51,121 basehttp "POST /api/contracts/30/settlements/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:05:51,121 basehttp "POST /api/contracts/30/settlements/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:05:55,093 basehttp "POST /api/contracts/30/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:05:55,093 basehttp "POST /api/contracts/30/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:05:55,357 basehttp "GET /api/contracts/30/advances/ HTTP/1.1" 200 369
+INFO 2024-09-03 19:05:55,357 basehttp "GET /api/contracts/30/advances/ HTTP/1.1" 200 369
+INFO 2024-09-03 19:05:55,362 basehttp "GET /api/get-csrf-token/ HTTP/1.1" 200 30
+INFO 2024-09-03 19:05:55,362 basehttp "GET /api/get-csrf-token/ HTTP/1.1" 200 30
+INFO 2024-09-03 19:05:59,161 basehttp "POST /api/contracts/30/advances/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:05:59,161 basehttp "POST /api/contracts/30/advances/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:05:59,445 basehttp "GET /api/contracts/30/advances/ HTTP/1.1" 200 2
+INFO 2024-09-03 19:05:59,445 basehttp "GET /api/contracts/30/advances/ HTTP/1.1" 200 2
+INFO 2024-09-03 19:06:00,342 basehttp "GET /api/contracts/30/deposits/?start_date=2024-02-01T20%3A39%3A53Z&end_date=2024-08-28T20%3A39%3A53Z HTTP/1.1" 200 1552
+INFO 2024-09-03 19:06:00,342 basehttp "GET /api/contracts/30/deposits/?start_date=2024-02-01T20%3A39%3A53Z&end_date=2024-08-28T20%3A39%3A53Z HTTP/1.1" 200 1552
+INFO 2024-09-03 19:06:00,346 basehttp "GET /api/get-csrf-token/ HTTP/1.1" 200 30
+INFO 2024-09-03 19:06:00,346 basehttp "GET /api/get-csrf-token/ HTTP/1.1" 200 30
+INFO 2024-09-03 19:06:01,333 basehttp "POST /api/contracts/30/deposits/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:06:01,333 basehttp "POST /api/contracts/30/deposits/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:06:01,605 basehttp "GET /api/contracts/30/residuals/ HTTP/1.1" 200 188
+INFO 2024-09-03 19:06:01,605 basehttp "GET /api/contracts/30/residuals/ HTTP/1.1" 200 188
+INFO 2024-09-03 19:06:01,610 basehttp "GET /api/get-csrf-token/ HTTP/1.1" 200 30
+INFO 2024-09-03 19:06:01,610 basehttp "GET /api/get-csrf-token/ HTTP/1.1" 200 30
+INFO 2024-09-03 19:06:03,165 basehttp "POST /api/contracts/30/residuals/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:06:03,165 basehttp "POST /api/contracts/30/residuals/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:06:03,436 basehttp "GET /api/contracts/30/residuals/ HTTP/1.1" 200 2
+INFO 2024-09-03 19:06:03,436 basehttp "GET /api/contracts/30/residuals/ HTTP/1.1" 200 2
+INFO 2024-09-03 19:06:03,615 basehttp "GET /api/contracts/30/settlements/ HTTP/1.1" 200 781
+INFO 2024-09-03 19:06:03,615 basehttp "GET /api/contracts/30/settlements/ HTTP/1.1" 200 781
+INFO 2024-09-03 19:06:03,723 basehttp "GET /api/contracts/30/ HTTP/1.1" 200 619
+INFO 2024-09-03 19:06:03,723 basehttp "GET /api/contracts/30/ HTTP/1.1" 200 619
+INFO 2024-09-03 19:06:05,354 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+INFO 2024-09-03 19:06:05,354 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+INFO 2024-09-03 19:06:11,160 basehttp "POST /api/contracts/31/parties/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:06:11,160 basehttp "POST /api/contracts/31/parties/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:06:13,083 basehttp "POST /api/contracts/31/settlements/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:06:13,083 basehttp "POST /api/contracts/31/settlements/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:06:17,163 basehttp "POST /api/contracts/31/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:06:17,163 basehttp "POST /api/contracts/31/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:06:17,343 basehttp "GET /api/contracts/31/settlements/ HTTP/1.1" 200 786
+INFO 2024-09-03 19:06:17,343 basehttp "GET /api/contracts/31/settlements/ HTTP/1.1" 200 786
+INFO 2024-09-03 19:06:17,520 basehttp "GET /api/contracts/31/transactions/ HTTP/1.1" 200 915
+INFO 2024-09-03 19:06:17,520 basehttp "GET /api/contracts/31/transactions/ HTTP/1.1" 200 915
+INFO 2024-09-03 19:06:19,140 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+INFO 2024-09-03 19:06:19,140 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+INFO 2024-09-03 19:06:25,161 basehttp "POST /api/contracts/32/parties/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:06:25,161 basehttp "POST /api/contracts/32/parties/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:06:27,087 basehttp "POST /api/contracts/32/settlements/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:06:27,087 basehttp "POST /api/contracts/32/settlements/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:06:47,088 basehttp "POST /api/contracts/32/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:06:47,088 basehttp "POST /api/contracts/32/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:06:51,184 basehttp "POST /api/contracts/32/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:06:51,184 basehttp "POST /api/contracts/32/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:06:51,384 basehttp "GET /api/contracts/32/settlements/ HTTP/1.1" 200 790
+INFO 2024-09-03 19:06:51,384 basehttp "GET /api/contracts/32/settlements/ HTTP/1.1" 200 790
+INFO 2024-09-03 19:06:51,567 basehttp "GET /api/contracts/32/transactions/ HTTP/1.1" 200 5487
+INFO 2024-09-03 19:06:51,567 basehttp "GET /api/contracts/32/transactions/ HTTP/1.1" 200 5487
+INFO 2024-09-03 19:06:53,143 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+INFO 2024-09-03 19:06:53,143 basehttp "POST /api/contracts/ HTTP/1.1" 201 2
+INFO 2024-09-03 19:06:59,141 basehttp "POST /api/contracts/33/parties/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:06:59,141 basehttp "POST /api/contracts/33/parties/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:07:01,083 basehttp "POST /api/contracts/33/settlements/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:07:01,083 basehttp "POST /api/contracts/33/settlements/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:07:05,142 basehttp "POST /api/contracts/33/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:07:05,142 basehttp "POST /api/contracts/33/transactions/ HTTP/1.1" 201 4
+INFO 2024-09-03 19:07:05,332 basehttp "GET /api/contracts/33/settlements/ HTTP/1.1" 200 786
+INFO 2024-09-03 19:07:05,332 basehttp "GET /api/contracts/33/settlements/ HTTP/1.1" 200 786
+INFO 2024-09-03 19:07:05,509 basehttp "GET /api/contracts/33/transactions/ HTTP/1.1" 200 915
+INFO 2024-09-03 19:07:05,509 basehttp "GET /api/contracts/33/transactions/ HTTP/1.1" 200 915
+INFO 2024-09-03 19:41:12,034 basehttp "GET /api/address/ HTTP/1.1" 200 62
+INFO 2024-09-03 19:41:12,034 basehttp "GET /api/address/ HTTP/1.1" 200 62
+INFO 2024-09-03 19:41:38,151 basehttp "GET /api/events/ HTTP/1.1" 200 2062749
+INFO 2024-09-03 19:41:38,151 basehttp "GET /api/events/ HTTP/1.1" 200 2062749
