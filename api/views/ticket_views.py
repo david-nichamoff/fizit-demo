@@ -1,22 +1,29 @@
+import logging
+
 from datetime import datetime, timedelta
 
 from rest_framework.response import Response
-from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import SessionAuthentication
 from rest_framework import viewsets, status
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from api.serializers.ticket_serializer import TicketSerializer
-from packages.api_interface import get_tickets
-from packages.check_privacy import is_master_key
+from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-from api.authentication import CustomAPIKeyAuthentication
+
+from api.interfaces import TicketAPI
 
 class TicketViewSet(viewsets.ViewSet):
-    authentication_classes = [SessionAuthentication, CustomAPIKeyAuthentication]
-    permission_classes = [IsAuthenticated | HasCustomAPIKey]
+    authentication_classes = [AWSSecretsAPIKeyAuthentication]
+    permission_classes = [HasCustomAPIKey]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.ticket_api = TicketAPI()
+        self.authenticator = AWSSecretsAPIKeyAuthentication()
+
+        self.logger = logging.getLogger(__name__)
+        self.initialized = True  # Mark this instance as initialized
 
     @extend_schema(
         tags=["Tickets"],
@@ -34,7 +41,7 @@ class TicketViewSet(viewsets.ViewSet):
         try:
             start_date = datetime.fromisoformat(start_date_str)
             end_date = datetime.fromisoformat(end_date_str)
-            tickets = get_tickets(contract_idx, start_date, end_date)
+            tickets = self.ticket_api.get_tickets(contract_idx, start_date, end_date)
             return Response(tickets, status=status.HTTP_200_OK)
         except ValueError:
             return Response({"error": "Invalid date format. Expected ISO 8601 format."}, status=status.HTTP_400_BAD_REQUEST)
@@ -49,8 +56,11 @@ class TicketViewSet(viewsets.ViewSet):
     )
     @action(detail=True, methods=['post'], url_path='process')
     def process_tickets(self, request, contract_idx=None):
-        if not is_master_key(request):
+        auth_info = request.auth  # This is where the authentication info is stored
+        
+        if not auth_info.get('is_master_key', False):  # Check if the master key was provided
             raise PermissionDenied("You do not have permission to perform this action.")
+
         try:
             # Assuming process_tickets function processes the tickets on the host system
             response = process_tickets(contract_idx)

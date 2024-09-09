@@ -1,17 +1,23 @@
-# permissions.py
 from rest_framework.permissions import BasePermission
-
-from .models.api_key_models import CustomAPIKey
+from rest_framework.exceptions import AuthenticationFailed
+from api.authentication import AWSSecretsAPIKeyAuthentication
 
 class HasCustomAPIKey(BasePermission):
     def has_permission(self, request, view):
-        key = request.META.get('HTTP_AUTHORIZATION', '').split(' ')[-1]
-        if key.startswith('Api-Key '):
-            key = key.split(' ')[-1]
+        # Initialize AWSSecretsAPIKeyAuthentication to authenticate the request
+        auth = AWSSecretsAPIKeyAuthentication()
+
         try:
-            api_key = CustomAPIKey.objects.get_from_key(key)
-            if api_key and api_key.is_valid:
+            user, auth_info = auth.authenticate(request)  # This returns the user and whether it's the master key
+            if auth_info.get('is_master_key', False):
+                # If the API key is the master key, allow access
                 return True
-        except CustomAPIKey.DoesNotExist:
+        except AuthenticationFailed:
+            # If authentication fails, deny permission
             return False
+
+        # If authentication was successful and it's not the master key, grant access
+        if auth_info and not auth_info.get('is_master_key'):
+            return True
+
         return False

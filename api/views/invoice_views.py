@@ -1,24 +1,28 @@
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta
 
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import SessionAuthentication
 from rest_framework import viewsets, status
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from api.serializers.invoice_serializer import InvoiceSerializer
-
-from packages.api_interface import get_contract_invoices
-
+from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-from api.authentication import CustomAPIKeyAuthentication
 
-logger = logging.getLogger(__name__)
+from api.interfaces import InvoiceAPI
 
 class InvoiceViewSet(viewsets.ViewSet):
-    authentication_classes = [SessionAuthentication, CustomAPIKeyAuthentication]
-    permission_classes = [IsAuthenticated | HasCustomAPIKey]
+    authentication_classes = [AWSSecretsAPIKeyAuthentication]
+    permission_classes = [HasCustomAPIKey]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.invoice_api = InvoiceAPI()
+        self.authenticator = AWSSecretsAPIKeyAuthentication()
+
+        self.logger = logging.getLogger(__name__)
+        self.initialized = True  # Mark this instance as initialized
 
     @extend_schema(
         tags=["Invoices"],
@@ -36,11 +40,11 @@ class InvoiceViewSet(viewsets.ViewSet):
         try:
             start_date = datetime.fromisoformat(start_date_str)
             end_date = datetime.fromisoformat(end_date_str)
-            invoices = get_contract_invoices(contract_idx, start_date, end_date)
+            invoices = self.invoice_api.get_contract_invoices(contract_idx, start_date, end_date)
             return Response(invoices, status=status.HTTP_200_OK)
         except ValueError as ve:
-            logger.error(f"Invalid date format provided: {ve}")
+            self.logger.error(f"Invalid date format provided: {ve}")
             return Response({"error": "Invalid date format. Expected ISO 8601 format."}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            logger.error(f"Error retrieving invoices for contract {contract_idx}: {e}")
+            self.logger.error(f"Error retrieving invoices for contract {contract_idx}: {e}")
             return Response({"error": "An error occurred while retrieving invoices."}, status=status.HTTP_404_NOT_FOUND)

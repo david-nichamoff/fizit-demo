@@ -5,7 +5,7 @@ import time
 from django.core.management.base import BaseCommand
 from django.conf import settings
 
-from api.models.configuration_models import Configuration
+from api.managers.config_manager import ConfigManager
 
 class Command(BaseCommand):
     help = 'Deploy smart contracts using Truffle and update the configuration with the new contract address'
@@ -53,13 +53,13 @@ class Command(BaseCommand):
 
     def _update_contract_address(self, new_address):
         try:
-            config = Configuration.objects.get(key='contract_addr')
-            config.value = new_address
-            config.save()
-            self.stdout.write(self.style.SUCCESS('Successfully updated contract address in the configuration.'))
-        except Configuration.DoesNotExist:
+            config_manager = ConfigManager()
+            config_manager.update_config_value('contract_addr', new_address)
+            self.stdout.write(self.style.SUCCESS(f'Successfully updated contract address to {new_address}.'))
+        except KeyError:
             self.stdout.write(self.style.ERROR('Configuration key "contract_addr" does not exist.'))
-            raise Exception('Configuration key "contract_addr" does not exist.')
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f'Failed to update configuration: {e}'))
 
     def _restart_services(self):
         env = os.getenv('FIZIT_ENV', 'dev')

@@ -1,42 +1,41 @@
 import os
 import json
-
 from datetime import datetime
-from decimal import Decimal, ROUND_DOWN
 
 from django.test import TestCase
 from rest_framework import status
 
-from .contract_operations import ContractOperations
-from .party_operations import PartyOperations
-from .settlement_operations import SettlementOperations
-from .transaction_operations import TransactionOperations
-from .utils import Utils
-from .validate_events import validate_events
+from .operations_contract import ContractOperations
+from .operations_party import PartyOperations
+from .operations_settlement import SettlementOperations
+from .operations_transaction import TransactionOperations
+from .operations_csrf import CsrfOperations
 
-import packages.load_keys as load_keys
-import packages.load_config as load_config
-
-keys = load_keys.load_keys()
-config = load_config.load_config()
+from api.managers import SecretsManager, ConfigManager
 
 class IntegrityTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        pass
+        # Initialize SecretsManager and ConfigManager as singletons
+        cls.secrets_manager = SecretsManager()
+        cls.config_manager = ConfigManager()
+
+        # Load keys and config once and store them in class variables
+        cls.keys = cls.secrets_manager.load_keys()
+        cls.config = cls.config_manager.load_config()
 
     def setUp(self):
         self.current_date = datetime.now().replace(microsecond=0).isoformat()
         self.headers = {
-            'Authorization': f'Api-Key {keys["FIZIT_MASTER_KEY"]}',
+            'Authorization': f'Api-Key {self.keys["FIZIT_MASTER_KEY"]}',
             'Content-Type': 'application/json'
         }
-        self.contract_ops = ContractOperations(self.headers, config)
-        self.party_ops = PartyOperations(self.headers, config)
-        self.settlement_ops = SettlementOperations(self.headers, config)
-        self.transaction_ops = TransactionOperations(self.headers, config)
-        self.utils = Utils(self.headers, config)
+        self.contract_ops = ContractOperations(self.headers, self.config)
+        self.party_ops = PartyOperations(self.headers, self.config)
+        self.settlement_ops = SettlementOperations(self.headers, self.config)
+        self.transaction_ops = TransactionOperations(self.headers, self.config)
+        self.csrf_ops = CsrfOperations(self.headers, self.config)
 
     def test_contract_integrity(self):
         fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_data_integrity', 'contract_errors')

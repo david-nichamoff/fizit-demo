@@ -3,26 +3,28 @@ import json
 
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError, PermissionDenied
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import SessionAuthentication
 from rest_framework import viewsets, status
 from drf_spectacular.utils import extend_schema
 from web3.exceptions import ContractLogicError, BadFunctionCallOutput
 
 from api.serializers.contract_serializer import ContractSerializer
-
-from packages.api_interface import get_contract, get_contracts, add_contract, update_contract, delete_contract
-
-from packages.check_privacy import is_master_key
-
+from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-from api.authentication import CustomAPIKeyAuthentication
 
-logger = logging.getLogger(__name__)
+from api.interfaces import ContractAPI
 
 class ContractViewSet(viewsets.ViewSet):
-    authentication_classes = [SessionAuthentication, CustomAPIKeyAuthentication]
-    permission_classes = [IsAuthenticated | HasCustomAPIKey]
+    authentication_classes = [AWSSecretsAPIKeyAuthentication]
+    permission_classes = [HasCustomAPIKey]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.contract_api = ContractAPI()
+        self.authenticator = AWSSecretsAPIKeyAuthentication()
+
+        self.logger = logging.getLogger(__name__)
+        self.initialized = True  # Mark this instance as initialized
 
     @extend_schema(
         tags=["Contracts"],
@@ -32,20 +34,20 @@ class ContractViewSet(viewsets.ViewSet):
     )
     def list(self, request):
         try:
-            contracts = get_contracts(request)
+            contracts = self.contract_api.get_contracts()
             serializer = ContractSerializer(contracts, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except ContractLogicError as e:
-            logger.error(f"Contract logic error occurred: {e}")
+            self.logger.error(f"Contract logic error occurred: {e}")
             return Response({"detail": "Contract logic error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except BadFunctionCallOutput as e:
-            logger.error(f"Error in contract function call output: {e}")
+            self.logger.error(f"Error in contract function call output: {e}")
             return Response({"detail": "Error in contract function call output"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON format in contract data: {e}")
+            self.logger.error(f"Invalid JSON format in contract data: {e}")
             return Response({"detail": "Invalid JSON format in contract data"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            logger.error(f"An unexpected error occurred: {e}")
+            self.logger.error(f"An unexpected error occurred: {e}")
             return Response({"detail": "An unexpected error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @extend_schema(
@@ -56,15 +58,18 @@ class ContractViewSet(viewsets.ViewSet):
         description="Create a new contract"
     )
     def add(self, request):
-        if not is_master_key(request):
+        auth_info = request.auth  
+        
+        if not auth_info.get('is_master_key', False): 
             raise PermissionDenied("You do not have permission to perform this action.")
+        
         serializer = ContractSerializer(data=request.data)
         if serializer.is_valid():
             try:
-                contract_idx = add_contract(serializer.validated_data)
+                contract_idx = self.contract_api.add_contract(serializer.validated_data)
                 return Response(contract_idx, status=status.HTTP_201_CREATED)
             except Exception as e:
-                logger.error(f"Error creating contract: {e}")
+                self.logger.error(f"Error creating contract: {e}")
                 return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -78,13 +83,13 @@ class ContractViewSet(viewsets.ViewSet):
     )
     def get(self, request, contract_idx=None):
         try:
-            contract = get_contract(contract_idx)
+            contract = self.contract_api.get_contract(contract_idx)
             serializer = ContractSerializer(contract, many=False)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.error(f"Error retrieving contract {contract_idx}: {e}")
+            self.logger.error(f"Error retrieving contract {contract_idx}: {e}")
             return Response({"detail": str(e)}, status=status.HTTP_404_NOT_FOUND)
-            
+
     @extend_schema(
         tags=["Contracts"],
         request=ContractSerializer,
@@ -93,21 +98,24 @@ class ContractViewSet(viewsets.ViewSet):
         description="Partial update of an existing contract"
     )
     def patch(self, request, contract_idx=None):
-        if not is_master_key(request):
+        auth_info = request.auth  
+        
+        if not auth_info.get('is_master_key', False): 
             raise PermissionDenied("You do not have permission to perform this action.")
+
         try:
-            contract_dict = get_contract(contract_idx)
+            contract_dict = self.contract_api.get_contract(contract_idx)
             serializer = ContractSerializer(data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             for key, value in serializer.validated_data.items():
                 contract_dict[key] = value
-            response = update_contract(contract_idx, contract_dict)
+            response = self.contract_api.update_contract(contract_idx, contract_dict)
             return Response(response, status=status.HTTP_200_OK)
         except ValidationError as ve:
-            logger.error(f"Validation error when updating contract {contract_idx}: {ve}")
+            self.logger.error(f"Validation error when updating contract {contract_idx}: {ve}")
             return Response(ve.detail, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            logger.error(f"Error updating contract {contract_idx}: {e}")
+            self.logger.error(f"Error updating contract {contract_idx}: {e}")
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @extend_schema(
@@ -117,14 +125,17 @@ class ContractViewSet(viewsets.ViewSet):
         description="Delete an existing contract"
     )
     def delete(self, request, contract_idx=None):
-        if not is_master_key(request):
+        auth_info = request.auth  
+        
+        if not auth_info.get('is_master_key', False): 
             raise PermissionDenied("You do not have permission to perform this action.")
+
         try:
-            delete_contract(contract_idx)
+            self.contract_api.delete_contract(contract_idx)
             return Response(status=status.HTTP_204_NO_CONTENT)
         except ValidationError as ve:
-            logger.error(f"Validation error when deleting contract {contract_idx}: {ve}")
+            self.logger.error(f"Validation error when deleting contract {contract_idx}: {ve}")
             return Response(ve.detail, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            logger.error(f"Error deleting contract {contract_idx}: {e}")
+            self.logger.error(f"Error deleting contract {contract_idx}: {e}")
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

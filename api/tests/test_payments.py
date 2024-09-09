@@ -8,18 +8,14 @@ from datetime import datetime
 from django.test import TestCase
 from rest_framework import status
 
-import packages.load_keys as load_keys
-import packages.load_config as load_config
+from api.managers import SecretsManager, ConfigManager
 
-from .utils import Utils
-from .payment_operations import PaymentOperations
-from .contract_operations import ContractOperations
-from .party_operations import PartyOperations
-from .settlement_operations import SettlementOperations
-from .transaction_operations import TransactionOperations
-
-keys = load_keys.load_keys()
-config = load_config.load_config()
+from .operations_csrf import CsrfOperations
+from .operations_bank import BankOperations
+from .operations_contract import ContractOperations
+from .operations_party import PartyOperations
+from .operations_settlement import SettlementOperations
+from .operations_transaction import TransactionOperations
 
 class PayAdvanceTests(TestCase):
 
@@ -28,17 +24,22 @@ class PayAdvanceTests(TestCase):
         pass
 
     def setUp(self):
+        self.secrets_manager = SecretsManager()
+        self.config_manager = ConfigManager()
+        self.keys = self.secrets_manager.load_keys()
+        self.config = self.config_manager.load_config()
+
         self.current_date = datetime.now().replace(microsecond=0).isoformat()
         self.headers = {
-            'Authorization': f'Api-Key {keys["FIZIT_MASTER_KEY"]}',
+            'Authorization': f'Api-Key {self.keys["FIZIT_MASTER_KEY"]}',
             'Content-Type': 'application/json'
         }
-        self.payment_ops = PaymentOperations(self.headers, config)
-        self.contract_ops = ContractOperations(self.headers, config)
-        self.party_ops = PartyOperations(self.headers, config)
-        self.settlement_ops = SettlementOperations(self.headers, config)
-        self.transaction_ops = TransactionOperations(self.headers, config)
-        self.utils = Utils(self.headers, config)
+        self.payment_ops = BankOperations(self.headers, self.config)
+        self.contract_ops = ContractOperations(self.headers, self.config)
+        self.party_ops = PartyOperations(self.headers, self.config)
+        self.settlement_ops = SettlementOperations(self.headers, self.config)
+        self.transaction_ops = TransactionOperations(self.headers, self.config)
+        self.csrf_ops = CsrfOperations(self.headers, self.config)
 
     def test_payments(self):
         fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_payments')
@@ -103,7 +104,7 @@ class PayAdvanceTests(TestCase):
         print(f"Advances loaded for contract: {contract_idx}")
 
         # Now, call the payment_ops.add_advancess function with the advances
-        csrf_token = self.utils._get_csrf_token()
+        csrf_token = self.csrf_ops._get_csrf_token()
         add_advance_response = self.payment_ops.add_advances(contract_idx, advances, csrf_token)
         self.assertEqual(
             add_advance_response.status_code, 
@@ -150,7 +151,7 @@ class PayAdvanceTests(TestCase):
                 deposit['deposit_dt'] == expected_result['deposit_dt']):
 
                 # Now, call the payment_ops.add_deposits function with the deposits 
-                csrf_token = self.utils._get_csrf_token()
+                csrf_token = self.csrf_ops._get_csrf_token()
                 add_deposit_response = self.payment_ops.add_deposits(contract_idx, [expected_result], csrf_token)
                 self.assertEqual(
                     add_deposit_response.status_code, 
@@ -180,7 +181,7 @@ class PayAdvanceTests(TestCase):
         print(f"Residuals loaded for contract: {contract_idx}")
 
         # Now, call the payment_ops.add_residuals function with the residuals
-        csrf_token = self.utils._get_csrf_token()
+        csrf_token = self.csrf_ops._get_csrf_token()
         add_residuals_response = self.payment_ops.add_residuals(contract_idx, residuals, csrf_token)
         self.assertEqual(
             add_residuals_response.status_code,
@@ -220,8 +221,6 @@ class PayAdvanceTests(TestCase):
         # Compare late_fee_amt
         expected_late_fee_amt = contract['extended_data'].get('late_fee_amt')
         actual_late_fee_amt = settlement.get('late_fee_amt')
-        print(expected_late_fee_amt)
-        print(actual_late_fee_amt)
         self.assertEqual(
             actual_late_fee_amt,
             expected_late_fee_amt,

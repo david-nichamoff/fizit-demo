@@ -1,17 +1,30 @@
+import logging
+
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from rest_framework import viewsets, status
 from drf_spectacular.utils import extend_schema
-import logging
 
 from api.serializers.party_serializer import PartySerializer
+from api.authentication import AWSSecretsAPIKeyAuthentication
+from api.permissions import HasCustomAPIKey
 
-from packages.api_interface import get_parties, add_parties, delete_parties, delete_party
-from packages.check_privacy import is_master_key
+from api.interfaces import PartyAPI
 
 logger = logging.getLogger(__name__)
 
 class PartyViewSet(viewsets.ViewSet):
+    authentication_classes = [AWSSecretsAPIKeyAuthentication]
+    permission_classes = [HasCustomAPIKey]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.authenticator = AWSSecretsAPIKeyAuthentication()
+        self.party_api = PartyAPI()
+
+        self.logger = logging.getLogger(__name__)
+        self.initialized = True  # Mark this instance as initialized
 
     @extend_schema(
         tags=["Parties"],
@@ -22,10 +35,10 @@ class PartyViewSet(viewsets.ViewSet):
     )
     def list(self, request, contract_idx=None):
         try:
-            parties = get_parties(int(contract_idx))
+            parties = self.party_api.get_parties(int(contract_idx))
             return Response(parties, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.error(f"Error retrieving parties for contract {contract_idx}: {e}")
+            self.logger.error(f"Error retrieving parties for contract {contract_idx}: {e}")
             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(
@@ -36,18 +49,21 @@ class PartyViewSet(viewsets.ViewSet):
         description="Add a list of parties to an existing contract",
     )
     def add(self, request, contract_idx=None):
-        if not is_master_key(request):
+        auth_info = request.auth  # This is where the authentication info is stored
+        
+        if not auth_info.get('is_master_key', False):  # Check if the master key was provided
             raise PermissionDenied("You do not have permission to perform this action.")
+
         serializer = PartySerializer(data=request.data, many=True)
         if serializer.is_valid():
             try:
-                response = add_parties(contract_idx, serializer.validated_data)
+                response = self.party_api.add_parties(contract_idx, serializer.validated_data)
                 return Response(response, status=status.HTTP_201_CREATED)
             except Exception as e:
-                logger.error(f"Error adding parties to contract {contract_idx}: {e}")
+                self.logger.error(f"Error adding parties to contract {contract_idx}: {e}")
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            logger.warning(f"Invalid party data for contract {contract_idx}: {serializer.errors}")
+            self.logger.warning(f"Invalid party data for contract {contract_idx}: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
@@ -57,13 +73,16 @@ class PartyViewSet(viewsets.ViewSet):
         description="Delete all parties from a contract",
     )
     def delete_contract(self, request, contract_idx=None):
-        if not is_master_key(request):
+        auth_info = request.auth  # This is where the authentication info is stored
+        
+        if not auth_info.get('is_master_key', False):  # Check if the master key was provided
             raise PermissionDenied("You do not have permission to perform this action.")
+
         try:
-            response = delete_parties(contract_idx)
+            response = self.party_api.delete_parties(contract_idx)
             return Response(response, status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
-            logger.error(f"Error deleting parties for contract {contract_idx}: {e}")
+            self.logger.error(f"Error deleting parties for contract {contract_idx}: {e}")
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
@@ -73,11 +92,14 @@ class PartyViewSet(viewsets.ViewSet):
         description="Delete a party from a contract",
     )
     def delete(self, request, contract_idx=None, party_idx=None):
-        if not is_master_key(request):
+        auth_info = request.auth  # This is where the authentication info is stored
+        
+        if not auth_info.get('is_master_key', False):  # Check if the master key was provided
             raise PermissionDenied("You do not have permission to perform this action.")
+
         try:
-            response = delete_party(contract_idx, party_idx)
+            response = self.party_api.delete_party(contract_idx, party_idx)
             return Response(response, status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
-            logger.error(f"Error deleting party {party_idx} for contract {contract_idx}: {e}")
+            self.logger.error(f"Error deleting party {party_idx} for contract {contract_idx}: {e}")
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

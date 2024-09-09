@@ -1,0 +1,88 @@
+[
+    {
+        "key": "ava_rpc",
+        "value": "https://subnets.avacloud.io/f8b4d7c7-e374-4d79-abdd-e2e3ba007481"
+    },
+    {
+        "key": "mercury_url",
+        "value": "https://api-sandbox.mercury.com/api/v1"
+    },
+    {
+        "key": "numbers_url",
+        "value": "https://api.numbersprotocol.io/api/v3/assets"
+    },
+    {
+        "key": "wallet_addr",
+        "value": "0xf0F2442f2B8541EFcd4235b2933Bd7b2098bCA0c"
+    },
+    {
+        "key": "contract_addr",
+        "value": "0x3EEb89c37d76f9CE5239EE8E036E0deb761130c7"
+    },
+    {
+        "key": "gas_limit",
+        "value": 2000000
+    },
+    {
+        "key": "url",
+        "value": "http://127.0.0.1:8000"
+    },
+    {
+        "key": "engage_uri",
+        "value": "https://devapi.engage-m.com"
+    },
+    {
+        "key": "party_code",
+        "value": [
+            {
+                "party_code": "HaulerCo",
+                "address": "0x2000000000000000000000000000000000000000"
+            },
+            {
+                "party_code": "MoneyCo",
+                "address": "0x3000000000000000000000000000000000000000"
+            },
+            {
+                "party_code": "OilCo",
+                "address": "0x1000000000000000000000000000000000000000"
+            },
+            {
+                "party_code": "UnitTest",
+                "address": "0x0000000000000000000000000000000000000000"
+            }
+        ]
+    },
+    {
+        "key": "party_type",
+        "value": [
+            {
+                "party_type": "Buyer"
+            },
+            {
+                "party_type": "Funder"
+            },
+            {
+                "party_type": "Seller"
+            }
+        ]
+    },
+    {
+        "key": "engage_src",
+        "value": [
+            {
+                "src_id": 11,
+                "api_key": "M59MJFQXnE9l3vh9NlSpw1R3CxQzYIz037Nkjg2b",
+                "src_code": "MadMax"
+            }
+        ]
+    },
+    {
+        "key": "engage_dest",
+        "value": [
+            {
+                "dest_id": 11749,
+                "dest_code": "Grit"
+            }
+        ]
+    }
+]

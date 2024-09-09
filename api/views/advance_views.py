@@ -1,25 +1,28 @@
+import logging
+
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import SessionAuthentication
-from rest_framework.exceptions import ValidationError, PermissionDenied
+from rest_framework.exceptions import PermissionDenied
 from rest_framework import viewsets, status
 from drf_spectacular.utils import extend_schema
 
-from packages.api_interface import get_advances, add_advances
-from packages.check_privacy import is_master_key
-
 from api.serializers.advance_serializer import AdvanceSerializer
-
+from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-from api.authentication import CustomAPIKeyAuthentication
 
-import logging
-
-logger = logging.getLogger(__name__)
+from api.interfaces import AdvanceAPI
 
 class AdvanceViewSet(viewsets.ViewSet):
-    authentication_classes = [SessionAuthentication, CustomAPIKeyAuthentication]
-    permission_classes = [IsAuthenticated | HasCustomAPIKey]
+    authentication_classes = [AWSSecretsAPIKeyAuthentication]
+    permission_classes = [HasCustomAPIKey]
+
+    def __init__(self, *args, **kwargs):
+        super(AdvanceViewSet, self).__init__(*args, **kwargs)
+
+        self.advance_api = AdvanceAPI()
+        self.authenticator = AWSSecretsAPIKeyAuthentication()
+
+        self.logger = logging.getLogger(__name__)
+        self.initialized = True  # Mark this instance as initialized
 
     @extend_schema(
         tags=["Advances"],
@@ -29,10 +32,10 @@ class AdvanceViewSet(viewsets.ViewSet):
     )
     def list(self, request, contract_idx=None):
         try:
-            advances = get_advances(int(contract_idx))
+            advances = self.advance_api.get_advances(int(contract_idx))
             return Response(advances, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.error(f"Error retrieving advances for contract {contract_idx}: {e}")
+            self.logger.error(f"Error retrieving advances for contract {contract_idx}: {e}")
             return Response({"detail": str(e)}, status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(
@@ -43,20 +46,22 @@ class AdvanceViewSet(viewsets.ViewSet):
         description="Initiate advance payment"
     )
     def add(self, request, contract_idx=None):
-        if not is_master_key(request):
+        auth_info = request.auth  # This is where the authentication info is stored
+        
+        if not auth_info.get('is_master_key', False):  # Check if the master key was provided
             raise PermissionDenied("You do not have permission to perform this action.")
         
         serializer = AdvanceSerializer(data=request.data, many=True)
         if serializer.is_valid():
             try:
-                response = add_advances(int(contract_idx), serializer.validated_data)
+                response = self.advance_api.add_advances(int(contract_idx), serializer.validated_data)
                 return Response(response, status=status.HTTP_201_CREATED)
             except RuntimeError as e:
-                logger.error(f"Runtime error when adding advances for contract {contract_idx}: {e}")
+                self.logger.error(f"Runtime error when adding advances for contract {contract_idx}: {e}")
                 return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             except Exception as e:
-                logger.error(f"Unexpected error when adding advances for contract {contract_idx}: {e}")
+                self.logger.error(f"Unexpected error when adding advances for contract {contract_idx}: {e}")
                 return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            logger.warning(f"Validation failed when adding advances for contract {contract_idx}: {serializer.errors}")
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            self.logger.warning(f"Validation failed when adding advances for contract {contract_idx}: {serializer.errors}")
+            return

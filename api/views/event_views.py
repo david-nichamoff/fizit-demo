@@ -1,19 +1,26 @@
+import logging
+
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import SessionAuthentication
 from rest_framework import viewsets, status
 from drf_spectacular.utils import extend_schema, OpenApiParameter
+
 from api.serializers.event_serializer import EventSerializer
-from api.models.event_models import Event
+from api.models import Event
+
+from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-from api.authentication import CustomAPIKeyAuthentication
-import logging
 
 logger = logging.getLogger(__name__)
 
 class EventViewSet(viewsets.ViewSet):
-    authentication_classes = [SessionAuthentication, CustomAPIKeyAuthentication]
-    permission_classes = [IsAuthenticated | HasCustomAPIKey]
+    authentication_classes = [AWSSecretsAPIKeyAuthentication]
+    permission_classes = [HasCustomAPIKey]
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.logger = logging.getLogger(__name__)
+        self.initialized = True  # Mark this instance as initialized
 
     @extend_schema(
         tags=["Events"],
@@ -38,8 +45,8 @@ class EventViewSet(viewsets.ViewSet):
             serializer = EventSerializer(queryset, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except ValueError as ve:
-            logger.error(f"Invalid query parameter: {str(ve)}")
+            self.logger.error(f"Invalid query parameter: {str(ve)}")
             return Response({"error": f"Invalid query parameter: {str(ve)}"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            logger.error(f"Error retrieving events: {str(e)}")
+            self.logger.error(f"Error retrieving events: {str(e)}")
             return Response({"error": "An error occurred while retrieving events."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -1,22 +1,27 @@
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import SessionAuthentication
-from rest_framework import viewsets, status
-from drf_spectacular.utils import extend_schema, OpenApiParameter
 import logging
 
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets, status
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+
 from api.serializers.recipient_serializer import RecipientSerializer
-
-from packages.api_interface import get_recipients
-
+from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-from api.authentication import CustomAPIKeyAuthentication
 
-logger = logging.getLogger(__name__)
+from api.interfaces import RecipientAPI
 
 class RecipientViewSet(viewsets.ViewSet):
-    authentication_classes = [SessionAuthentication, CustomAPIKeyAuthentication]
     permission_classes = [IsAuthenticated | HasCustomAPIKey]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.recipient_api = RecipientAPI()
+        self.authenticator = AWSSecretsAPIKeyAuthentication()
+
+        self.logger = logging.getLogger(__name__)
+        self.initialized = True  # Mark this instance as initialized
 
     @extend_schema(
         tags=["Accounts"],
@@ -30,9 +35,9 @@ class RecipientViewSet(viewsets.ViewSet):
     def list(self, request):
         bank = request.query_params.get('bank')
         try:
-            recipients = get_recipients(bank)
+            recipients = self.recipient_api.get_recipients(bank)
             serializer = RecipientSerializer(recipients, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.error(f"Error retrieving recipients for bank '{bank}': {e}")
+            self.logger.error(f"Error retrieving recipients for bank '{bank}': {e}")
             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)

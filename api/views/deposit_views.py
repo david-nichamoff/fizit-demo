@@ -1,24 +1,28 @@
-from datetime import datetime, timedelta
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import SessionAuthentication
-from rest_framework import viewsets, status
-from drf_spectacular.utils import extend_schema, OpenApiParameter
-from rest_framework.exceptions import ValidationError, PermissionDenied
-
-from api.serializers.deposit_serializer import DepositSerializer
-from api.permissions import HasCustomAPIKey
-from api.authentication import CustomAPIKeyAuthentication
-from packages.api_interface import get_deposits, add_deposits
-from packages.check_privacy import is_master_key
-
 import logging
 
-logger = logging.getLogger(__name__)
+from datetime import datetime, timedelta
+from rest_framework.response import Response
+from rest_framework import viewsets, status
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from rest_framework.exceptions import PermissionDenied
+
+from api.serializers.deposit_serializer import DepositSerializer
+from api.authentication import AWSSecretsAPIKeyAuthentication
+from api.permissions import HasCustomAPIKey
+
+from api.interfaces import DepositAPI
 
 class DepositViewSet(viewsets.ViewSet):
-    authentication_classes = [SessionAuthentication , CustomAPIKeyAuthentication]
-    permission_classes = [IsAuthenticated | HasCustomAPIKey]
+    authentication_classes = [AWSSecretsAPIKeyAuthentication]
+    permission_classes = [HasCustomAPIKey]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.deposit_api = DepositAPI()
+        self.authenticator = AWSSecretsAPIKeyAuthentication()
+
+        self.logger = logging.getLogger(__name__)
+        self.initialized = True  # Mark this instance as initialized
 
     @extend_schema(
         tags=["Deposits"],
@@ -48,13 +52,13 @@ class DepositViewSet(viewsets.ViewSet):
         try:
             start_date = datetime.fromisoformat(start_date)
             end_date = datetime.fromisoformat(end_date)
-            deposits = get_deposits(start_date, end_date, int(contract_idx))
+            deposits = self.deposit_api.get_deposits(start_date, end_date, int(contract_idx))
             return Response(deposits, status=status.HTTP_200_OK)
         except ValueError as e:
-            logger.error(f"Invalid date format: {str(e)}")
+            self.logger.error(f"Invalid date format: {str(e)}")
             return Response(f"Invalid date format: {str(e)}", status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            logger.error(f"Error retrieving deposits: {str(e)}")
+            self.logger.error(f"Error retrieving deposits: {str(e)}")
             return Response(str(e), status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(
@@ -65,15 +69,18 @@ class DepositViewSet(viewsets.ViewSet):
         description="Add a bank deposit to a settlement period"
     )
     def add(self, request, contract_idx=None):
-        if not is_master_key(request):
+        auth_info = request.auth  # This is where the authentication info is stored
+        
+        if not auth_info.get('is_master_key', False):  # Check if the master key was provided
             raise PermissionDenied("You do not have permission to perform this action.")
+
         serializer = DepositSerializer(data=request.data, many=True)
         if serializer.is_valid():
             try:
-                response = add_deposits(int(contract_idx), serializer.validated_data)
+                response = self.deposit_api.add_deposits(int(contract_idx), serializer.validated_data)
                 return Response(response, status=status.HTTP_201_CREATED)
             except Exception as e:
-                logger.error(f"Error adding deposits: {str(e)}")
+                self.logger.error(f"Error adding deposits: {str(e)}")
                 return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

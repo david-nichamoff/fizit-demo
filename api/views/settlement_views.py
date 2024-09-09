@@ -2,22 +2,27 @@ import logging
 
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import SessionAuthentication
 from rest_framework import viewsets, status
 from drf_spectacular.utils import extend_schema
 
 from api.serializers.settlement_serializer import SettlementSerializer
-from packages.api_interface import get_settlements, add_settlements, delete_settlements
-from packages.check_privacy import is_master_key
+from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-from api.authentication import CustomAPIKeyAuthentication
 
-logger = logging.getLogger(__name__)
+from api.interfaces import SettlementAPI
 
 class SettlementViewSet(viewsets.ViewSet):
-    authentication_classes = [SessionAuthentication, CustomAPIKeyAuthentication]
-    permission_classes = [IsAuthenticated | HasCustomAPIKey]
+    authentication_classes = [AWSSecretsAPIKeyAuthentication]
+    permission_classes = [HasCustomAPIKey]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.settlement_api = SettlementAPI()
+        self.authenticator = AWSSecretsAPIKeyAuthentication()
+
+        self.logger = logging.getLogger(__name__)
+        self.initialized = True  # Mark this instance as initialized
 
     @extend_schema(
         tags=["Settlements"],
@@ -27,11 +32,11 @@ class SettlementViewSet(viewsets.ViewSet):
     )
     def list(self, request, contract_idx=None):
         try:
-            settlements = get_settlements(int(contract_idx))
-            logger.debug("Settlements retrieved for contract %s: %s", contract_idx, settlements)
+            settlements = self.settlement_api.get_settlements(int(contract_idx))
+            self.logger.debug("Settlements retrieved for contract %s: %s", contract_idx, settlements)
             return Response(settlements, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.error(f"Error retrieving settlements for contract {contract_idx}: {e}")
+            self.logger.error(f"Error retrieving settlements for contract {contract_idx}: {e}")
             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(
@@ -42,18 +47,21 @@ class SettlementViewSet(viewsets.ViewSet):
         description="Add a list of settlements to an existing contract",
     )
     def add(self, request, contract_idx=None):
-        if not is_master_key(request):
+        auth_info = request.auth  # This is where the authentication info is stored
+        
+        if not auth_info.get('is_master_key', False):  # Check if the master key was provided
             raise PermissionDenied("You do not have permission to perform this action.")
+
         serializer = SettlementSerializer(data=request.data, many=True)
         if serializer.is_valid():
             try:
-                response = add_settlements(contract_idx, serializer.validated_data)
+                response = self.settlement_api.add_settlements(contract_idx, serializer.validated_data)
                 return Response(response, status=status.HTTP_201_CREATED)
             except Exception as e:
-                logger.error(f"Error adding settlements for contract {contract_idx}: {e}")
+                self.logger.error(f"Error adding settlements for contract {contract_idx}: {e}")
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            logger.warning(f"Invalid settlement data for contract {contract_idx}: {serializer.errors}")
+            self.logger.warning(f"Invalid settlement data for contract {contract_idx}: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
@@ -63,11 +71,14 @@ class SettlementViewSet(viewsets.ViewSet):
         description="Delete all settlements from a contract",
     )
     def delete_contract(self, request, contract_idx=None):
-        if not is_master_key(request):
+        auth_info = request.auth  # This is where the authentication info is stored
+        
+        if not auth_info.get('is_master_key', False):  # Check if the master key was provided
             raise PermissionDenied("You do not have permission to perform this action.")
+
         try:
-            response = delete_settlements(contract_idx)
+            response = self.settlement_api.delete_settlements(contract_idx)
             return Response(response, status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
-            logger.error(f"Error deleting settlements for contract {contract_idx}: {e}")
+            self.logger.error(f"Error deleting settlements for contract {contract_idx}: {e}")
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
