@@ -1,5 +1,5 @@
 from rest_framework.permissions import BasePermission
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 from api.authentication import AWSSecretsAPIKeyAuthentication
 
 class HasCustomAPIKey(BasePermission):
@@ -8,16 +8,23 @@ class HasCustomAPIKey(BasePermission):
         auth = AWSSecretsAPIKeyAuthentication()
 
         try:
-            user, auth_info = auth.authenticate(request)  # This returns the user and whether it's the master key
-            if auth_info.get('is_master_key', False):
-                # If the API key is the master key, allow access
-                return True
-        except AuthenticationFailed:
-            # If authentication fails, deny permission
-            return False
+            result = auth.authenticate(request)  # Try to authenticate the request
+            if result is None:  # If authentication fails, let it raise a 401
+                raise AuthenticationFailed('Request not authorized: API key missing or invalid')
 
-        # If authentication was successful and it's not the master key, grant access
+            user, auth_info = result
+
+            # If the API key is the master key, allow access
+            if auth_info.get('is_master_key', False):
+                return True
+
+        except AuthenticationFailed as e:
+            # If authentication fails, raise a 401 Unauthorized error
+            raise AuthenticationFailed(str(e))
+
+        # If the authentication was successful but it's not the master key, grant access
         if auth_info and not auth_info.get('is_master_key'):
             return True
 
-        return False
+        # If the user is authenticated but lacks permission, raise a 403 Forbidden error
+        raise PermissionDenied('You do not have permission to perform this action')

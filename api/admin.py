@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Event, Contact
+from rest_framework_api_key.models import APIKey
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
