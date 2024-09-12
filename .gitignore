@@ -52,3 +52,8 @@ start.sh
 stop.sh
 coverage.sh
 pids.txt
+
+# log files
+log/django.log
+log/events.log
+log/npm.log
