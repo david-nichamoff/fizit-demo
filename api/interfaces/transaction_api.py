@@ -1,6 +1,8 @@
 import datetime
 import logging
 import json
+
+from datetime import timezone
 from decimal import Decimal
 from json_logic import jsonLogic
 
@@ -30,7 +32,7 @@ class TransactionAPI:
         self.initialized = True  # Mark this instance as initialized
 
     def from_timestamp(self, ts):
-        return None if ts == 0 else datetime.datetime.fromtimestamp(ts)
+        return None if ts == 0 else datetime.datetime.fromtimestamp(ts, tz=timezone.utc)
 
     def get_transact_dict(self, transact, transact_idx, contract):
         try:

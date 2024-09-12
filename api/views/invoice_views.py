@@ -41,7 +41,8 @@ class InvoiceViewSet(viewsets.ViewSet):
             start_date = datetime.fromisoformat(start_date_str)
             end_date = datetime.fromisoformat(end_date_str)
             invoices = self.invoice_api.get_contract_invoices(contract_idx, start_date, end_date)
-            return Response(invoices, status=status.HTTP_200_OK)
+            serializer = InvoiceSerializer(invoices, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         except ValueError as ve:
             self.logger.error(f"Invalid date format provided: {ve}")
             return Response({"error": "Invalid date format. Expected ISO 8601 format."}, status=status.HTTP_400_BAD_REQUEST)

@@ -54,17 +54,14 @@ class TransactionOperations:
 
     def get_transactions(self, contract_idx, transact_min_dt=None, transact_max_dt=None):
         params = {}
-        
+
+        # Just pass the dates as-is without converting
         if transact_min_dt:
-            if isinstance(transact_min_dt, str):
-                transact_min_dt = datetime.fromisoformat(transact_min_dt)
-            params['transact_min_dt'] = transact_min_dt.isoformat()
-        
+            params['transact_min_dt'] = transact_min_dt  # Assume it's already in ISO 8601 format
+
         if transact_max_dt:
-            if isinstance(transact_max_dt, str):
-                transact_max_dt = datetime.fromisoformat(transact_max_dt)
-            params['transact_max_dt'] = transact_max_dt.isoformat()
-            
+            params['transact_max_dt'] = transact_max_dt  # Assume it's already in ISO 8601 format
+
         response = requests.get(
             f"{self.config['url']}/api/contracts/{contract_idx}/transactions/",
             headers=self.headers,

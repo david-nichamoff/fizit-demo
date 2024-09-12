@@ -1,1 +1,0 @@
-from .numbers_adapter import *

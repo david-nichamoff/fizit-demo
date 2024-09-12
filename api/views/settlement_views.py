@@ -33,8 +33,9 @@ class SettlementViewSet(viewsets.ViewSet):
     def list(self, request, contract_idx=None):
         try:
             settlements = self.settlement_api.get_settlements(int(contract_idx))
+            serializer = SettlementSerializer(settlements, many=True)
             self.logger.debug("Settlements retrieved for contract %s: %s", contract_idx, settlements)
-            return Response(settlements, status=status.HTTP_200_OK)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             self.logger.error(f"Error retrieving settlements for contract {contract_idx}: {e}")
             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)

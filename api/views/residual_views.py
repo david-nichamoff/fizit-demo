@@ -33,7 +33,8 @@ class ResidualViewSet(viewsets.ViewSet):
     def list(self, request, contract_idx=None):
         try:
             residuals = self.residual_api.get_residuals(int(contract_idx))
-            return Response(residuals, status=status.HTTP_200_OK)
+            serializer = ResidualSerializer(residuals, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             self.logger.error(f"Error retrieving residuals for contract {contract_idx}: {e}")
             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)

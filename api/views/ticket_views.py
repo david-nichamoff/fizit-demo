@@ -42,7 +42,8 @@ class TicketViewSet(viewsets.ViewSet):
             start_date = datetime.fromisoformat(start_date_str)
             end_date = datetime.fromisoformat(end_date_str)
             tickets = self.ticket_api.get_tickets(contract_idx, start_date, end_date)
-            return Response(tickets, status=status.HTTP_200_OK)
+            serializer = TicketSerializer(tickets, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         except ValueError:
             return Response({"error": "Invalid date format. Expected ISO 8601 format."}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:

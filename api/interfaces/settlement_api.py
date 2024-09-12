@@ -2,6 +2,7 @@ import datetime
 import logging
 import json
 
+from datetime import timezone
 from decimal import Decimal
 
 from api.managers import Web3Manager, ConfigManager
@@ -28,9 +29,8 @@ class SettlementAPI:
         self.logger = logging.getLogger(__name__)
         self.initialized = True  # Mark this instance as initialized
 
-    @staticmethod
-    def from_timestamp(ts):
-        return None if ts == 0 else datetime.datetime.fromtimestamp(ts)
+    def from_timestamp(self, ts):
+        return None if ts == 0 else datetime.datetime.fromtimestamp(ts, tz=timezone.utc)
 
     def get_settle_dict(self, settle, settle_idx, contract):
         try:

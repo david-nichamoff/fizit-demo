@@ -2,6 +2,8 @@ import datetime
 import logging
 from decimal import Decimal
 
+from datetime import timezone
+
 from api.adapters.bank import MercuryAdapter
 from api.managers import Web3Manager, ConfigManager
 from api.interfaces import ContractAPI, TransactionAPI
@@ -32,8 +34,7 @@ class DepositAPI:
             self.initialized = True  # Mark this instance as initialized
 
     def from_timestamp(self, ts):
-        """Helper method to handle timestamp conversion."""
-        return None if ts == 0 else datetime.datetime.fromtimestamp(ts)
+        return None if ts == 0 else datetime.datetime.fromtimestamp(ts, tz=timezone.utc)
 
     def get_deposits(self, start_date, end_date, contract_idx):
         """Retrieve deposits from the bank adapter for a given contract."""

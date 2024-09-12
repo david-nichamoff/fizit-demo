@@ -1,16 +1,20 @@
-import datetime
-import os
 import logging
+import requests
+import boto3
+import datetime
+
+from datetime import timezone
+
+from botocore.exceptions import ClientError
 
 from api.managers import Web3Manager, ConfigManager
 from api.interfaces import ContractAPI
 
 class ArtifactAPI:
     _instance = None
-    ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
     def __new__(cls, *args, **kwargs):
-        """Ensure that the class is a singleton."""
+        """Ensure the class is a singleton."""
         if not cls._instance:
             cls._instance = super(ArtifactAPI, cls).__new__(cls, *args, **kwargs)
         return cls._instance
@@ -20,66 +24,189 @@ class ArtifactAPI:
         self.config = self.config_manager.load_config()
         self.w3_manager = Web3Manager()
         self.w3 = self.w3_manager.get_web3_instance()
-        self.w3_contract = self.w3_manager.get_web3_contract()
         self.contract_api = ContractAPI()
+        self.w3_contract = self.w3_manager.get_web3_contract()
+        self.s3_client = boto3.client('s3')
 
         self.logger = logging.getLogger(__name__)
-        self.initialized = True  # Mark this instance as initialized
+        self.initialized = True
+
+    def from_timestamp(self, ts):
+        return None if ts == 0 else datetime.datetime.fromtimestamp(ts, tz=timezone.utc)
 
     def get_artifacts(self, contract_idx):
-        """Retrieve artifacts for a given contract."""
         artifacts = []
         try:
             contract = self.contract_api.get_contract(contract_idx)
             facts = self.w3_contract.functions.getArtifacts(contract['contract_idx']).call()
 
+            # Log the facts to see what is returned
+            self.logger.info(f"Artifacts returned for contract {contract_idx}: {facts}")
+            artifact_idx = 0
+
             for artifact in facts:
-                artifact_dict = {
-                    "contract_idx": contract["contract_idx"],
-                    "contract_name": contract["contract_name"],
-                    "artifact_id": artifact["artifact_id"],
-                    "doc_title": artifact["doc_title"],
-                    "doc_type": artifact["doc_type"],
-                    "added_dt": artifact["added_dt"],
-                    "artifact_idx": len(artifacts)
-                }
+                artifact_dict = self.build_artifact_dict(contract_idx, artifact_idx, artifact)
+                artifact_idx += 1
                 artifacts.append(artifact_dict)
 
             sorted_artifacts = sorted(artifacts, key=lambda d: d['added_dt'], reverse=True)
             return sorted_artifacts
-
         except Exception as e:
             self.logger.error(f"Error retrieving artifacts for contract {contract_idx}: {str(e)}")
-            raise RuntimeError(f"Error retrieving artifacts for contract {contract_idx}: {str(e)}") from e
+            raise RuntimeError("Failed to retrieve artifacts") from e
 
-    def add_artifacts(self, contract_idx, contract_name):
-        """Add artifacts for a contract."""
+    def build_artifact_dict(self, contract_idx, artifact_idx, artifact):
         try:
-            artifact_path = os.path.join(os.environ['PYTHONPATH'], '..', 'artifacts', str(contract_idx))
-            artifact_files = next(os.walk(artifact_path))[2]
+            artifact_dict = {
+                "contract_idx": contract_idx,
+                "artifact_idx" : artifact_idx,
+                "doc_title": artifact[0],
+                "doc_type": artifact[1],
+                "added_dt": self.from_timestamp(artifact[2]),
+                "s3_bucket": artifact[3],
+                "s3_object_key": artifact[4],
+                "s3_version_id": artifact[5]
+            }
+            return artifact_dict
+
+        except Exception as e:
+            self.logger.error(f"Error building artifact dict: {str(e)}")
+            raise RuntimeError(f"Failed to build artifact dictionary") from e
+
+    def add_artifacts(self, contract_idx, artifact_urls):
+        """Add artifacts for a contract from URLs."""
+        try:
+            # Get the contract address from the blockchain contract
+            contract_address = self.config.get("contract_addr")
             current_time = int(datetime.datetime.now().timestamp())
+            s3_bucket = self.config['s3_bucket']
 
-            return artifact_adapter.add_artifacts(contract_idx, contract_name, artifact_path, artifact_files, current_time)
+            for artifact_url in artifact_urls:
+                try:
+                    # Download the file from the URL
+                    response = requests.get(artifact_url)
+                    if response.status_code != 200:
+                        raise RuntimeError(f"Failed to download artifact from {artifact_url}")
 
-        except FileNotFoundError as e:
-            self.logger.error(f"Artifact path not found for contract {contract_idx}: {artifact_path}")
-            raise RuntimeError(f"Artifact path not found: {artifact_path}") from e
+                    artifact_filename = artifact_url.split("/")[-1]  # Get the filename from the URL
+                    # Include both contract_idx and contract_address in the S3 object key
+                    s3_object_key = f"{contract_address}/{contract_idx}/{artifact_filename}"
+
+                    # Upload the file content to S3
+                    self.s3_client.put_object(
+                        Body=response.content,
+                        Bucket=s3_bucket,
+                        Key=s3_object_key
+                    )
+
+                    # Get the S3 version ID after upload
+                    head_response = self.s3_client.head_object(Bucket=s3_bucket, Key=s3_object_key)
+                    version_id = head_response.get('VersionId', '')
+
+                    # Determine content type based on file extension (e.g., .pdf -> application/pdf)
+                    if artifact_filename.endswith('.pdf'):
+                        content_type = 'application/pdf'
+                    else:
+                        content_type = response.headers.get('Content-Type', 'application/octet-stream')
+
+                    # Build the transaction using the contract address and contract_idx
+                    nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
+
+                    # Build the transaction
+                    transaction = self.w3_contract.functions.addArtifact(
+                        contract_idx,
+                        artifact_filename,  # doc_title
+                        content_type,       # doc_type
+                        current_time, 
+                        s3_bucket, 
+                        s3_object_key, 
+                        version_id
+                    ).build_transaction({
+                        "from": self.config["wallet_addr"],
+                        "nonce": nonce
+                    })
+
+                    # Estimate the gas required for the transaction
+                    estimated_gas = self.w3.eth.estimate_gas(transaction)
+                    self.logger.info(f"Estimated gas for addArtifact: {estimated_gas}")
+
+                    # Set gas limit dynamically based on estimated gas or config
+                    gas_limit = max(estimated_gas, self.config["gas_limit"])
+                    self.logger.info(f"Final gas limit: {gas_limit}")
+
+                    # Add the gas limit to the transaction
+                    transaction["gas"] = gas_limit
+
+                    # Send the transaction and wait for receipt
+                    tx_receipt = self.w3_manager.get_tx_receipt(transaction)
+
+                    # Check the transaction status
+                    if tx_receipt['status'] != 1:
+                        raise RuntimeError(f"Transaction failed for artifact {artifact_filename} in contract {contract_idx}")
+
+                    self.logger.info(f"Artifact {artifact_filename} uploaded from URL and added to contract {contract_idx}.")
+
+                except requests.RequestException as e:
+                    self.logger.error(f"Error downloading artifact from {artifact_url}: {str(e)}")
+                    raise RuntimeError(f"Error downloading artifact from {artifact_url}: {str(e)}") from e
+                except ClientError as e:
+                    self.logger.error(f"Error uploading artifact {artifact_filename} to S3: {str(e)}")
+                    raise RuntimeError(f"Error uploading artifact {artifact_filename} to S3: {str(e)}") from e
+
+            return {"message": "Artifacts uploaded from URLs and added successfully"}
+
         except Exception as e:
             self.logger.error(f"Error adding artifacts for contract {contract_idx}: {str(e)}")
             raise RuntimeError(f"Error adding artifacts for contract {contract_idx}: {str(e)}") from e
 
     def delete_artifacts(self, contract_idx):
-        """Delete artifacts for a contract."""
         try:
-            artifacts = self.w3_contract.functions.getArtifacts(contract_idx).call()
-            return artifact_adapter.delete_artifacts(contract_idx, artifacts)
+            # Retrieve all artifacts for the contract before deleting them from the blockchain
+            artifacts = self.get_artifacts(contract_idx)
+            s3_bucket = self.config['s3_bucket']
+
+            # Delete each artifact from S3
+            for artifact in artifacts:
+                try:
+                    delete_params = {
+                        'Bucket': s3_bucket,
+                        'Key': artifact['s3_object_key']  # Use the correct key from the artifact dictionary
+                    }
+
+                    # Only include VersionId if it's present
+                    if artifact.get('s3_version_id'):
+                        delete_params['VersionId'] = artifact['s3_version_id']
+
+                    # Delete the artifact from S3
+                    self.s3_client.delete_object(**delete_params)
+                    self.logger.info(f"Deleted artifact from S3 (Key: {artifact['s3_object_key']}, VersionId: {artifact.get('s3_version_id')}).")
+
+                except ClientError as e:
+                    self.logger.error(f"Error deleting artifact from S3: {str(e)}")
+                    raise RuntimeError(f"Error deleting artifact from S3: {str(e)}") from e
+
+            # Now delete the artifacts from the blockchain
+            nonce = self.w3.eth.get_transaction_count(self.config['wallet_addr'])
+
+            # Build the transaction to delete all artifacts on-chain for the contract
+            transaction = self.w3_contract.functions.deleteArtifacts(contract_idx).build_transaction({
+                "from": self.config["wallet_addr"],
+                "nonce": nonce
+            })
+
+            # Estimate gas and set gas limit
+            estimated_gas = self.w3.eth.estimate_gas(transaction)
+            gas_limit = max(estimated_gas, self.config['gas_limit'])
+            transaction["gas"] = gas_limit
+
+            # Send the transaction
+            tx_receipt = self.w3_manager.get_tx_receipt(transaction)
+            if tx_receipt["status"] != 1:
+                raise RuntimeError(f"Failed to delete artifacts on blockchain. Transaction status: {tx_receipt['status']}")
+
+            self.logger.info(f"Successfully deleted artifacts from both blockchain and S3 for contract {contract_idx}.")
+            return {"message": f"Artifacts deleted successfully for contract {contract_idx}"}
 
         except Exception as e:
             self.logger.error(f"Error deleting artifacts for contract {contract_idx}: {str(e)}")
-            raise RuntimeError(f"Error deleting artifacts for contract {contract_idx}: {str(e)}") from e
-
-# Usage example:
-# artifact_api = ArtifactAPI()
-# artifacts = artifact_api.get_artifacts(contract_idx)
-# artifact_api.add_artifacts(contract_idx, contract_name)
-# artifact_api.delete_artifacts(contract_idx)
+            raise RuntimeError(f"Failed to delete artifacts for contract {contract_idx}") from e

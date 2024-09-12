@@ -4,6 +4,7 @@ from decimal import Decimal, ROUND_DOWN
 from web3.exceptions import ContractLogicError, BadFunctionCallOutput
 
 from api.managers import Web3Manager,ConfigManager
+
 from .util_api import is_valid_json
 
 class ContractAPI:

@@ -5,11 +5,8 @@ from datetime import datetime
 from django.test import TestCase
 from rest_framework import status
 
-from .operations_contract import ContractOperations
-from .operations_party import PartyOperations
-from .operations_settlement import SettlementOperations
-from .operations_transaction import TransactionOperations
-from .operations_csrf import CsrfOperations
+from api.tests.operations import ContractOperations, PartyOperations, SettlementOperations
+from api.tests.operations import TransactionOperations, CsrfOperations
 
 from api.managers import SecretsManager, ConfigManager
 

@@ -2,6 +2,8 @@ import datetime
 from decimal import Decimal
 import logging
 
+from datetime import timezone
+
 from api.managers import Web3Manager, ConfigManager
 from api.interfaces import SettlementAPI, ContractAPI
 from api.adapters.bank import MercuryAdapter
@@ -31,8 +33,7 @@ class ResidualAPI:
             self.initialized = True  # Mark this instance as initialized
 
     def from_timestamp(self, ts):
-        """Convert timestamp to datetime or return None."""
-        return None if ts == 0 else datetime.datetime.fromtimestamp(ts)
+        return None if ts == 0 else datetime.datetime.fromtimestamp(ts, tz=timezone.utc)
 
     def get_residuals(self, contract_idx):
         """Retrieve the residuals for a given contract."""

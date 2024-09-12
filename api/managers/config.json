@@ -8,16 +8,12 @@
         "value": "https://api-sandbox.mercury.com/api/v1"
     },
     {
-        "key": "numbers_url",
-        "value": "https://api.numbersprotocol.io/api/v3/assets"
-    },
-    {
         "key": "wallet_addr",
         "value": "0xf0F2442f2B8541EFcd4235b2933Bd7b2098bCA0c"
     },
     {
         "key": "contract_addr",
-        "value": "0x3EEb89c37d76f9CE5239EE8E036E0deb761130c7"
+        "value": "0x00e785CA3CC86BAe0C5A93f3aedDf33772cAf805"
     },
     {
         "key": "gas_limit",
@@ -30,6 +26,10 @@
     {
         "key": "engage_uri",
         "value": "https://devapi.engage-m.com"
+    },
+    {
+        "key": "s3_bucket",
+        "value": "fizit-devnet-artifacts"
     },
     {
         "key": "party_code",

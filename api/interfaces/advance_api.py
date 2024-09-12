@@ -2,6 +2,8 @@ import datetime
 import logging
 from decimal import Decimal
 
+from datetime import timezone
+
 from api.managers import ConfigManager,Web3Manager
 from api.interfaces import TransactionAPI, ContractAPI
 from api.adapters.bank import MercuryAdapter
@@ -29,7 +31,7 @@ class AdvanceAPI:
         self.initialized = True  # Mark this instance as initialized
 
     def from_timestamp(self, ts):
-        return None if ts == 0 else datetime.datetime.fromtimestamp(ts)
+        return None if ts == 0 else datetime.datetime.fromtimestamp(ts, tz=timezone.utc)
 
     def get_advances(self, contract_idx):
         advances = []

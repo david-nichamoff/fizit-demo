@@ -70,11 +70,12 @@ contract Delivery {
     }
 
     struct Artifact {
-        string artifact_id;             // external identifier
-        string extended_data;           // json extended data
-        uint added_dt;                  // date artifact was added
-        string doc_title;               // name of documents
-        string doc_type;                // document type
+        string doc_title;               // Document title
+        string doc_type;                // Document type (e.g., "application/pdf")
+        uint added_dt;                  // Timestamp of when the artifact was added
+        string s3_bucket;               // S3 bucket name
+        string s3_object_key;           // S3 object key (full path to the document)
+        string s3_version_id;           // S3 version ID for versioned objects
     }
 
     struct Party {
@@ -174,13 +175,17 @@ contract Delivery {
         return artifacts[contract_idx];
     }
 
-    function addArtifact(uint contract_idx, string memory artifact_id, string memory doc_title, string memory doc_type, uint added_dt) public onlyOwner {
+    // Update addArtifact function:
+    function addArtifact(uint contract_idx, string memory doc_title, string memory doc_type, uint added_dt,
+        string memory s3_bucket, string memory s3_object_key, string memory s3_version_id) public onlyOwner {
         require(contract_idx < contracts.length, "Invalid contract index");
         Artifact memory artifact;
-        artifact.added_dt = added_dt;
-        artifact.artifact_id = artifact_id;
         artifact.doc_title = doc_title;
-        artifact.doc_type = doc_type; 
+        artifact.doc_type = doc_type;
+        artifact.added_dt = added_dt;
+        artifact.s3_bucket = s3_bucket;
+        artifact.s3_object_key = s3_object_key;
+        artifact.s3_version_id = s3_version_id;
         artifacts[contract_idx].push(artifact);
         emit ContractEvent(contract_idx, "ArtifactAdded", doc_title);
     }

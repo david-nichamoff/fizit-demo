@@ -1,5 +1,7 @@
 import logging
+from dateutil import parser as date_parser
 from datetime import datetime
+from datetime import timezone
 
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
@@ -26,6 +28,8 @@ class TransactionViewSet(viewsets.ViewSet):
         self.logger = logging.getLogger(__name__)
         self.initialized = True  # Mark this instance as initialized
 
+        from datetime import datetime
+
     @extend_schema(
         tags=["Transactions"],
         parameters=[
@@ -40,19 +44,18 @@ class TransactionViewSet(viewsets.ViewSet):
         self.logger.info(f"Fetching transactions for contract {contract_idx}")
         transact_min_dt_str = request.query_params.get('transact_min_dt')
         transact_max_dt_str = request.query_params.get('transact_max_dt')
-
         transact_min_dt, transact_max_dt = None, None
         
         if transact_min_dt_str:
             try:
-                transact_min_dt = datetime.fromisoformat(transact_min_dt_str)
+                transact_min_dt = date_parser.isoparse(transact_min_dt_str).astimezone(timezone.utc)
             except ValueError:
                 self.logger.warning("Invalid transact_min_dt format")
                 return Response({"error": "Invalid format for transact_min_dt. Expected ISO 8601 format."}, status=status.HTTP_400_BAD_REQUEST)
         
         if transact_max_dt_str:
             try:
-                transact_max_dt = datetime.fromisoformat(transact_max_dt_str)
+                transact_max_dt = date_parser.isoparse(transact_max_dt_str).astimezone(timezone.utc)
             except ValueError:
                 self.logger.warning("Invalid transact_max_dt format")
                 return Response({"error": "Invalid format for transact_max_dt. Expected ISO 8601 format."}, status=status.HTTP_400_BAD_REQUEST)
@@ -65,7 +68,8 @@ class TransactionViewSet(viewsets.ViewSet):
                 transact_max_dt=transact_max_dt
             )
             self.logger.info(f"Successfully retrieved transactions for contract {contract_idx}")
-            return Response(transactions, status=status.HTTP_200_OK)
+            serializer = TransactionSerializer(transactions, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             self.logger.error(f"Error fetching transactions for contract {contract_idx}: {e}")
             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)

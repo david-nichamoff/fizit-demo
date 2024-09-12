@@ -22,7 +22,7 @@ class ArtifactViewSet(viewsets.ViewSet):
         self.authenticator = AWSSecretsAPIKeyAuthentication()
 
         self.logger = logging.getLogger(__name__)
-        self.initialized = True  # Mark this instance as initialized
+        self.initialized = True  
 
     @extend_schema(
         tags=["Artifacts"],
@@ -33,27 +33,35 @@ class ArtifactViewSet(viewsets.ViewSet):
     def list(self, request, contract_idx=None):
         try:
             artifacts = self.artifact_api.get_artifacts(int(contract_idx))
-            return Response(artifacts, status=status.HTTP_200_OK)
+            serializer = ArtifactSerializer(artifacts, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             self.logger.error(f"Error retrieving artifacts for contract {contract_idx}: {e}")
             return Response({"detail": str(e)}, status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(
         tags=["Artifacts"],
+        request={"type": "array", "items": {"type": "string", "format": "uri"}},
         responses={status.HTTP_201_CREATED: str},
-        summary="Create Artifacts",
-        description="Search file system for artifacts for a contract",
+        summary="Add Artifacts from URLs",
+        description="Add artifacts for a contract by providing a list of URLs"
     )
     def add(self, request, contract_idx=None):
         auth_info = request.auth  # This is where the authentication info is stored
-        
+
         if not auth_info.get('is_master_key', False):  # Check if the master key was provided
             raise PermissionDenied("You do not have permission to perform this action.")
 
         try:
-            contract_name = self.contract_api.get_contract(contract_idx)["contract_name"]
-            response = self.artifact_api.add_artifacts(contract_idx, contract_name)
+            # Extract artifact URLs from the request data
+            artifact_urls = request.data.get('artifact_urls', [])
+            if not artifact_urls:
+                raise ValueError("No artifact URLs provided in the request")
+
+            # Pass the URLs to the ArtifactAPI to handle artifact upload
+            response = self.artifact_api.add_artifacts(contract_idx, artifact_urls)
             return Response(response, status=status.HTTP_201_CREATED)
+
         except Exception as e:
             self.logger.error(f"Error adding artifacts for contract {contract_idx}: {e}")
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)

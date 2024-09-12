@@ -33,7 +33,8 @@ class AdvanceViewSet(viewsets.ViewSet):
     def list(self, request, contract_idx=None):
         try:
             advances = self.advance_api.get_advances(int(contract_idx))
-            return Response(advances, status=status.HTTP_200_OK)
+            serializer = AdvanceSerializer(advances, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             self.logger.error(f"Error retrieving advances for contract {contract_idx}: {e}")
             return Response({"detail": str(e)}, status=status.HTTP_404_NOT_FOUND)

@@ -36,7 +36,8 @@ class PartyViewSet(viewsets.ViewSet):
     def list(self, request, contract_idx=None):
         try:
             parties = self.party_api.get_parties(int(contract_idx))
-            return Response(parties, status=status.HTTP_200_OK)
+            serializer = PartySerializer(parties, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             self.logger.error(f"Error retrieving parties for contract {contract_idx}: {e}")
             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)

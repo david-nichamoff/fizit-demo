@@ -27,7 +27,7 @@ class AWSSecretsAPIKeyAuthentication(BaseAuthentication):
             raise AuthenticationFailed('Authorization header must start with "Api-Key "')
         
         api_key = api_key.replace("Api-Key ", "", 1)  # Only replace once, to avoid unexpected issues
-        logger.info("Extracted API key: %s", api_key)
+        logger.info("Extracted API key")
 
         try:
             # Initialize the SecretsManager and load the keys

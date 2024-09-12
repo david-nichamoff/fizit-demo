@@ -36,7 +36,8 @@ class AccountViewSet(viewsets.ViewSet):
         bank = request.query_params.get('bank')
         try:
             accounts = self.account_api.get_accounts(bank)
-            return Response(accounts, status=status.HTTP_200_OK)
+            serializer = AccountSerializer(accounts, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         except ValueError as ve:
             self.logger.warning(f"ValueError: {ve}")
             return Response({'error': str(ve)}, status=status.HTTP_400_BAD_REQUEST)

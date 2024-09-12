@@ -1,0 +1,23 @@
+{
+   "contract": {
+        "extended_data": {},
+        "contract_name": "Artifact Test",
+        "contract_type": "ticketing",
+        "funding_instr": {"bank": "mercury", "account_id": "61396d72-e780-11ee-b69b-137ed758771c", "recipient_id": "627ecace-e780-11ee-b69b-f311fd81fcb4"},
+        "service_fee_pct": "0.0500",
+        "service_fee_max": "0.0500",
+        "service_fee_amt": "0.00",
+        "advance_pct": "0.8000",
+        "late_fee_pct": "0.2200",
+        "transact_logic": {"var": "ticket_amt"},
+        "min_threshold": "-100.00",
+        "max_threshold": "1000.00",
+        "notes": "Artifacts should be deleted",
+        "is_active": true,
+        "is_quote": false
+   },
+   "artifacts": [
+          "https://fizit-test-artifacts.s3.amazonaws.com/FIZIT+Executive+Summary.pdf",
+          "https://fizit-test-artifacts.s3.amazonaws.com/Fizit+Introduction+2023-12.pdf"
+        ]
+}
