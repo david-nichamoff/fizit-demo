@@ -110,6 +110,9 @@ class PayAdvanceTests(TestCase):
 
         print(f"Successfully added advances for contract: {contract_idx}")
 
+        print("Sleeping to ensure that advances have processed") 
+        time.sleep(10)
+
         response = self.payment_ops.get_advances(contract_idx)
         self.assertEqual(response.status_code, status.HTTP_200_OK, f"Failed to get advance amount for contract {contract_idx} after waiting.")
 
