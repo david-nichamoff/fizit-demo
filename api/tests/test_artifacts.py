@@ -1,6 +1,8 @@
 import os
 import json
 import logging
+import time
+
 from django.test import TestCase
 from rest_framework import status
 
@@ -99,6 +101,9 @@ class TestArtifacts(TestCase):
         response = self.artifact_ops.delete_artifacts(contract_idx, csrf_token)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT, f"Failed to delete artifacts for contract {contract_idx}.")
         self.logger.info(f"Successfully deleted artifacts for contract {contract_idx}")
+
+        print("Sleeping to ensure that artifacts have been deleted") 
+        time.sleep(10)
 
         # Check that the artifacts have been deleted
         response = self.artifact_ops.get_artifacts(contract_idx)

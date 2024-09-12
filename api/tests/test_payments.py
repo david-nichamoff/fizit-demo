@@ -187,6 +187,9 @@ class PayAdvanceTests(TestCase):
 
         print(f"Successfully added residuals for contract: {contract_idx}")
 
+        print("Sleeping to ensure that residuals have processed") 
+        time.sleep(10)
+
         # Get the residuals again after the payment
         response = self.payment_ops.get_residuals(contract_idx)
         self.assertEqual(response.status_code, status.HTTP_200_OK, f"Failed to get residual amounts for contract {contract_idx} after payment.")
