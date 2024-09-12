@@ -28,7 +28,7 @@ truffle/package.json
 # ignore configuration files that need to be set manually
 .env.dev
 webpack.config.js
-managers/config.json
+api/managers/config.json
 
 # django files 
 db.sqlite3
