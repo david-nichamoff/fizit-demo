@@ -3,8 +3,7 @@ import json
 from decimal import Decimal, ROUND_DOWN
 from web3.exceptions import ContractLogicError, BadFunctionCallOutput
 
-from api.managers import Web3Manager,ConfigManager
-
+from api.managers import Web3Manager, ConfigManager
 from .util_api import is_valid_json
 
 class ContractAPI:
@@ -216,8 +215,10 @@ class ContractAPI:
             raise RuntimeError(f"Failed to delete contract {contract_idx}") from e
 
     def validate_contract_data(self, contract_dict):
+        # Retrieve contract types from config
+        valid_contract_types = self.config_manager.get_config_value("contract_type")
+        
         # Check if the provided contract type is valid
-        valid_contract_types = ["ticketing", "advance", "construction"]
         if contract_dict["contract_type"] not in valid_contract_types:
             raise ValueError(
                 f"Invalid contract type: '{contract_dict['contract_type']}'. "

@@ -120,7 +120,7 @@ class ContractTests(TestCase):
     def _add_test_party(self, contract_idx):
         party_data = {
             "party_code": "UnitTest",
-            "party_type": "Funder"
+            "party_type": "funder"
         }
 
         response = self.party_ops.add_parties(contract_idx, [party_data])

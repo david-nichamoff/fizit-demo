@@ -173,7 +173,7 @@ class PartyAPI:
                 party_types = self.config.get("party_type", [])
                 if not party.get("party_type"):
                     raise ValueError("Party type is missing or empty.")
-                if not any(p["party_type"] == party["party_type"] for p in party_types):
+                if party["party_type"] not in party_types:
                     raise ValueError(f"Party type '{party['party_type']}' does not exist.")
         except Exception as e:
             self.logger.error(f"Validation error: {str(e)}")

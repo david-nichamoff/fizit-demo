@@ -18,6 +18,6 @@
     },
     "parties": [
         {"party_code": "HaulerCo", "party_type": "InvalidType"},  
-        {"party_code": "MoneyCo", "party_type": "Funder"}
+        {"party_code": "MoneyCo", "party_type": "funder"}
     ]
 }

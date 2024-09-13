@@ -24,8 +24,8 @@
     },
     "parties" :
     [
-        {"party_code" : "HaulerCo", "party_type" : "Seller"},   
-        {"party_code" : "OilCo", "party_type" : "Buyer"},   
-        {"party_code" : "MoneyCo", "party_type" : "Funder"} 
+        {"party_code" : "HaulerCo", "party_type" : "seller"},   
+        {"party_code" : "OilCo", "party_type" : "buyer"},   
+        {"party_code" : "MoneyCo", "party_type" : "funder"} 
     ]
 }
