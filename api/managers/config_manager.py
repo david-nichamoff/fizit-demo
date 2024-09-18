@@ -77,7 +77,6 @@ class ConfigManager:
             logger.error(f"Config key '{key}' not found.")
             raise KeyError(f"Config key '{key}' not found.")
 
-        # Write the updated config back to the file
         try:
             with open(self.CONFIG_FILE_PATH, 'w') as config_file:
                 json_data = [{"key": k, "value": v} for k, v in self._config_cache.items()]
