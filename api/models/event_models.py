@@ -1,5 +1,4 @@
 from django.db import models
-from rest_framework_api_key.models import AbstractAPIKey
 
 class Event(models.Model):
     event_idx = models.AutoField(primary_key=True) 
