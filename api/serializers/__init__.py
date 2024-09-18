@@ -1,5 +1,6 @@
 from .account_serializer import AccountSerializer
 from .artifact_serializer import ArtifactSerializer
+from .contact_serializer import ContactSerializer
 from .contract_serializer import ContractSerializer
 from .deposit_serializer import DepositSerializer
 from .event_serializer import EventSerializer

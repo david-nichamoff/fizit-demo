@@ -12,4 +12,5 @@ from .event_views import EventViewSet
 from .address_views import AddressViewSet
 from .advance_views import AdvanceViewSet
 from .residual_views import ResidualViewSet
+from .contact_views import ContactViewSet
 from .csrf_token_views import *

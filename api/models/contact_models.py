@@ -1,6 +1,7 @@
 from django.db import models
 
 class Contact(models.Model):
+    contact_idx = models.AutoField(primary_key=True) 
     name = models.CharField(max_length=100)
     email = models.EmailField()
     company = models.CharField(max_length=100, blank=True)
