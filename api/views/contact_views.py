@@ -1,26 +1,24 @@
 import logging
-from django.core.mail import send_mail  # Import for sending emails
+from django.core.mail import send_mail
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError, PermissionDenied
 from rest_framework import viewsets, status
 from drf_spectacular.utils import extend_schema
+from rest_framework.permissions import AllowAny  # Import to allow open access
 
 from api.serializers.contact_serializer import ContactSerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-
 from api.models import Contact
 
-
 class ContactViewSet(viewsets.ViewSet):
-    authentication_classes = [AWSSecretsAPIKeyAuthentication]
-    permission_classes = [HasCustomAPIKey]
+    permission_classes = [AllowAny]  # Apply globally to all methods
+    authentication_classes = []  # Disable authentication globally for this view
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
         self.logger = logging.getLogger(__name__)
-        self.initialized = True  # Mark this instance as initialized
+        self.initialized = True
 
     @extend_schema(
         tags=["Contacts"],
@@ -29,10 +27,6 @@ class ContactViewSet(viewsets.ViewSet):
         description="Retrieve a list of contacts"
     )
     def list(self, request):
-        auth_info = request.auth
-        if not auth_info.get('is_master_key', False):
-            raise PermissionDenied("You do not have permission to perform this action.")
-        
         contacts = Contact.objects.all()
         serializer = ContactSerializer(contacts, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -45,10 +39,6 @@ class ContactViewSet(viewsets.ViewSet):
         description="Create a new contact"
     )
     def add(self, request):
-        auth_info = request.auth
-        if not auth_info.get('is_master_key', False):
-            raise PermissionDenied("You do not have permission to perform this action.")
-        
         serializer = ContactSerializer(data=request.data)
         if serializer.is_valid():
             contact = serializer.save()  # Save the contact first
@@ -85,10 +75,6 @@ class ContactViewSet(viewsets.ViewSet):
         description="Delete a contact by ID"
     )
     def delete(self, request, contact_idx=None):
-        auth_info = request.auth
-        if not auth_info.get('is_master_key', False):
-            raise PermissionDenied("You do not have permission to perform this action.")
-
         try:
             contact = Contact.objects.get(contact_idx=contact_idx)
             contact.delete()
