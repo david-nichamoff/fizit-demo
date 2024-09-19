@@ -6,9 +6,9 @@ from rest_framework import viewsets, status
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import AllowAny  # Import to allow open access
 
-from api.serializers.contact_serializer import ContactSerializer
-from api.authentication import AWSSecretsAPIKeyAuthentication
-from api.permissions import HasCustomAPIKey
+from api.serializers import ContactSerializer
+from api.managers import ConfigManager
+
 from api.models import Contact
 
 class ContactViewSet(viewsets.ViewSet):
@@ -19,6 +19,9 @@ class ContactViewSet(viewsets.ViewSet):
         super().__init__(*args, **kwargs)
         self.logger = logging.getLogger(__name__)
         self.initialized = True
+
+        self.config_manager = ConfigManager()
+        self.config = self.config_manager.load_config()
 
     @extend_schema(
         tags=["Contacts"],
@@ -55,7 +58,7 @@ class ContactViewSet(viewsets.ViewSet):
         try:
             subject = f"New Contact Created: {contact.name}"
             message = f"Name: {contact.name}\nEmail: {contact.email}\nCompany: {contact.company}\nMessage: {contact.message}"
-            recipient_list = ['david@fizit.biz']  # Email recipient
+            recipient_list = self.config["contact_email_list"]
 
             send_mail(
                 subject,
