@@ -8,6 +8,8 @@ from json_logic import jsonLogic
 
 from api.managers import Web3Manager, ConfigManager
 from api.interfaces import ContractAPI
+
+from .encryption_api import get_encryption_api  
 from .util_api import is_valid_json
 
 class TransactionAPI:
@@ -36,6 +38,9 @@ class TransactionAPI:
 
     def get_transact_dict(self, transact, transact_idx, contract):
         try:
+             # Initialize encryption API based on contract_idx
+            encryption_api = get_encryption_api(contract['contract_idx'])
+
             transact_dict = {
                 "extended_data": json.loads(transact[0].replace("'", '"')),
                 "transact_dt": self.from_timestamp(transact[1]),
@@ -50,6 +55,7 @@ class TransactionAPI:
                 "funding_instr": contract['funding_instr'],
                 "transact_idx": transact_idx
             }
+
             self.logger.debug("Transaction amount (String): %s", transact_dict["transact_amt"])
             self.logger.debug("Transaction amount type: %s", type(transact_dict["transact_amt"]))
 
@@ -85,14 +91,18 @@ class TransactionAPI:
         self.validate_transactions(transactions)
 
         try:
+            # Initialize encryption API based on contract_idx
+            encryption_api = get_encryption_api(contract_idx)
+
             for transaction in transactions:
-                extended_data = str(transaction["extended_data"])
+                # Encrypt sensitive fields before sending to the blockchain
+                extended_data = transaction["extended_data"]
                 transact_dt = int(transaction["transact_dt"].timestamp())
                 transact_data = transaction["transact_data"]
 
                 # Check if 'adj' is in transact_data for adjustment
-                if "adj" in transact_data:
-                    transact_amt = int(Decimal(transact_data["adj"]) * 100)
+                if "adj" in transaction["transact_data"]:
+                    transact_amt = int(Decimal(transaction["transact_data"]["adj"]) * 100)
                 else:
                     transact_amt = int(jsonLogic(transact_logic, transact_data) * 100)
 
@@ -100,24 +110,10 @@ class TransactionAPI:
 
                 # Build the transaction
                 call_function = self.w3_contract.functions.addTransaction(
-                    contract_idx, extended_data, transact_dt, transact_amt, str(transact_data)
-                ).build_transaction({
-                    "from": self.config["wallet_addr"],
-                    "nonce": nonce
-                })
-
-                # Estimate the gas required for the transaction
-                estimated_gas = self.w3.eth.estimate_gas(call_function)
-                self.logger.info(f"Estimated gas for addTransaction: {estimated_gas}")
-
-                # Set gas limit dynamically based on estimated gas or config
-                gas_limit = max(estimated_gas, self.config["gas_limit"])
-                self.logger.info(f"Final gas limit: {gas_limit}")
-
-                # Add the gas limit to the transaction
-                call_function["gas"] = gas_limit
-
-                # Send the transaction
+                    contract_idx, str(extended_data), transact_dt, transact_amt, str(transact_data)
+                ).build_transaction(
+                    {"from": self.config["wallet_addr"], "nonce": nonce, "gas": self.config["gas_limit"]}
+                )
                 tx_receipt = self.w3_manager.get_tx_receipt(call_function)
                 if tx_receipt["status"] != 1:
                     raise RuntimeError(f"Failed to add transaction for contract {contract_idx}. Transaction status: {tx_receipt['status']}")

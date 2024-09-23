@@ -1,4 +1,5 @@
 from rest_framework import serializers
+import json
 
 class ContractSerializer(serializers.Serializer):
     contract_idx = serializers.IntegerField(read_only=True)
@@ -14,14 +15,15 @@ class ContractSerializer(serializers.Serializer):
     transact_logic = serializers.JSONField()
     min_threshold = serializers.CharField(max_length=20)  
     max_threshold = serializers.CharField(max_length=20)  
-    notes = serializers.CharField(max_length=255)
+    notes = serializers.CharField()
     is_active = serializers.BooleanField()
     is_quote = serializers.BooleanField()
 
     def update(self, instance, validated_data):
+        """Update method for partially updating the instance."""
         instance['extended_data'] = validated_data.get('extended_data', instance['extended_data'])
         instance['contract_name'] = validated_data.get('contract_name', instance['contract_name'])
-        instance['contract_type'] = validated_data.get('contract_type', instance['contract_name'])
+        instance['contract_type'] = validated_data.get('contract_type', instance['contract_type'])
         instance['funding_instr'] = validated_data.get('funding_instr', instance['funding_instr'])
         instance['service_fee_pct'] = validated_data.get('service_fee_pct', instance['service_fee_pct'])
         instance['service_fee_max'] = validated_data.get('service_fee_max', instance['service_fee_max'])

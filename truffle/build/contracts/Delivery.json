@@ -50692,12 +50692,12 @@
     "1108743": {
       "events": {},
       "links": {},
-      "address": "0x00e785CA3CC86BAe0C5A93f3aedDf33772cAf805",
-      "transactionHash": "0xd0a7739a3cbc5a56d8ad6e0680e95d830f2a5a4cff6a393ceae7ba7ebefe4bf7"
+      "address": "0xa00bE8C2418220F709257cF9b8Efa32d17900e9F",
+      "transactionHash": "0xf140c4336a346e3cff574a25bb7fc2204bf002bece101a39d076210e53b34329"
     }
   },
   "schemaVersion": "3.4.16",
-  "updatedAt": "2024-09-11T18:15:08.594Z",
+  "updatedAt": "2024-09-20T18:17:56.543Z",
   "networkType": "ethereum",
   "devdoc": {
     "kind": "dev",

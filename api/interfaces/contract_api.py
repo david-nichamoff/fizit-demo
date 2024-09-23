@@ -4,6 +4,8 @@ from decimal import Decimal, ROUND_DOWN
 from web3.exceptions import ContractLogicError, BadFunctionCallOutput
 
 from api.managers import Web3Manager, ConfigManager
+
+from .encryption_api import EncryptionAPI, get_aes_key, get_encryption_api
 from .util_api import is_valid_json
 
 class ContractAPI:
@@ -33,6 +35,9 @@ class ContractAPI:
             raise RuntimeError("Failed to retrieve contract count") from e
 
     def get_contract_dict(self, contract_idx):
+        # Fetch the AES key for this contract
+        encryption_api = get_encryption_api(contract_idx)
+
         contract_dict = {}
 
         try:
@@ -48,6 +53,7 @@ class ContractAPI:
             raise RuntimeError(f"Failed to retrieve contract {contract_idx}") from e
 
         try:
+            # Decrypt sensitive fields after retrieving from blockchain
             contract_dict["extended_data"] = json.loads(contract[0].replace("'", '"'))
             contract_dict["contract_name"] = contract[1]
             contract_dict["contract_type"] = contract[2]
@@ -98,9 +104,15 @@ class ContractAPI:
             self.logger.error(f"Error retrieving contract {contract_idx}: {str(e)}")
             raise RuntimeError(f"Failed to retrieve contract {contract_idx}") from e
 
-    def build_contract(self, contract_dict):
+    def build_contract(self, contract_dict, contract_idx):
+        # validate contract data
         self.validate_contract_data(contract_dict)
 
+        # Fetch the AES key for this contract
+        encryption_api = get_encryption_api(contract_idx)
+        self.logger.info(f"Encryption api key: {encryption_api}")
+
+        # Encrypt sensitive fields before sending to blockchain
         contract = []
         contract.append(str(contract_dict["extended_data"]))
         contract.append(contract_dict["contract_name"])
@@ -121,7 +133,7 @@ class ContractAPI:
 
     def update_contract(self, contract_idx, contract_dict):
         try:
-            contract = self.build_contract(contract_dict)
+            contract = self.build_contract(contract_dict, contract_idx)
             nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
 
             # Build the transaction
@@ -153,7 +165,10 @@ class ContractAPI:
     def add_contract(self, contract_dict):
         try:
             contract_idx = self.get_contract_count()
-            contract = self.build_contract(contract_dict)
+            self.logger.info(f"Adding contract: {contract_idx}")
+            self.logger.info(f"Contract dictionary: {contract_dict}")
+
+            contract = self.build_contract(contract_dict, contract_idx)
             nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
 
             # Build the transaction

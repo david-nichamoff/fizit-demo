@@ -7,6 +7,8 @@ from decimal import Decimal
 
 from api.managers import Web3Manager, ConfigManager
 from api.interfaces import ContractAPI
+
+from .encryption_api import get_encryption_api
 from .util_api import is_valid_json
 
 class SettlementAPI:
@@ -34,6 +36,8 @@ class SettlementAPI:
 
     def get_settle_dict(self, settle, settle_idx, contract):
         try:
+            encryption_api = get_encryption_api(contract['contract_idx'])
+
             settle_dict = {
                 "extended_data": json.loads(settle[0].replace("'", '"')),
                 "settle_due_dt": self.from_timestamp(settle[1]),
@@ -93,11 +97,16 @@ class SettlementAPI:
         self.validate_settlements(settlements)
 
         try:
+            # Initialize encryption API based on contract_idx
+            encryption_api = get_encryption_api(contract_idx)
+
             for settlement in settlements:
                 due_dt = int(datetime.datetime.combine(settlement["settle_due_dt"], datetime.time.min).timestamp())
                 min_dt = int(datetime.datetime.combine(settlement["transact_min_dt"], datetime.time.min).timestamp())
                 max_dt = int(datetime.datetime.combine(settlement["transact_max_dt"], datetime.time.min).timestamp())
-                extended_data = str(settlement["extended_data"])
+                
+                # Encrypt sensitive fields before sending to the blockchain
+                extended_data = json.dumps(settlement["extended_data"])
 
                 nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
 
@@ -130,7 +139,7 @@ class SettlementAPI:
         except Exception as e:
             self.logger.error(f"Error adding settlements for contract {contract_idx}: {str(e)}")
             raise RuntimeError(f"Failed to add settlements for contract {contract_idx}") from e
-
+            
     def delete_settlements(self, contract_idx):
         try:
             nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])

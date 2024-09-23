@@ -59,6 +59,7 @@ class ContractViewSet(viewsets.ViewSet):
     )
     def add(self, request):
         auth_info = request.auth  
+        self.logger.info(f"Adding new contract")
         
         if not auth_info.get('is_master_key', False): 
             raise PermissionDenied("You do not have permission to perform this action.")
@@ -66,6 +67,7 @@ class ContractViewSet(viewsets.ViewSet):
         serializer = ContractSerializer(data=request.data)
         if serializer.is_valid():
             try:
+                self.logger.info(f"Contract data: {serializer.validated_data}")
                 contract_idx = self.contract_api.add_contract(serializer.validated_data)
                 return Response(contract_idx, status=status.HTTP_201_CREATED)
             except Exception as e:
