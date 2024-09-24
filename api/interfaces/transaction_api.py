@@ -40,14 +40,16 @@ class TransactionAPI:
         try:
              # Initialize encryption API based on contract_idx
             encryption_api = get_encryption_api(contract['contract_idx'])
+            decrypted_extended_data = encryption_api.decrypt(transact[0])
+            decrypted_transact_data = encryption_api.decrypt(transact[5])
 
             transact_dict = {
-                "extended_data": json.loads(transact[0].replace("'", '"')),
+                "extended_data": decrypted_extended_data,
                 "transact_dt": self.from_timestamp(transact[1]),
                 "transact_amt": f'{Decimal(transact[2]) / 100:.2f}',
                 "service_fee_amt": f'{Decimal(transact[3]) / 100:.2f}',
                 "advance_amt": f'{Decimal(transact[4]) / 100:.2f}',
-                "transact_data": json.loads(transact[5].replace("'", '"')),
+                "transact_data": decrypted_transact_data,
                 "advance_pay_dt": self.from_timestamp(transact[6]),
                 "advance_pay_amt": f'{Decimal(transact[7]) / 100:.2f}',
                 "advance_confirm": transact[8],
@@ -96,7 +98,9 @@ class TransactionAPI:
 
             for transaction in transactions:
                 # Encrypt sensitive fields before sending to the blockchain
-                extended_data = transaction["extended_data"]
+                encrypted_extended_data = encryption_api.encrypt(transaction["extended_data"])
+                encrypted_transact_data = encryption_api.encrypt(transaction["transact_data"])
+
                 transact_dt = int(transaction["transact_dt"].timestamp())
                 transact_data = transaction["transact_data"]
 
@@ -110,7 +114,7 @@ class TransactionAPI:
 
                 # Build the transaction
                 call_function = self.w3_contract.functions.addTransaction(
-                    contract_idx, str(extended_data), transact_dt, transact_amt, str(transact_data)
+                    contract_idx, encrypted_extended_data, transact_dt, transact_amt, encrypted_transact_data
                 ).build_transaction(
                     {"from": self.config["wallet_addr"], "nonce": nonce, "gas": self.config["gas_limit"]}
                 )

@@ -35,9 +35,9 @@ class ContractAPI:
             raise RuntimeError("Failed to retrieve contract count") from e
 
     def get_contract_dict(self, contract_idx):
-        # Fetch the AES key for this contract
+        # Fetch the AES key for this contract and create the encryption API instance
         encryption_api = get_encryption_api(contract_idx)
-
+        self.logger.info(f"Decrypting contract data for contract {contract_idx}")
         contract_dict = {}
 
         try:
@@ -54,16 +54,21 @@ class ContractAPI:
 
         try:
             # Decrypt sensitive fields after retrieving from blockchain
-            contract_dict["extended_data"] = json.loads(contract[0].replace("'", '"'))
+            decrypted_extended_data = encryption_api.decrypt(contract[0])
+            decrypted_funding_instr = encryption_api.decrypt(contract[3])
+            decrypted_transact_logic = encryption_api.decrypt(contract[9])
+ 
+            # Convert decrypted strings back into JSON objects
+            contract_dict["extended_data"] = decrypted_extended_data
             contract_dict["contract_name"] = contract[1]
             contract_dict["contract_type"] = contract[2]
-            contract_dict["funding_instr"] = json.loads(contract[3].replace("'", '"'))
+            contract_dict["funding_instr"] = decrypted_funding_instr
             contract_dict["service_fee_pct"] = f'{Decimal(contract[4]) / 10000:.4f}'
             contract_dict["service_fee_max"] = f'{Decimal(contract[5]) / 10000:.4f}'
             contract_dict["service_fee_amt"] = f'{Decimal(contract[6]) / 100:.2f}'
             contract_dict["advance_pct"] = f'{Decimal(contract[7]) / 10000:.4f}'
             contract_dict["late_fee_pct"] = f'{Decimal(contract[8]) / 10000:.4f}'
-            contract_dict["transact_logic"] = json.loads(contract[9].replace("'", '"'))
+            contract_dict["transact_logic"] = decrypted_transact_logic
             contract_dict["min_threshold"] = f'{Decimal(contract[10]) / 100:.2f}'
             contract_dict["max_threshold"] = f'{Decimal(contract[11]) / 100:.2f}'
             contract_dict["notes"] = contract[12]
@@ -105,30 +110,35 @@ class ContractAPI:
             raise RuntimeError(f"Failed to retrieve contract {contract_idx}") from e
 
     def build_contract(self, contract_dict, contract_idx):
-        # validate contract data
+        # Validate contract data
         self.validate_contract_data(contract_dict)
 
-        # Fetch the AES key for this contract
+        # Fetch the AES key for this contract and create the encryption API instance
         encryption_api = get_encryption_api(contract_idx)
-        self.logger.info(f"Encryption api key: {encryption_api}")
+        self.logger.info(f"Using encryption API for contract {contract_idx}")
 
         # Encrypt sensitive fields before sending to blockchain
+        encrypted_extended_data = encryption_api.encrypt(contract_dict["extended_data"])
+        encrypted_funding_instr = encryption_api.encrypt(contract_dict["funding_instr"])
+        encrypted_transact_logic = encryption_api.encrypt(contract_dict["transact_logic"])
+
         contract = []
-        contract.append(str(contract_dict["extended_data"]))
+        contract.append(encrypted_extended_data)  # Encrypt extended_data
         contract.append(contract_dict["contract_name"])
         contract.append(contract_dict["contract_type"])
-        contract.append(str(contract_dict["funding_instr"]))
+        contract.append(encrypted_funding_instr)  # Encrypt funding_instr
         contract.append(int(Decimal(contract_dict["service_fee_pct"]) * 10000))
         contract.append(int(Decimal(contract_dict["service_fee_max"]) * 10000))
         contract.append(int(Decimal(contract_dict["service_fee_amt"]) * 100))
         contract.append(int(Decimal(contract_dict["advance_pct"]) * 10000))
         contract.append(int(Decimal(contract_dict["late_fee_pct"]) * 10000))
-        contract.append(str(contract_dict["transact_logic"]))
+        contract.append(encrypted_transact_logic)  # Encrypt transact_logic
         contract.append(int(Decimal(contract_dict["min_threshold"]) * 100))
         contract.append(int(Decimal(contract_dict["max_threshold"]) * 100))
         contract.append(contract_dict["notes"])
         contract.append(contract_dict["is_active"])
         contract.append(contract_dict["is_quote"])
+
         return contract
 
     def update_contract(self, contract_idx, contract_dict):

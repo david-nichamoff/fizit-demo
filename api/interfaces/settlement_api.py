@@ -37,9 +37,10 @@ class SettlementAPI:
     def get_settle_dict(self, settle, settle_idx, contract):
         try:
             encryption_api = get_encryption_api(contract['contract_idx'])
+            decrypted_extended_data = encryption_api.decrypt(settle[0])
 
             settle_dict = {
-                "extended_data": json.loads(settle[0].replace("'", '"')),
+                "extended_data": decrypted_extended_data, 
                 "settle_due_dt": self.from_timestamp(settle[1]),
                 "transact_min_dt": self.from_timestamp(settle[2]),
                 "transact_max_dt": self.from_timestamp(settle[3]),
@@ -106,13 +107,13 @@ class SettlementAPI:
                 max_dt = int(datetime.datetime.combine(settlement["transact_max_dt"], datetime.time.min).timestamp())
                 
                 # Encrypt sensitive fields before sending to the blockchain
-                extended_data = json.dumps(settlement["extended_data"])
+                encrypted_extended_data = encryption_api.encrypt(settlement["extended_data"])
 
                 nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
 
                 # Build the transaction
                 transaction = self.w3_contract.functions.addSettlement(
-                    contract_idx, extended_data, due_dt, min_dt, max_dt
+                    contract_idx, encrypted_extended_data, due_dt, min_dt, max_dt
                 ).build_transaction({
                     "from": self.config["wallet_addr"],
                     "nonce": nonce

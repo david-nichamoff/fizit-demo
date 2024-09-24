@@ -6,16 +6,17 @@ import logging
 
 class EncryptionAPI:
     def __init__(self, encryption_key: bytes):
-        """Initialize with an encryption key. Use Fernet symmetric encryption."""
         self.cipher = Fernet(encryption_key)
 
-    def encrypt(self, plain_text: str) -> str:
-        """Encrypts plain text data."""
-        return self.cipher.encrypt(plain_text.encode()).decode()
+    def encrypt(self, data: dict) -> str:
+        json_str = json.dumps(data)  # Convert the JSON object to a string
+        encrypted_text = self.cipher.encrypt(json_str.encode())  # Encrypt the string
+        return encrypted_text.decode()  # Return the encrypted string
 
-    def decrypt(self, encrypted_text: str) -> str:
-        """Decrypts encrypted text data."""
-        return self.cipher.decrypt(encrypted_text.encode()).decode()
+    def decrypt(self, encrypted_text: str) -> dict:
+        """Decrypts the encrypted text and returns a JSON object (as a dictionary)."""
+        decrypted_text = self.cipher.decrypt(encrypted_text.encode()).decode()  # Decrypt the string
+        return json.loads(decrypted_text)  # Convert the decrypted string back to a JSON object
 
 def create_aes_key(secret_name):
     """Generates a new AES key and stores it in AWS Secrets Manager."""
