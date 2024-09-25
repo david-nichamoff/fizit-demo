@@ -20,7 +20,7 @@
     "parties": [
         {"party_code": "HaulerCo", "party_type": "seller"},  
         {"party_code": "OilCo", "party_type" : "buyer"},
-        {"party_code": "MoneyCo", "party_type": "funder"}
+        {"party_code": "FloatCo", "party_type": "funder"}
     ],
     "settlements": [
         {

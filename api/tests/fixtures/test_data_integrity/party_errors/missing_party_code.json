@@ -18,6 +18,6 @@
     },
     "parties": [
         {"party_code": "InvalidCode", "party_type": "seller"},  
-        {"party_code": "MoneyCo", "party_type": "funder"}
+        {"party_code": "FloatCo", "party_type": "funder"}
     ]
 }

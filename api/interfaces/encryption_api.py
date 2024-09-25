@@ -9,29 +9,17 @@ class EncryptionAPI:
         self.cipher = Fernet(encryption_key)
 
     def encrypt(self, data: dict) -> str:
-        json_str = json.dumps(data)  # Convert the JSON object to a string
-        encrypted_text = self.cipher.encrypt(json_str.encode())  # Encrypt the string
-        return encrypted_text.decode()  # Return the encrypted string
+        json_str = json.dumps(data)
+        encrypted_text = self.cipher.encrypt(json_str.encode())
+        return encrypted_text.decode()
 
     def decrypt(self, encrypted_text: str) -> dict:
-        """Decrypts the encrypted text and returns a JSON object (as a dictionary)."""
-        decrypted_text = self.cipher.decrypt(encrypted_text.encode()).decode()  # Decrypt the string
-        return json.loads(decrypted_text)  # Convert the decrypted string back to a JSON object
+        decrypted_text = self.cipher.decrypt(encrypted_text.encode()).decode()
+        return json.loads(decrypted_text)
 
-def create_aes_key(secret_name):
-    """Generates a new AES key and stores it in AWS Secrets Manager."""
-    # Generate a new AES key using Fernet
-    new_key = Fernet.generate_key().decode()  # Generates a key and ensures it's a string
-    client = boto3.client('secretsmanager')
-    
-    # Store the new AES key in Secrets Manager
-    client.create_secret(
-        Name=secret_name,
-        SecretString=json.dumps({'aes_key': new_key})
-    )
-    
-    logging.info(f"Created new AES key for {secret_name}")
-    return new_key
+def create_aes_key():
+    """Generates a new AES key."""
+    return Fernet.generate_key().decode()  # Generate a key and ensure it's a string
 
 def get_aes_key(contract_idx):
     env = os.environ.get('FIZIT_ENV', 'dev')  # Default to 'dev' if not set
@@ -49,29 +37,49 @@ def get_aes_key(contract_idx):
 
     # Get the correct environment prefix
     env_prefix = env_mapping[env]
-
-    # Segment keys based on environment
-    if env == 'main':
-        secret_name = f"{env_prefix}/contract_keys/contract_idx_{contract_idx}"
-    else:
-        # Reuse a smaller pool of keys for dev and test environments
-        shared_key_id = (contract_idx % 5) + 1  # Rotate through 5 shared keys
-        secret_name = f"{env_prefix}/contract_keys/shared_key_{shared_key_id}"
+    secret_name = f"{env_prefix}/contract-keys"
 
     client = boto3.client('secretsmanager')
     
-    # Try to retrieve the secret
+    # Try to retrieve the secret that contains all keys for the environment
     try:
         secret_response = client.get_secret_value(SecretId=secret_name)
-        secret = json.loads(secret_response['SecretString'])
-        aes_key = secret['aes_key']
-        logging.info(f"Retrieved existing AES key for {secret_name}")
+        secrets = json.loads(secret_response['SecretString'])
+        logging.info(f"Retrieved existing AES keys for {secret_name}")
+
+        # Logic for retrieving the correct key based on the environment
+        if env == 'main':
+            key_name = f"contract_key_{contract_idx}"
+            aes_key = secrets.get(key_name)
+            if not aes_key or aes_key == "dummy":
+                # Generate a new AES key if it's missing or set to "dummy"
+                logging.info(f"Contract-specific key not found or is 'dummy' for {key_name}, generating a new key.")
+                aes_key = create_aes_key()
+                secrets[key_name] = aes_key
+                update_aes_keys(secret_name, secrets) 
+        else:
+            shared_key_id = (contract_idx % 5) + 1  # Rotate through shared keys
+            aes_key = secrets.get(f"shared_key_{shared_key_id}")
+
+            if not aes_key or aes_key == "dummy":
+                logging.info(f"Shared key not found or is 'dummy' for shared_key_{shared_key_id}, generating a new key.")
+                aes_key = create_aes_key()
+                secrets[f"shared_key_{shared_key_id}"] = aes_key
+                update_aes_keys(secret_name, secrets)
+
     except client.exceptions.ResourceNotFoundException:
-        # If the secret is not found, create a new AES key
-        logging.info(f"Secret not found for {secret_name}, creating new AES key.")
-        aes_key = create_aes_key(secret_name)
+        logging.error(f"Secret not found for {secret_name}.")
+        raise
 
     return aes_key
+
+def update_aes_keys(secret_name, secrets):
+    client = boto3.client('secretsmanager')
+    client.put_secret_value(
+        SecretId=secret_name,
+        SecretString=json.dumps(secrets)
+    )
+    logging.info(f"Updated AES keys in {secret_name}")
 
 # Function to instantiate the EncryptionAPI with the AES key fetched from AWS Secrets Manager
 def get_encryption_api(contract_idx):

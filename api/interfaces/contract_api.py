@@ -176,7 +176,6 @@ class ContractAPI:
         try:
             contract_idx = self.get_contract_count()
             self.logger.info(f"Adding contract: {contract_idx}")
-            self.logger.info(f"Contract dictionary: {contract_dict}")
 
             contract = self.build_contract(contract_dict, contract_idx)
             nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
