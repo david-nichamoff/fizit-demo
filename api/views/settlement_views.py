@@ -9,7 +9,7 @@ from api.serializers.settlement_serializer import SettlementSerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
 
-from api.interfaces import SettlementAPI
+from api.interfaces import SettlementAPI, PartyAPI 
 
 class SettlementViewSet(viewsets.ViewSet):
     authentication_classes = [AWSSecretsAPIKeyAuthentication]
@@ -18,6 +18,7 @@ class SettlementViewSet(viewsets.ViewSet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.party_api = PartyAPI()
         self.settlement_api = SettlementAPI()
         self.authenticator = AWSSecretsAPIKeyAuthentication()
 
@@ -31,8 +32,12 @@ class SettlementViewSet(viewsets.ViewSet):
         description="Retrieve a list of settlements associated with a contract"
     )
     def list(self, request, contract_idx=None):
+        auth_info = request.auth
+        api_key = auth_info.get("api_key")
+
         try:
-            settlements = self.settlement_api.get_settlements(int(contract_idx))
+            parties = self.party_api.get_parties(int(contract_idx))
+            settlements = self.settlement_api.get_settlements(int(contract_idx), api_key, parties)
             serializer = SettlementSerializer(settlements, many=True)
             self.logger.debug("Settlements retrieved for contract %s: %s", contract_idx, settlements)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -49,6 +54,7 @@ class SettlementViewSet(viewsets.ViewSet):
     )
     def add(self, request, contract_idx=None):
         auth_info = request.auth  # This is where the authentication info is stored
+        api_key = auth_info.get("api_key")
         
         if not auth_info.get('is_master_key', False):  # Check if the master key was provided
             raise PermissionDenied("You do not have permission to perform this action.")

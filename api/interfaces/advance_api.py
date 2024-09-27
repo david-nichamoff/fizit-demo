@@ -39,6 +39,8 @@ class AdvanceAPI:
         contract = self.contract_api.get_contract(contract_idx)
 
         for transact in transactions:
+            self.logger.info(f"{transact}")
+            self.logger.info(f"{contract}")
             if transact["advance_pay_amt"] == "0.00" and Decimal(transact["advance_amt"]) > Decimal(0.00):
                 advance_dict = {
                     "contract_idx": contract["contract_idx"],

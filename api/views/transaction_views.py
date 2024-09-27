@@ -12,7 +12,7 @@ from api.serializers.transaction_serializer import TransactionSerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
 
-from api.interfaces import TransactionAPI, ContractAPI
+from api.interfaces import TransactionAPI, ContractAPI, PartyAPI
 
 class TransactionViewSet(viewsets.ViewSet):
     authentication_classes = [AWSSecretsAPIKeyAuthentication]
@@ -21,6 +21,7 @@ class TransactionViewSet(viewsets.ViewSet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.party_api = PartyAPI()
         self.transaction_api = TransactionAPI()
         self.contract_api = ContractAPI()
         self.authenticator = AWSSecretsAPIKeyAuthentication()
@@ -41,6 +42,9 @@ class TransactionViewSet(viewsets.ViewSet):
         description="Retrieve a list of transactions associated with a contract"
     )
     def list(self, request, contract_idx=None):
+        auth_info = request.auth
+        api_key = auth_info.get("api_key")
+
         self.logger.info(f"Fetching transactions for contract {contract_idx}")
         transact_min_dt_str = request.query_params.get('transact_min_dt')
         transact_max_dt_str = request.query_params.get('transact_max_dt')
@@ -61,9 +65,12 @@ class TransactionViewSet(viewsets.ViewSet):
                 return Response({"error": "Invalid format for transact_max_dt. Expected ISO 8601 format."}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
+            parties = self.party_api.get_parties(int(contract_idx))
             self.logger.info(f"Fetching transactions from {transact_min_dt} to {transact_max_dt}")
             transactions = self.transaction_api.get_transactions(
                 int(contract_idx), 
+                api_key,
+                parties,
                 transact_min_dt=transact_min_dt, 
                 transact_max_dt=transact_max_dt
             )
@@ -83,6 +90,7 @@ class TransactionViewSet(viewsets.ViewSet):
     )
     def add(self, request, contract_idx=None):
         auth_info = request.auth  # This is where the authentication info is stored
+        api_key = auth_info.get("api_key")
         
         if not auth_info.get('is_master_key', False):  # Check if the master key was provided
             raise PermissionDenied("You do not have permission to perform this action.")
@@ -92,8 +100,8 @@ class TransactionViewSet(viewsets.ViewSet):
         if serializer.is_valid():
             try:
                 self.logger.info(f"Validated transactions for contract {contract_idx}")
-                transact_logic = self.contract_api.get_contract(contract_idx)['transact_logic']
-                response = self.transaction_api.add_transactions(contract_idx, transact_logic, serializer.validated_data)
+                transact_logic = self.contract_api.get_contract(contract_idx, api_key)['transact_logic']
+                response = self.transaction_api.add_transactions(contract_idx, transact_logic, serializer.validated_data, api_key=api_key)
                 self.logger.info(f"Successfully added transactions for contract {contract_idx}")
                 return Response(response, status=status.HTTP_201_CREATED)
             except Exception as e:

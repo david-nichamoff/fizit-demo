@@ -1,10 +1,9 @@
-from cryptography.fernet import Fernet
-import boto3
 import json
-import os
 import logging
+from cryptography.fernet import Fernet
+from api.managers import SecretsManager
 
-class EncryptionAPI:
+class Encryptor:
     def __init__(self, encryption_key: bytes):
         self.cipher = Fernet(encryption_key)
 
@@ -13,77 +12,78 @@ class EncryptionAPI:
         encrypted_text = self.cipher.encrypt(json_str.encode())
         return encrypted_text.decode()
 
-    def decrypt(self, encrypted_text: str) -> dict:
-        decrypted_text = self.cipher.decrypt(encrypted_text.encode()).decode()
-        return json.loads(decrypted_text)
+def get_aes_key_for_encryption():
+    """Retrieve the AES key from the loaded secrets for encryption using SecretsManager."""
+    secrets_manager = SecretsManager()
+    keys = secrets_manager.load_keys()
 
-def create_aes_key():
-    """Generates a new AES key."""
-    return Fernet.generate_key().decode()  # Generate a key and ensure it's a string
+    # Get the AES key from the loaded secrets
+    aes_key = keys.get('aes_key')
 
-def get_aes_key(contract_idx):
-    env = os.environ.get('FIZIT_ENV', 'dev')  # Default to 'dev' if not set
+    if not aes_key:
+        raise ValueError("AES key not found in loaded secrets.")
 
-    # Map the environment to the correct key prefix
-    env_mapping = {
-        'main': 'mainnet',
-        'test': 'testnet',
-        'dev': 'devnet'
-    }
-
-    # Ensure the environment is valid
-    if env not in env_mapping:
-        raise ValueError(f"Invalid environment: {env}. Allowed values are 'main', 'test', or 'dev'.")
-
-    # Get the correct environment prefix
-    env_prefix = env_mapping[env]
-    secret_name = f"{env_prefix}/contract-keys"
-
-    client = boto3.client('secretsmanager')
-    
-    # Try to retrieve the secret that contains all keys for the environment
-    try:
-        secret_response = client.get_secret_value(SecretId=secret_name)
-        secrets = json.loads(secret_response['SecretString'])
-        logging.info(f"Retrieved existing AES keys for {secret_name}")
-
-        # Logic for retrieving the correct key based on the environment
-        if env == 'main':
-            key_name = f"contract_key_{contract_idx}"
-            aes_key = secrets.get(key_name)
-            if not aes_key or aes_key == "dummy":
-                # Generate a new AES key if it's missing or set to "dummy"
-                logging.info(f"Contract-specific key not found or is 'dummy' for {key_name}, generating a new key.")
-                aes_key = create_aes_key()
-                secrets[key_name] = aes_key
-                update_aes_keys(secret_name, secrets) 
-        else:
-            shared_key_id = (contract_idx % 5) + 1  # Rotate through shared keys
-            aes_key = secrets.get(f"shared_key_{shared_key_id}")
-
-            if not aes_key or aes_key == "dummy":
-                logging.info(f"Shared key not found or is 'dummy' for shared_key_{shared_key_id}, generating a new key.")
-                aes_key = create_aes_key()
-                secrets[f"shared_key_{shared_key_id}"] = aes_key
-                update_aes_keys(secret_name, secrets)
-
-    except client.exceptions.ResourceNotFoundException:
-        logging.error(f"Secret not found for {secret_name}.")
-        raise
-
+    logging.info("Retrieved AES key for encryption from secrets manager")
     return aes_key
 
-def update_aes_keys(secret_name, secrets):
-    client = boto3.client('secretsmanager')
-    client.put_secret_value(
-        SecretId=secret_name,
-        SecretString=json.dumps(secrets)
-    )
-    logging.info(f"Updated AES keys in {secret_name}")
-
-# Function to instantiate the EncryptionAPI with the AES key fetched from AWS Secrets Manager
-def get_encryption_api(contract_idx):
-    logging.info(f"Contract to encrypt: {contract_idx}")
-    aes_key = get_aes_key(contract_idx)  # Fetch the AES key for this contract
+def get_encryptor():
+    """Create an Encryptor instance for encryption."""
+    logging.info("Fetching AES key from SecretsManager for encryption")
+    
+    # Get the AES key for encryption
+    aes_key = get_aes_key_for_encryption()
     encryption_key = aes_key.encode()  # Ensure the key is in bytes
-    return EncryptionAPI(encryption_key)
+
+    return Encryptor(encryption_key)
+
+class Decryptor:
+    def __init__(self, encryption_key: bytes = None):
+        if encryption_key:
+            self.cipher = Fernet(encryption_key)
+        else:
+            self.cipher = None  # No decryption will be done if no key is provided
+
+    def decrypt(self, encrypted_text: str) -> str:
+        if self.cipher:
+            try:
+                decrypted_text = self.cipher.decrypt(encrypted_text.encode()).decode()
+                return json.loads(decrypted_text)
+            except Exception as e:
+                logging.warning(f"Decryption failed: {e}. Returning 'encrypted data'.")
+                return "encrypted data"  # Return 'encrypted data' if decryption fails
+        else:
+            logging.info("No decryption key available. Returning 'encrypted data'.")
+            return "encrypted data"  # Return 'encrypted data' if no key is available
+
+def get_aes_key_for_decryption(api_key: str, parties: list):
+    """Retrieve the AES key for decryption using SecretsManager."""
+    secrets_manager = SecretsManager()
+    keys = secrets_manager.load_keys()
+
+    # Check for the FIZIT_MASTER_KEY
+    master_key = keys.get('FIZIT_MASTER_KEY')
+    if master_key and api_key == master_key:
+        return keys.get('aes_key')
+
+    # Match with party API keys
+    for party in parties:
+        party_key = keys.get(party['party_code'])
+        if party_key == api_key:
+            return keys.get('aes_key')
+
+    # If no match is found, return None (this will signal to return 'encrypted data')
+    return None
+
+def get_decryptor(api_key: str, parties: list):
+    """Create a Decryptor instance for decryption."""
+    logging.info("Fetching AES key for decryption")
+
+    # Get the AES key for decryption
+    aes_key = get_aes_key_for_decryption(api_key, parties)
+    
+    if aes_key:
+        decryption_key = aes_key.encode()  # Ensure the key is in bytes
+        return Decryptor(decryption_key)
+    else:
+        logging.warning("No matching API key or master key found. Returning Decryptor that returns 'encrypted data'.")
+        return Decryptor()  # No key provided, return 'encrypted data'

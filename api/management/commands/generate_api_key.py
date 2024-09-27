@@ -36,6 +36,8 @@ class Command(BaseCommand):
         # Setup rotation after storing the key
         self.setup_rotation(secret_name, party_code)
 
+        # Output the generated API key
+        self.stdout.write(self.style.SUCCESS(f'Generated API Key: {new_api_key}'))
         self.stdout.write(self.style.SUCCESS(f'Successfully stored API key for party code "{party_code}" in secret "{secret_name}"'))
 
     def generate_api_key(self, length=32):
@@ -78,7 +80,7 @@ class Command(BaseCommand):
                 SecretId=secret_name,
                 RotationLambdaARN='arn:aws:lambda:us-east-1:549601943297:function:rotate-secret-function',
                 RotationRules={
-                    'AutomaticallyAfterDays': 30  # Rotate every 30 days
+                    'AutomaticallyAfterDays': 60 
                 }
             )
             self.stdout.write(self.style.SUCCESS(f'Successfully set up rotation for secret "{secret_name}" with 30-day rotation'))

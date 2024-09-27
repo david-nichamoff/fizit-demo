@@ -9,7 +9,7 @@ from json_logic import jsonLogic
 from api.managers import Web3Manager, ConfigManager
 from api.interfaces import ContractAPI
 
-from .encryption_api import get_encryption_api  
+from api.interfaces.encryption_api import get_encryptor, get_decryptor
 from .util_api import is_valid_json
 
 class TransactionAPI:
@@ -36,12 +36,13 @@ class TransactionAPI:
     def from_timestamp(self, ts):
         return None if ts == 0 else datetime.datetime.fromtimestamp(ts, tz=timezone.utc)
 
-    def get_transact_dict(self, transact, transact_idx, contract):
+    def get_transact_dict(self, transact, transact_idx, contract, api_key, parties):
+        decryptor = get_decryptor(api_key, parties)
+
         try:
-             # Initialize encryption API based on contract_idx
-            encryption_api = get_encryption_api(contract['contract_idx'])
-            decrypted_extended_data = encryption_api.decrypt(transact[0])
-            decrypted_transact_data = encryption_api.decrypt(transact[5])
+             # Initialize encryption API 
+            decrypted_extended_data = decryptor.decrypt(transact[0])
+            decrypted_transact_data = decryptor.decrypt(transact[5])
 
             transact_dict = {
                 "extended_data": decrypted_extended_data,
@@ -66,14 +67,14 @@ class TransactionAPI:
             self.logger.error(f"Error creating transaction dictionary: {str(e)}")
             raise ValueError(f"Invalid transaction data: {str(e)}")
 
-    def get_transactions(self, contract_idx, transact_min_dt=None, transact_max_dt=None):
+    def get_transactions(self, contract_idx, api_key=None, parties=[], transact_min_dt=None, transact_max_dt=None):
         try:
             transactions = []
-            contract = self.contract_api.get_contract(contract_idx)
+            contract = self.contract_api.get_contract(contract_idx, api_key, parties)
 
             transacts = self.w3_contract.functions.getTransactions(contract['contract_idx']).call()
             for transact in transacts:
-                transact_dict = self.get_transact_dict(transact, len(transactions), contract)
+                transact_dict = self.get_transact_dict(transact, len(transactions), contract, api_key, parties)
                 transact_dt = transact_dict['transact_dt']
 
                 if transact_min_dt and transact_dt < transact_min_dt:
@@ -89,17 +90,16 @@ class TransactionAPI:
             self.logger.error(f"Error retrieving transactions for contract {contract_idx}: {str(e)}")
             raise RuntimeError(f"Failed to retrieve transactions for contract {contract_idx}") from e
 
-    def add_transactions(self, contract_idx, transact_logic, transactions):
+    def add_transactions(self, contract_idx, transact_logic, transactions, api_key):
         self.validate_transactions(transactions)
 
-        try:
-            # Initialize encryption API based on contract_idx
-            encryption_api = get_encryption_api(contract_idx)
+        encryptor = get_encryptor()
 
+        try:
             for transaction in transactions:
                 # Encrypt sensitive fields before sending to the blockchain
-                encrypted_extended_data = encryption_api.encrypt(transaction["extended_data"])
-                encrypted_transact_data = encryption_api.encrypt(transaction["transact_data"])
+                encrypted_extended_data = encryptor.encrypt(transaction["extended_data"])
+                encrypted_transact_data = encryptor.encrypt(transaction["transact_data"])
 
                 transact_dt = int(transaction["transact_dt"].timestamp())
                 transact_data = transaction["transact_data"]

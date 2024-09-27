@@ -8,7 +8,7 @@ from decimal import Decimal
 from api.managers import Web3Manager, ConfigManager
 from api.interfaces import ContractAPI
 
-from .encryption_api import get_encryption_api
+from api.interfaces.encryption_api import get_encryptor, get_decryptor
 from .util_api import is_valid_json
 
 class SettlementAPI:
@@ -34,10 +34,11 @@ class SettlementAPI:
     def from_timestamp(self, ts):
         return None if ts == 0 else datetime.datetime.fromtimestamp(ts, tz=timezone.utc)
 
-    def get_settle_dict(self, settle, settle_idx, contract):
+    def get_settle_dict(self, settle, settle_idx, contract, api_key, parties):
+        decryptor = get_decryptor(api_key, parties)
+
         try:
-            encryption_api = get_encryption_api(contract['contract_idx'])
-            decrypted_extended_data = encryption_api.decrypt(settle[0])
+            decrypted_extended_data = decryptor.decrypt(settle[0])
 
             settle_dict = {
                 "extended_data": decrypted_extended_data, 
@@ -78,14 +79,14 @@ class SettlementAPI:
             self.logger.error(f"Unexpected error processing settlement {settle_idx}: {str(e)}")
             raise RuntimeError(f"Failed to process settlement {settle_idx}") from e
 
-    def get_settlements(self, contract_idx):
+    def get_settlements(self, contract_idx, api_key=None, parties=[]):
         try:
             settlements = []
-            contract = self.contract_api.get_contract(contract_idx)
+            contract = self.contract_api.get_contract(contract_idx, api_key, parties)
             settles = self.w3_contract.functions.getSettlements(contract['contract_idx']).call()
 
             for settle_idx, settle in enumerate(settles):
-                settle_dict = self.get_settle_dict(settle, settle_idx, contract)
+                settle_dict = self.get_settle_dict(settle, settle_idx, contract, api_key, parties)
                 settlements.append(settle_dict)
 
             return sorted(settlements, key=lambda d: d['settle_due_dt'], reverse=False)
@@ -98,8 +99,7 @@ class SettlementAPI:
         self.validate_settlements(settlements)
 
         try:
-            # Initialize encryption API based on contract_idx
-            encryption_api = get_encryption_api(contract_idx)
+            encryptor = get_encryptor()
 
             for settlement in settlements:
                 due_dt = int(datetime.datetime.combine(settlement["settle_due_dt"], datetime.time.min).timestamp())
@@ -107,7 +107,7 @@ class SettlementAPI:
                 max_dt = int(datetime.datetime.combine(settlement["transact_max_dt"], datetime.time.min).timestamp())
                 
                 # Encrypt sensitive fields before sending to the blockchain
-                encrypted_extended_data = encryption_api.encrypt(settlement["extended_data"])
+                encrypted_extended_data = encryptor.encrypt(settlement["extended_data"])
 
                 nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
 

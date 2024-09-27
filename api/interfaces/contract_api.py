@@ -1,11 +1,11 @@
 import logging
 import json
-from decimal import Decimal, ROUND_DOWN
+from decimal import Decimal
 from web3.exceptions import ContractLogicError, BadFunctionCallOutput
 
 from api.managers import Web3Manager, ConfigManager
+from api.interfaces.encryption_api import get_encryptor, get_decryptor
 
-from .encryption_api import EncryptionAPI, get_aes_key, get_encryption_api
 from .util_api import is_valid_json
 
 class ContractAPI:
@@ -34,9 +34,9 @@ class ContractAPI:
             self.logger.error(f"Error retrieving contract count: {str(e)}")
             raise RuntimeError("Failed to retrieve contract count") from e
 
-    def get_contract_dict(self, contract_idx):
-        # Fetch the AES key for this contract and create the encryption API instance
-        encryption_api = get_encryption_api(contract_idx)
+    def get_contract_dict(self, contract_idx, api_key, parties):
+        # Fetch the AES key for decryption
+        decryptor = get_decryptor(api_key, parties)
         self.logger.info(f"Decrypting contract data for contract {contract_idx}")
         contract_dict = {}
 
@@ -54,15 +54,14 @@ class ContractAPI:
 
         try:
             # Decrypt sensitive fields after retrieving from blockchain
-            decrypted_extended_data = encryption_api.decrypt(contract[0])
-            decrypted_funding_instr = encryption_api.decrypt(contract[3])
-            decrypted_transact_logic = encryption_api.decrypt(contract[9])
- 
+            decrypted_extended_data = decryptor.decrypt(contract[0])
+            decrypted_transact_logic = decryptor.decrypt(contract[9])
+
             # Convert decrypted strings back into JSON objects
             contract_dict["extended_data"] = decrypted_extended_data
             contract_dict["contract_name"] = contract[1]
             contract_dict["contract_type"] = contract[2]
-            contract_dict["funding_instr"] = decrypted_funding_instr
+            contract_dict["funding_instr"] = json.loads(contract[3])
             contract_dict["service_fee_pct"] = f'{Decimal(contract[4]) / 10000:.4f}'
             contract_dict["service_fee_max"] = f'{Decimal(contract[5]) / 10000:.4f}'
             contract_dict["service_fee_amt"] = f'{Decimal(contract[6]) / 100:.2f}'
@@ -94,7 +93,7 @@ class ContractAPI:
 
         for contract_idx in range(contract_count):
             try:
-                contract_dict = self.get_contract_dict(contract_idx)
+                contract_dict = self.get_contract_dict(contract_idx, None, [])
                 contracts.append(contract_dict)
             except Exception as e:
                 self.logger.error(f"Error processing contract {contract_idx}: {str(e)}")
@@ -102,9 +101,10 @@ class ContractAPI:
 
         return contracts
 
-    def get_contract(self, contract_idx):
+    def get_contract(self, contract_idx, api_key=None, parties=[]):
         try:
-            return self.get_contract_dict(contract_idx)
+            self.logger.info(f"Retrieving contract {contract_idx}")
+            return self.get_contract_dict(contract_idx, api_key, parties)
         except Exception as e:
             self.logger.error(f"Error retrieving contract {contract_idx}: {str(e)}")
             raise RuntimeError(f"Failed to retrieve contract {contract_idx}") from e
@@ -113,20 +113,19 @@ class ContractAPI:
         # Validate contract data
         self.validate_contract_data(contract_dict)
 
-        # Fetch the AES key for this contract and create the encryption API instance
-        encryption_api = get_encryption_api(contract_idx)
+        # Fetch the AES key for encryption
+        encryptor = get_encryptor()
         self.logger.info(f"Using encryption API for contract {contract_idx}")
 
         # Encrypt sensitive fields before sending to blockchain
-        encrypted_extended_data = encryption_api.encrypt(contract_dict["extended_data"])
-        encrypted_funding_instr = encryption_api.encrypt(contract_dict["funding_instr"])
-        encrypted_transact_logic = encryption_api.encrypt(contract_dict["transact_logic"])
+        encrypted_extended_data = encryptor.encrypt(contract_dict["extended_data"])
+        encrypted_transact_logic = encryptor.encrypt(contract_dict["transact_logic"])
 
         contract = []
         contract.append(encrypted_extended_data)  # Encrypt extended_data
         contract.append(contract_dict["contract_name"])
         contract.append(contract_dict["contract_type"])
-        contract.append(encrypted_funding_instr)  # Encrypt funding_instr
+        contract.append(json.dumps(contract_dict["funding_instr"]))
         contract.append(int(Decimal(contract_dict["service_fee_pct"]) * 10000))
         contract.append(int(Decimal(contract_dict["service_fee_max"]) * 10000))
         contract.append(int(Decimal(contract_dict["service_fee_amt"]) * 100))

@@ -11,7 +11,7 @@ from api.serializers.contract_serializer import ContractSerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
 
-from api.interfaces import ContractAPI
+from api.interfaces import ContractAPI, PartyAPI
 
 class ContractViewSet(viewsets.ViewSet):
     authentication_classes = [AWSSecretsAPIKeyAuthentication]
@@ -21,6 +21,8 @@ class ContractViewSet(viewsets.ViewSet):
         super().__init__(*args, **kwargs)
 
         self.contract_api = ContractAPI()
+        self.party_api = PartyAPI()
+
         self.authenticator = AWSSecretsAPIKeyAuthentication()
 
         self.logger = logging.getLogger(__name__)
@@ -58,7 +60,9 @@ class ContractViewSet(viewsets.ViewSet):
         description="Create a new contract"
     )
     def add(self, request):
-        auth_info = request.auth  
+        auth_info = request.auth
+        api_key = auth_info.get("api_key")
+
         self.logger.info(f"Adding new contract")
         
         if not auth_info.get('is_master_key', False): 
@@ -67,7 +71,6 @@ class ContractViewSet(viewsets.ViewSet):
         serializer = ContractSerializer(data=request.data)
         if serializer.is_valid():
             try:
-                self.logger.info(f"Contract data: {serializer.validated_data}")
                 contract_idx = self.contract_api.add_contract(serializer.validated_data)
                 return Response(contract_idx, status=status.HTTP_201_CREATED)
             except Exception as e:
@@ -84,8 +87,12 @@ class ContractViewSet(viewsets.ViewSet):
         description="Retrieve a contract"
     )
     def get(self, request, contract_idx=None):
+        auth_info = request.auth
+        api_key = auth_info.get("api_key")
+
         try:
-            contract = self.contract_api.get_contract(contract_idx)
+            parties = self.party_api.get_parties(contract_idx)
+            contract = self.contract_api.get_contract(contract_idx, api_key, parties)
             serializer = ContractSerializer(contract, many=False)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
@@ -101,12 +108,14 @@ class ContractViewSet(viewsets.ViewSet):
     )
     def patch(self, request, contract_idx=None):
         auth_info = request.auth  
+        api_key = auth_info.get("api_key")
         
         if not auth_info.get('is_master_key', False): 
             raise PermissionDenied("You do not have permission to perform this action.")
 
         try:
-            contract_dict = self.contract_api.get_contract(contract_idx)
+            parties = self.party_api.get_parties(contract_idx)
+            contract_dict = self.contract_api.get_contract(contract_idx, api_key, parties)
             serializer = ContractSerializer(data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             for key, value in serializer.validated_data.items():

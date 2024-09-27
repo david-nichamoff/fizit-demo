@@ -8,7 +8,8 @@ from api.managers import Web3Manager, ConfigManager
 class Command(BaseCommand):
     help = 'Listen to contract events and store them in the database'
 
-    def __init__(self):
+    def handle(self, *args, **kwargs):
+        # Initialize components in the handle method
         self.config_manager = ConfigManager()
         self.config = self.config_manager.load_config()
         self.w3_manager = Web3Manager()
@@ -16,9 +17,7 @@ class Command(BaseCommand):
         self.w3_contract = self.w3_manager.get_web3_contract()
 
         self.logger = logging.getLogger(__name__)
-        self.initialized = True  # Mark this instance as initialized
 
-    def handle(self, *args, **kwargs):
         def handle_event(event):
             event_type = event['event']
             event_args = event['args']

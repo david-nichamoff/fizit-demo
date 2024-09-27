@@ -42,10 +42,10 @@ class AuthorizationTests(TestCase):
         response = self.contract_ops.load_contract(self.contract_data['contract'])
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Should fail with invalid key")
 
-        # 3. Partner key (from secrets manager, not from api_key.json)
-        self.headers['Authorization'] = f"Api-Key {self.keys['PARTNER']}"
+        # 3. FloatCo key (from secrets manager, not from api_key.json)
+        self.headers['Authorization'] = f"Api-Key {self.keys['FloatCo']}"
         response = self.contract_ops.load_contract(self.contract_data['contract'])
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN, "Partner key should fail with authorization error")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN, "FloatCo key should fail with authorization error")
 
         # 4. Master key (FIZIT_MASTER_KEY)
         self.headers['Authorization'] = f"Api-Key {self.keys['FIZIT_MASTER_KEY']}"
@@ -65,12 +65,12 @@ class AuthorizationTests(TestCase):
         response = self.contract_ops.get_contract(contract_idx)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Invalid key should fail when retrieving contract")
 
-        # 7. Partner key should retrieve the contract
-        self.headers['Authorization'] = f"Api-Key {self.keys['PARTNER']}"
+        # 7. FloatCo key should retrieve the contract
+        self.headers['Authorization'] = f"Api-Key {self.keys['FloatCo']}"
         response = self.contract_ops.get_contract(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_200_OK, "Partner key should successfully retrieve contract")
+        self.assertEqual(response.status_code, status.HTTP_200_OK, "FloatCo key should successfully retrieve contract")
 
-        # 8. Add parties without authorization, invalid key, and partner key
+        # 8. Add parties without authorization, invalid key, and FloatCo key
         self.headers.pop('Authorization', None)
         response = self.party_ops.add_parties(contract_idx, self.contract_data['parties'])
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Adding parties should fail without authorization")
@@ -79,16 +79,16 @@ class AuthorizationTests(TestCase):
         response = self.party_ops.add_parties(contract_idx, self.contract_data['parties'])
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Adding parties should fail with invalid key")
 
-        self.headers['Authorization'] = f"Api-Key {self.keys['PARTNER']}"
+        self.headers['Authorization'] = f"Api-Key {self.keys['FloatCo']}"
         response = self.party_ops.add_parties(contract_idx, self.contract_data['parties'])
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN, "Partner key should fail adding parties")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN, "FloatCo key should fail adding parties")
 
         # FIZIT_MASTER_KEY should succeed
         self.headers['Authorization'] = f"Api-Key {self.keys['FIZIT_MASTER_KEY']}"
         response = self.party_ops.add_parties(contract_idx, self.contract_data['parties'])
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, "FIZIT_MASTER_KEY should succeed in adding parties")
 
-        # 9. Retrieve parties without authorization, invalid key, and partner key
+        # 9. Retrieve parties without authorization, invalid key, and FloatCo key
         self.headers.pop('Authorization', None)
         response = self.party_ops.get_parties(contract_idx)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Retrieving parties should fail without authorization")
@@ -97,9 +97,9 @@ class AuthorizationTests(TestCase):
         response = self.party_ops.get_parties(contract_idx)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Retrieving parties should fail with invalid key")
 
-        self.headers['Authorization'] = f"Api-Key {self.keys['PARTNER']}"
+        self.headers['Authorization'] = f"Api-Key {self.keys['FloatCo']}"
         response = self.party_ops.get_parties(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_200_OK, "Partner key should successfully retrieve parties")
+        self.assertEqual(response.status_code, status.HTTP_200_OK, "FloatCo key should successfully retrieve parties")
 
         # Repeat steps 8-9 for settlements and transactions
 
@@ -112,9 +112,9 @@ class AuthorizationTests(TestCase):
         response = self.settlement_ops.post_settlements(contract_idx, self.contract_data['settlements'])
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Adding settlements should fail with invalid key")
 
-        self.headers['Authorization'] = f"Api-Key {self.keys['PARTNER']}"
+        self.headers['Authorization'] = f"Api-Key {self.keys['FloatCo']}"
         response = self.settlement_ops.post_settlements(contract_idx, self.contract_data['settlements'])
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN, "Partner key should fail adding settlements")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN, "FloatCo key should fail adding settlements")
 
         self.headers['Authorization'] = f"Api-Key {self.keys['FIZIT_MASTER_KEY']}"
         response = self.settlement_ops.post_settlements(contract_idx, self.contract_data['settlements'])
@@ -129,9 +129,9 @@ class AuthorizationTests(TestCase):
         response = self.settlement_ops.get_settlements(contract_idx)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Retrieving settlements should fail with invalid key")
 
-        self.headers['Authorization'] = f"Api-Key {self.keys['PARTNER']}"
+        self.headers['Authorization'] = f"Api-Key {self.keys['FloatCo']}"
         response = self.settlement_ops.get_settlements(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_200_OK, "Partner key should successfully retrieve settlements")
+        self.assertEqual(response.status_code, status.HTTP_200_OK, "FloatCo key should successfully retrieve settlements")
 
         # Add transactions
         self.headers.pop('Authorization', None)
@@ -142,9 +142,9 @@ class AuthorizationTests(TestCase):
         response = self.transaction_ops.post_transactions(contract_idx, self.contract_data['transactions'])
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Adding transactions should fail with invalid key")
 
-        self.headers['Authorization'] = f"Api-Key {self.keys['PARTNER']}"
+        self.headers['Authorization'] = f"Api-Key {self.keys['FloatCo']}"
         response = self.transaction_ops.post_transactions(contract_idx, self.contract_data['transactions'])
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN, "Partner key should fail adding transactions")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN, "FloatCo key should fail adding transactions")
 
         self.headers['Authorization'] = f"Api-Key {self.keys['FIZIT_MASTER_KEY']}"
         response = self.transaction_ops.post_transactions(contract_idx, self.contract_data['transactions'])
@@ -159,8 +159,8 @@ class AuthorizationTests(TestCase):
         response = self.transaction_ops.get_transactions(contract_idx)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Retrieving transactions should fail with invalid key")
 
-        self.headers['Authorization'] = f"Api-Key {self.keys['PARTNER']}"
+        self.headers['Authorization'] = f"Api-Key {self.keys['FloatCo']}"
         response = self.transaction_ops.get_transactions(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_200_OK, "Partner key should successfully retrieve transactions")
+        self.assertEqual(response.status_code, status.HTTP_200_OK, "FloatCo key should successfully retrieve transactions")
 
         print("All authorization tests passed.")

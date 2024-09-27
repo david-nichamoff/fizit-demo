@@ -60,7 +60,25 @@ class SecretsManager:
             self._invalidate_cache()
             raise
 
-        # Load the static keys from {secret_prefix}/static-keys
+        # Load the AES key from {secret_prefix}/contract-key
+        aes_key_name = f"{secret_prefix}/contract-key"
+        try:
+            logger.info(f"Fetching AES key from {aes_key_name}")
+            get_aes_key_response = client.get_secret_value(SecretId=aes_key_name)
+
+            if 'SecretString' in get_aes_key_response:
+                aes_key_data = json.loads(get_aes_key_response['SecretString'])
+                secrets['aes_key'] = aes_key_data.get('aes_key')
+                logger.info(f"Successfully loaded AES key from {aes_key_name}")
+            else:
+                logger.warning(f"No SecretString found in the response for {aes_key_name}")
+
+        except ClientError as e:
+            logger.error(f"Error fetching AES key from AWS Secrets Manager: {e}")
+            self._invalidate_cache()
+            raise
+
+        # Load all keys from {secret_prefix}/static-keys
         static_keys_name = f"{secret_prefix}/static-keys"
         try:
             logger.info(f"Fetching static keys from {static_keys_name}")
@@ -68,7 +86,7 @@ class SecretsManager:
 
             if 'SecretString' in get_static_keys_response:
                 static_keys = json.loads(get_static_keys_response['SecretString'])
-                secrets.update(static_keys)  # Add all key/value pairs to secrets dictionary
+                secrets.update(static_keys)  # Add all key-value pairs to the secrets dictionary
                 logger.info(f"Successfully loaded static keys from {static_keys_name}")
             else:
                 logger.warning(f"No SecretString found in the response for {static_keys_name}")
