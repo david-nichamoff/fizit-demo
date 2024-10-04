@@ -17,6 +17,7 @@ urlpatterns = [
     path('contracts/<int:contract_idx>/advances/', AdvanceViewSet.as_view({'get':'list','post':'add'}), name='advance'),
     path('contracts/<int:contract_idx>/residuals/', ResidualViewSet.as_view({'get':'list','post':'add'}), name='residual'),
     path('contracts/<int:contract_idx>/deposits/', DepositViewSet.as_view({'get':'list','post':'add'}), name='deposit'),
+    path('contracts/count/', ContractViewSet.as_view({'get': 'get_contract_count'}), name='contract-count'),
     path('accounts/', AccountViewSet.as_view({'get':'list'}), name='account-list'),
     path('recipients/', RecipientViewSet.as_view({'get':'list'}), name='recipient-list'),
     path('events/', EventViewSet.as_view({'get': 'list'}), name='event-list'),  

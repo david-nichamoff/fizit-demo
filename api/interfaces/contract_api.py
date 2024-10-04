@@ -306,3 +306,41 @@ class ContractAPI:
             return len(value.split('.')[1]) == 2
         except (ValueError, IndexError):
             return False
+
+    def import_contract(self, contract_dict):
+        try:
+            contract_idx = self.get_contract_count()
+            self.logger.info(f"Importing contract: {contract_idx}")
+
+            # Validate and build the contract using the existing build_contract function
+            contract = self.build_contract(contract_dict, contract_idx)
+
+            # Build the transaction for adding the contract to the blockchain
+            nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
+            transaction = self.w3_contract.functions.importContract(contract).build_transaction({
+                "from": self.config["wallet_addr"],
+                "nonce": nonce
+            })
+
+            # Estimate the gas required for the transaction
+            estimated_gas = self.w3.eth.estimate_gas(transaction)
+            self.logger.info(f"Estimated gas for importContract: {estimated_gas}")
+
+            # Set gas limit
+            gas_limit = max(estimated_gas, self.config["gas_limit"])
+            self.logger.info(f"Final gas limit: {gas_limit}")
+
+            # Add the gas to the transaction
+            transaction["gas"] = gas_limit
+
+            # Send the transaction to the blockchain
+            tx_receipt = self.w3_manager.get_tx_receipt(transaction)
+            if tx_receipt["status"] == 1:
+                self.logger.info(f"Successfully imported contract: {contract_idx}")
+                return contract_idx
+            else:
+                self.logger.error(f"Transaction failed for importing contract {contract_idx}. Receipt: {tx_receipt}")
+                raise RuntimeError(f"Failed to import contract {contract_idx}. Transaction status: {tx_receipt['status']}")
+        except Exception as e:
+            self.logger.error(f"Error importing contract: {str(e)}")
+            raise RuntimeError("Failed to import contract") from e

@@ -150,3 +150,17 @@ class ContractViewSet(viewsets.ViewSet):
         except Exception as e:
             self.logger.error(f"Error deleting contract {contract_idx}: {e}")
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @extend_schema(
+        tags=["Contracts"],
+        summary="Get Contract Count",
+        description="Retrieve the count of contracts",
+        responses={status.HTTP_200_OK: int}
+    )
+    def get_contract_count(self, request):
+        try:
+            count = self.contract_api.get_contract_count()
+            return Response({"contract_count": count}, status=status.HTTP_200_OK)
+        except Exception as e:
+            self.logger.error(f"Error retrieving contract count: {e}")
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

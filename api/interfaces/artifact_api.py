@@ -3,7 +3,7 @@ import requests
 import boto3
 import datetime
 
-from datetime import timezone
+from datetime import timezone, datetime, time
 
 from botocore.exceptions import ClientError
 
@@ -32,7 +32,7 @@ class ArtifactAPI:
         self.initialized = True
 
     def from_timestamp(self, ts):
-        return None if ts == 0 else datetime.datetime.fromtimestamp(ts, tz=timezone.utc)
+        return None if ts == 0 else datetime.fromtimestamp(ts, tz=timezone.utc)
 
     def get_artifacts(self, contract_idx):
         artifacts = []
@@ -77,8 +77,7 @@ class ArtifactAPI:
         """Add artifacts for a contract from URLs."""
         try:
             # Get the contract address from the blockchain contract
-            contract_address = self.config.get("contract_addr")
-            current_time = int(datetime.datetime.now().timestamp())
+            current_time = int(datetime.now().timestamp())
             s3_bucket = self.config['s3_bucket']
 
             for artifact_url in artifact_urls:
@@ -90,7 +89,7 @@ class ArtifactAPI:
 
                     artifact_filename = artifact_url.split("/")[-1]  # Get the filename from the URL
                     # Include both contract_idx and contract_address in the S3 object key
-                    s3_object_key = f"{contract_address}/{contract_idx}/{artifact_filename}"
+                    s3_object_key = f"{contract_idx}/{artifact_filename}"
 
                     # Upload the file content to S3
                     self.s3_client.put_object(
@@ -210,3 +209,50 @@ class ArtifactAPI:
         except Exception as e:
             self.logger.error(f"Error deleting artifacts for contract {contract_idx}: {str(e)}")
             raise RuntimeError(f"Failed to delete artifacts for contract {contract_idx}") from e
+           
+    def import_artifacts(self, contract_idx, artifacts):
+        try:
+            for artifact in artifacts:
+                added_dt = int(datetime.fromisoformat(artifact["added_dt"]).timestamp())
+
+                artifact_struct = (
+                    artifact["doc_title"],
+                    artifact["doc_type"],
+                    added_dt, 
+                    artifact["s3_bucket"],
+                    artifact["s3_object_key"],
+                    artifact["s3_version_id"]
+                )
+
+                self.logger.info(f"Importing artifact {artifact['doc_title']} to contract {contract_idx}")
+
+                # Build the transaction
+                nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
+                transaction = self.w3_contract.functions.importArtifact(
+                    contract_idx, artifact_struct
+                ).build_transaction({
+                    "from": self.config["wallet_addr"],
+                    "nonce": nonce
+                })
+
+                # Estimate the gas required for the transaction
+                estimated_gas = self.w3.eth.estimate_gas(transaction)
+                self.logger.info(f"Estimated gas for importing artifact {artifact['doc_title']}: {estimated_gas}")
+
+                # Set gas limit
+                gas_limit = max(estimated_gas, self.config["gas_limit"])
+                self.logger.info(f"Final gas limit for importing artifact {artifact['doc_title']}: {gas_limit}")
+
+                # Add the gas to the transaction
+                transaction["gas"] = gas_limit
+
+                # Send the transaction
+                tx_receipt = self.w3_manager.get_tx_receipt(transaction)
+                if tx_receipt["status"] != 1:
+                    raise RuntimeError(f"Failed to import artifact {artifact['doc_title']} to contract {contract_idx}")
+
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Error importing artifacts to contract {contract_idx}: {str(e)}")
+            raise 

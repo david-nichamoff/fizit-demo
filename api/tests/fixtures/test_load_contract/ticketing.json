@@ -27,5 +27,9 @@
         {"party_code" : "HaulerCo", "party_type" : "seller"},   
         {"party_code" : "OilCo", "party_type" : "buyer"},   
         {"party_code" : "FloatCo", "party_type" : "funder"} 
-    ]
+    ],
+    "artifacts": [
+        "https://fizit-test-artifacts.s3.amazonaws.com/FIZIT+Executive+Summary.pdf",
+        "https://fizit-test-artifacts.s3.amazonaws.com/Fizit+Introduction+2023-12.pdf"
+      ]
 }

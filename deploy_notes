@@ -1,0 +1,2 @@
+10/1: The contract table needs to be pre-populated with the current contract address 
+10/2: Move config.json into fixtures directory

@@ -337,6 +337,30 @@ contract Delivery {
         emit ContractEvent(contract_idx, "ResidualPaid", "");
     }
 
+    function importContract(Contract memory contract_) public onlyOwner {
+        contracts.push(contract_);
+    }
+
+    function importParty(uint contract_idx, Party memory party) public onlyOwner {
+        require(contract_idx < contracts.length, "Invalid contract index");
+        parties[contract_idx].push(party);
+    }
+
+    function importSettlement(uint contract_idx, Settlement memory settlement) public onlyOwner {
+        require(contract_idx < contracts.length, "Invalid contract index");
+        settlements[contract_idx].push(settlement);
+    }
+
+    function importTransaction(uint contract_idx, Transaction memory transaction) public onlyOwner {
+        require(contract_idx < contracts.length, "Invalid contract index");
+        transactions[contract_idx].push(transaction);
+    }
+
+    function importArtifact(uint contract_idx, Artifact memory artifact) public onlyOwner {
+        require(contract_idx < contracts.length, "Invalid contract index");
+        artifacts[contract_idx].push(artifact);
+    }
+
     function uintToString(uint v) internal pure returns (string memory) {
         if (v == 0) {
             return "0";

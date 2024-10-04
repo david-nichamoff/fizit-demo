@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 class ConfigManager:
     _instance = None
     _config_cache = None
-    CONFIG_FILE_PATH = os.path.join(settings.BASE_DIR, 'api', 'managers', 'config.json')
+    CONFIG_FILE_PATH = os.path.join(settings.BASE_DIR, 'api', 'managers', 'fixtures', 'config.json')
 
     def __new__(cls, *args, **kwargs):
         """Ensure that the class is a singleton."""

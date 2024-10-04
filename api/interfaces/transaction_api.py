@@ -2,7 +2,7 @@ import datetime
 import logging
 import json
 
-from datetime import timezone
+from datetime import timezone, datetime, time
 from decimal import Decimal
 from json_logic import jsonLogic
 
@@ -34,7 +34,7 @@ class TransactionAPI:
         self.initialized = True  # Mark this instance as initialized
 
     def from_timestamp(self, ts):
-        return None if ts == 0 else datetime.datetime.fromtimestamp(ts, tz=timezone.utc)
+        return None if ts == 0 else datetime.fromtimestamp(ts, tz=timezone.utc)
 
     def get_transact_dict(self, transact, transact_idx, contract, api_key, parties):
         decryptor = get_decryptor(api_key, parties)
@@ -170,6 +170,72 @@ class TransactionAPI:
             self.logger.error(f"Transaction validation error: {str(e)}")
             raise
 
-# Usage Example:
-# transactions_api = TransactionsAPI()
-# transactions_api.get_transactions(contract_idx=123)
+    def import_transactions(self, contract_idx, transactions):
+        """
+        Import historical transactions to a given contract using the Solidity importTransaction function.
+        
+        :param contract_idx: The index of the contract to which the transactions will be imported.
+        :param transactions: List of transaction dictionaries to be imported.
+        """
+        try:
+            encryptor = get_encryptor()
+
+            for transaction in transactions:
+                # Convert datetime fields from string to datetime object, then to Unix timestamps
+                transact_dt = int(datetime.fromisoformat(transaction["transact_dt"]).timestamp())
+                advance_pay_dt = int(datetime.fromisoformat(transaction["advance_pay_dt"]).timestamp()) if transaction["advance_pay_dt"] else 0
+
+                # Encrypt sensitive fields before sending to the blockchain
+                encrypted_extended_data = encryptor.encrypt(transaction["extended_data"])
+                encrypted_transact_data = encryptor.encrypt(transaction["transact_data"])
+
+                # Prepare the Transaction struct as required by the Solidity contract
+                transaction_struct = (
+                    encrypted_extended_data,  # extended_data
+                    transact_dt,  # transact_dt
+                    int(Decimal(transaction["transact_amt"]) * 100),  # transact_amt
+                    int(Decimal(transaction["service_fee_amt"]) * 100),  # service_fee_amt
+                    int(Decimal(transaction["advance_amt"]) * 100),  # advance_amt
+                    encrypted_transact_data,  # transact_data
+                    advance_pay_dt,  # advance_pay_dt
+                    int(Decimal(transaction["advance_pay_amt"]) * 100),  # advance_pay_amt
+                    transaction["advance_confirm"]  # advance_confirm
+                )
+
+                # Get the current nonce
+                nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
+
+                # Build the transaction to call importTransaction
+                transaction_tx = self.w3_contract.functions.importTransaction(
+                    contract_idx,  # The index of the contract
+                    transaction_struct  # The transaction struct
+                ).build_transaction({
+                    "from": self.config["wallet_addr"],
+                    "nonce": nonce
+                })
+
+                # Estimate the gas required for the transaction
+                estimated_gas = self.w3.eth.estimate_gas(transaction_tx)
+                self.logger.info(f"Estimated gas for importTransaction: {estimated_gas}")
+
+                # Set gas limit dynamically based on estimated gas or config
+                gas_limit = max(estimated_gas, self.config["gas_limit"])
+                self.logger.info(f"Final gas limit: {gas_limit}")
+
+                # Add the gas limit to the transaction
+                transaction_tx["gas"] = gas_limit
+
+                # Send the transaction
+                tx_receipt = self.w3_manager.get_tx_receipt(transaction_tx)
+                if tx_receipt["status"] != 1:
+                    raise RuntimeError(f"Blockchain transaction failed for contract {contract_idx} transaction.")
+
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Error importing transactions for contract {contract_idx}: {str(e)}")
+            raise RuntimeError(f"Failed to import transactions for contract {contract_idx}") from e
+
+    # Usage Example:
+    # transactions_api = TransactionsAPI()
+    # transactions_api.get_transactions(contract_idx=123)

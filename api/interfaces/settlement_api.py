@@ -2,7 +2,7 @@ import datetime
 import logging
 import json
 
-from datetime import timezone
+from datetime import timezone, datetime, time
 from decimal import Decimal
 
 from api.managers import Web3Manager, ConfigManager
@@ -32,7 +32,7 @@ class SettlementAPI:
         self.initialized = True  # Mark this instance as initialized
 
     def from_timestamp(self, ts):
-        return None if ts == 0 else datetime.datetime.fromtimestamp(ts, tz=timezone.utc)
+        return None if ts == 0 else datetime.fromtimestamp(ts, tz=timezone.utc)
 
     def get_settle_dict(self, settle, settle_idx, contract, api_key, parties):
         decryptor = get_decryptor(api_key, parties)
@@ -102,9 +102,9 @@ class SettlementAPI:
             encryptor = get_encryptor()
 
             for settlement in settlements:
-                due_dt = int(datetime.datetime.combine(settlement["settle_due_dt"], datetime.time.min).timestamp())
-                min_dt = int(datetime.datetime.combine(settlement["transact_min_dt"], datetime.time.min).timestamp())
-                max_dt = int(datetime.datetime.combine(settlement["transact_max_dt"], datetime.time.min).timestamp())
+                due_dt = int(datetime.combine(settlement["settle_due_dt"], time.min).timestamp())
+                min_dt = int(datetime.combine(settlement["transact_min_dt"], time.min).timestamp())
+                max_dt = int(datetime.combine(settlement["transact_max_dt"], time.min).timestamp())
                 
                 # Encrypt sensitive fields before sending to the blockchain
                 encrypted_extended_data = encryptor.encrypt(settlement["extended_data"])
@@ -195,3 +195,83 @@ class SettlementAPI:
         except Exception as e:
             self.logger.error(f"Unexpected error during settlements validation: {str(e)}")
             raise
+
+    def import_settlements(self, contract_idx, settlements):
+        """
+        Import settlements to a given contract using the Solidity importSettlement function.
+        This function loads historical data by passing Settlement struct directly.
+        
+        :param contract_idx: The index of the contract to which the settlements will be imported.
+        :param settlements: List of settlement dictionaries to be imported.
+        """
+        try:
+            encryptor = get_encryptor()
+
+            for settlement in settlements:
+                # Convert datetime fields from string to datetime object, then to Unix timestamps
+                due_dt = int(datetime.fromisoformat(settlement["settle_due_dt"]).timestamp())
+                min_dt = int(datetime.fromisoformat(settlement["transact_min_dt"]).timestamp())
+                max_dt = int(datetime.fromisoformat(settlement["transact_max_dt"]).timestamp())
+                pay_dt = int(datetime.fromisoformat(settlement["settle_pay_dt"]).timestamp()) if settlement["settle_pay_dt"] else 0
+                residual_pay_dt = int(datetime.fromisoformat(settlement["residual_pay_dt"]).timestamp()) if settlement["residual_pay_dt"] else 0
+
+                # Encrypt sensitive fields like extended_data
+                encrypted_extended_data = encryptor.encrypt(settlement["extended_data"])
+
+                # Prepare the Settlement struct as required by the Solidity contract
+                settlement_struct = (
+                    encrypted_extended_data,  # extended_data
+                    due_dt,  # settle_due_dt
+                    min_dt,  # transact_min_dt
+                    max_dt,  # transact_max_dt
+                    settlement["transact_count"],  # transact_count
+                    int(Decimal(settlement["advance_amt"]) * 100),  # advance_amt
+                    int(Decimal(settlement["advance_amt_gross"]) * 100),  # advance_amt_gross
+                    pay_dt,  # settle_pay_dt
+                    int(Decimal(settlement["settle_exp_amt"]) * 100),  # settle_exp_amt
+                    int(Decimal(settlement["settle_pay_amt"]) * 100),  # settle_pay_amt
+                    settlement["settle_confirm"],  # settle_confirm
+                    int(Decimal(settlement["dispute_amt"]) * 100),  # dispute_amt
+                    settlement["dispute_reason"],  # dispute_reason
+                    settlement["days_late"],  # days_late
+                    int(Decimal(settlement["late_fee_amt"]) * 100),  # late_fee_amt
+                    residual_pay_dt,  # residual_pay_dt
+                    int(Decimal(settlement["residual_pay_amt"]) * 100),  # residual_pay_amt
+                    settlement["residual_confirm"],  # residual_confirm
+                    int(Decimal(settlement["residual_exp_amt"]) * 100),  # residual_exp_amt
+                    int(Decimal(settlement["residual_calc_amt"]) * 100),  # residual_calc_amt
+                )
+
+                # Get the current nonce
+                nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
+
+                # Build the transaction to call importSettlement
+                transaction = self.w3_contract.functions.importSettlement(
+                    contract_idx,  # The index of the contract
+                    settlement_struct  # The settlement struct
+                ).build_transaction({
+                    "from": self.config["wallet_addr"],
+                    "nonce": nonce
+                })
+
+                # Estimate the gas required for the transaction
+                estimated_gas = self.w3.eth.estimate_gas(transaction)
+                self.logger.info(f"Estimated gas for importSettlement: {estimated_gas}")
+
+                # Set gas limit dynamically based on estimated gas or config
+                gas_limit = max(estimated_gas, self.config["gas_limit"])
+                self.logger.info(f"Final gas limit: {gas_limit}")
+
+                # Add the gas limit to the transaction
+                transaction["gas"] = gas_limit
+
+                # Send the transaction
+                tx_receipt = self.web3_manager.get_tx_receipt(transaction)
+                if tx_receipt["status"] != 1:
+                    raise RuntimeError(f"Blockchain transaction failed for contract {contract_idx} settlement.")
+
+            return True
+
+        except Exception as e:
+                self.logger.error(f"Error importing settlements for contract {contract_idx}: {str(e)}")
+                raise RuntimeError(f"Failed to import settlements for contract {contract_idx}") from e

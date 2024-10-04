@@ -178,3 +178,43 @@ class PartyAPI:
         except Exception as e:
             self.logger.error(f"Validation error: {str(e)}")
             raise ValueError(f"Validation error: {str(e)}")
+
+    def import_parties(self, contract_idx, parties):
+        try:
+            for party in parties:
+                party_address = party.get("party_address", self.ZERO_ADDRESS)
+                party_code = party.get("party_code")
+                party_type = party.get("party_type")
+
+                self.logger.info(f"Importing party {party_code} to contract {contract_idx}")
+
+                # Build the transaction
+                nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
+                transaction = self.w3_contract.functions.importParty(
+                    contract_idx, [party_code, party_address, party_type]
+                ).build_transaction({
+                    "from": self.config["wallet_addr"],
+                    "nonce": nonce
+                })
+
+                # Estimate the gas required for the transaction
+                estimated_gas = self.w3.eth.estimate_gas(transaction)
+                self.logger.info(f"Estimated gas for importing party {party_code}: {estimated_gas}")
+
+                # Set gas limit
+                gas_limit = max(estimated_gas, self.config["gas_limit"])
+                self.logger.info(f"Final gas limit for importing party {party_code}: {gas_limit}")
+
+                # Add the gas to the transaction
+                transaction["gas"] = gas_limit
+
+                # Send the transaction
+                tx_receipt = self.w3_manager.get_tx_receipt(transaction)
+                if tx_receipt["status"] != 1:
+                    raise RuntimeError(f"Failed to import party {party_code} to contract {contract_idx}")
+
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Error importing parties to contract {contract_idx}: {str(e)}")
+            raise
