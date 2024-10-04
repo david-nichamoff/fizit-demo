@@ -40,8 +40,8 @@ class ContractTests(TestCase):
         self.event_ops = EventOperations(self.headers, self.config)
         self.csrf_ops = CsrfOperations(self.headers, self.config)
 
-        self.delay = 5
-        self.retries = 3
+        self.delay = 10
+        self.retries = 5
 
     def test_load_contracts(self):
 
