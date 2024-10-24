@@ -6,6 +6,7 @@ import datetime
 from datetime import timezone, datetime, time
 
 from botocore.exceptions import ClientError
+from eth_utils import to_checksum_address
 
 from api.managers import Web3Manager, ConfigManager
 from api.interfaces import ContractAPI
@@ -23,13 +24,16 @@ class ArtifactAPI:
         self.config_manager = ConfigManager()
         self.config = self.config_manager.load_config()
         self.w3_manager = Web3Manager()
-        self.w3 = self.w3_manager.get_web3_instance()
-        self.contract_api = ContractAPI()
         self.w3_contract = self.w3_manager.get_web3_contract()
+        self.contract_api = ContractAPI()
+
         self.s3_client = boto3.client('s3')
 
         self.logger = logging.getLogger(__name__)
         self.initialized = True
+
+        self.wallet_addr = self.config["transactor_wallet_addr"]
+        self.checksum_wallet_addr = to_checksum_address(self.wallet_addr)
 
     def from_timestamp(self, ts):
         return None if ts == 0 else datetime.fromtimestamp(ts, tz=timezone.utc)
@@ -109,7 +113,7 @@ class ArtifactAPI:
                         content_type = response.headers.get('Content-Type', 'application/octet-stream')
 
                     # Build the transaction using the contract address and contract_idx
-                    nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
+                    nonce = self.w3_manager.get_nonce(self.checksum_wallet_addr)
 
                     # Build the transaction
                     transaction = self.w3_contract.functions.addArtifact(
@@ -121,23 +125,11 @@ class ArtifactAPI:
                         s3_object_key, 
                         version_id
                     ).build_transaction({
-                        "from": self.config["wallet_addr"],
+                        "from": self.checksum_wallet_addr,
                         "nonce": nonce
                     })
 
-                    # Estimate the gas required for the transaction
-                    estimated_gas = self.w3.eth.estimate_gas(transaction)
-                    self.logger.info(f"Estimated gas for addArtifact: {estimated_gas}")
-
-                    # Set gas limit dynamically based on estimated gas or config
-                    gas_limit = max(estimated_gas, self.config["gas_limit"])
-                    self.logger.info(f"Final gas limit: {gas_limit}")
-
-                    # Add the gas limit to the transaction
-                    transaction["gas"] = gas_limit
-
-                    # Send the transaction and wait for receipt
-                    tx_receipt = self.w3_manager.get_tx_receipt(transaction)
+                    tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
 
                     # Check the transaction status
                     if tx_receipt['status'] != 1:
@@ -185,21 +177,17 @@ class ArtifactAPI:
                     raise RuntimeError(f"Error deleting artifact from S3: {str(e)}") from e
 
             # Now delete the artifacts from the blockchain
-            nonce = self.w3.eth.get_transaction_count(self.config['wallet_addr'])
+            nonce = self.w3_manager.get_nonce(self.checksum_wallet_addr)
 
             # Build the transaction to delete all artifacts on-chain for the contract
             transaction = self.w3_contract.functions.deleteArtifacts(contract_idx).build_transaction({
-                "from": self.config["wallet_addr"],
+                "from": self.checksum_wallet_addr,
                 "nonce": nonce
             })
 
-            # Estimate gas and set gas limit
-            estimated_gas = self.w3.eth.estimate_gas(transaction)
-            gas_limit = max(estimated_gas, self.config['gas_limit'])
-            transaction["gas"] = gas_limit
-
             # Send the transaction
-            tx_receipt = self.w3_manager.get_tx_receipt(transaction)
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+
             if tx_receipt["status"] != 1:
                 raise RuntimeError(f"Failed to delete artifacts on blockchain. Transaction status: {tx_receipt['status']}")
 
@@ -227,27 +215,17 @@ class ArtifactAPI:
                 self.logger.info(f"Importing artifact {artifact['doc_title']} to contract {contract_idx}")
 
                 # Build the transaction
-                nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
+                nonce = self.w3_manager.get_nonce(self.checksum_wallet_addr)
                 transaction = self.w3_contract.functions.importArtifact(
                     contract_idx, artifact_struct
                 ).build_transaction({
-                    "from": self.config["wallet_addr"],
+                    "from": self.checksum_wallet_addr,
                     "nonce": nonce
                 })
 
-                # Estimate the gas required for the transaction
-                estimated_gas = self.w3.eth.estimate_gas(transaction)
-                self.logger.info(f"Estimated gas for importing artifact {artifact['doc_title']}: {estimated_gas}")
-
-                # Set gas limit
-                gas_limit = max(estimated_gas, self.config["gas_limit"])
-                self.logger.info(f"Final gas limit for importing artifact {artifact['doc_title']}: {gas_limit}")
-
-                # Add the gas to the transaction
-                transaction["gas"] = gas_limit
-
                 # Send the transaction
-                tx_receipt = self.w3_manager.get_tx_receipt(transaction)
+                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+
                 if tx_receipt["status"] != 1:
                     raise RuntimeError(f"Failed to import artifact {artifact['doc_title']} to contract {contract_idx}")
 

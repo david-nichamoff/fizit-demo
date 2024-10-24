@@ -13,10 +13,10 @@ class Command(BaseCommand):
         self.logger = logging.getLogger(__name__)
 
         # Initialize managers and retrieve data from blockchain
-        web3_manager = Web3Manager()
+        w3_manager = Web3Manager()
         config_manager = ConfigManager()
-        w3 = web3_manager.get_web3_instance()
-        w3_contract = web3_manager.get_web3_contract()
+        w3 = w3_manager.get_web3_instance()
+        w3_contract = w3_manager.get_web3_contract()
 
         try:
             self.logger.info(f"Fetching data for contract {contract_idx}")

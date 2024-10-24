@@ -7,6 +7,7 @@ from decimal import Decimal
 
 from api.managers import Web3Manager, ConfigManager
 from api.interfaces import ContractAPI
+from eth_utils import to_checksum_address
 
 from api.interfaces.encryption_api import get_encryptor, get_decryptor
 from .util_api import is_valid_json
@@ -23,13 +24,16 @@ class SettlementAPI:
     def __init__(self):
         self.config_manager = ConfigManager()
         self.config = self.config_manager.load_config()
-        self.web3_manager = Web3Manager()
-        self.w3 = self.web3_manager.get_web3_instance()
-        self.w3_contract = self.web3_manager.get_web3_contract()
+        self.w3_manager = Web3Manager()
+        self.w3 = self.w3_manager.get_web3_instance()
+        self.w3_contract = self.w3_manager.get_web3_contract()
         self.contract_api = ContractAPI()
 
         self.logger = logging.getLogger(__name__)
         self.initialized = True  # Mark this instance as initialized
+
+        self.wallet_addr = self.config["transactor_wallet_addr"]
+        self.checksum_wallet_addr = to_checksum_address(self.wallet_addr)
 
     def from_timestamp(self, ts):
         return None if ts == 0 else datetime.fromtimestamp(ts, tz=timezone.utc)
@@ -109,29 +113,19 @@ class SettlementAPI:
                 # Encrypt sensitive fields before sending to the blockchain
                 encrypted_extended_data = encryptor.encrypt(settlement["extended_data"])
 
-                nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
+                nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
 
                 # Build the transaction
                 transaction = self.w3_contract.functions.addSettlement(
                     contract_idx, encrypted_extended_data, due_dt, min_dt, max_dt
                 ).build_transaction({
-                    "from": self.config["wallet_addr"],
+                    "from": self.checksum_wallet_addr,
                     "nonce": nonce
                 })
 
-                # Estimate the gas required for the transaction
-                estimated_gas = self.w3.eth.estimate_gas(transaction)
-                self.logger.info(f"Estimated gas for addSettlement: {estimated_gas}")
-
-                # Set gas limit dynamically based on estimated gas or config
-                gas_limit = max(estimated_gas, self.config["gas_limit"])
-                self.logger.info(f"Final gas limit: {gas_limit}")
-
-                # Add the gas limit to the transaction
-                transaction["gas"] = gas_limit
-
                 # Send the transaction
-                tx_receipt = self.web3_manager.get_tx_receipt(transaction)
+                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+
                 if tx_receipt["status"] != 1:
                     raise RuntimeError(f"Blockchain transaction failed for contract {contract_idx} settlement.")
 
@@ -143,27 +137,17 @@ class SettlementAPI:
             
     def delete_settlements(self, contract_idx):
         try:
-            nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
+            nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
 
             # Build the transaction
             transaction = self.w3_contract.functions.deleteSettlements(contract_idx).build_transaction({
-                "from": self.config["wallet_addr"],
+                "from": self.checksum_wallet_addr,
                 "nonce": nonce
             })
 
-            # Estimate the gas required for the transaction
-            estimated_gas = self.w3.eth.estimate_gas(transaction)
-            self.logger.info(f"Estimated gas for deleteSettlements: {estimated_gas}")
-
-            # Set gas limit dynamically based on estimated gas or config
-            gas_limit = max(estimated_gas, self.config["gas_limit"])
-            self.logger.info(f"Final gas limit: {gas_limit}")
-
-            # Add the gas limit to the transaction
-            transaction["gas"] = gas_limit
-
             # Send the transaction
-            tx_receipt = self.web3_manager.get_tx_receipt(transaction)
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+
             if tx_receipt["status"] != 1:
                 raise RuntimeError(f"Blockchain transaction failed for deleting settlements in contract {contract_idx}.")
 
@@ -243,30 +227,20 @@ class SettlementAPI:
                 )
 
                 # Get the current nonce
-                nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
+                nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
 
                 # Build the transaction to call importSettlement
                 transaction = self.w3_contract.functions.importSettlement(
                     contract_idx,  # The index of the contract
                     settlement_struct  # The settlement struct
                 ).build_transaction({
-                    "from": self.config["wallet_addr"],
+                    "from": self.checksum_wallet_addr,
                     "nonce": nonce
                 })
 
-                # Estimate the gas required for the transaction
-                estimated_gas = self.w3.eth.estimate_gas(transaction)
-                self.logger.info(f"Estimated gas for importSettlement: {estimated_gas}")
-
-                # Set gas limit dynamically based on estimated gas or config
-                gas_limit = max(estimated_gas, self.config["gas_limit"])
-                self.logger.info(f"Final gas limit: {gas_limit}")
-
-                # Add the gas limit to the transaction
-                transaction["gas"] = gas_limit
-
                 # Send the transaction
-                tx_receipt = self.web3_manager.get_tx_receipt(transaction)
+                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+
                 if tx_receipt["status"] != 1:
                     raise RuntimeError(f"Blockchain transaction failed for contract {contract_idx} settlement.")
 

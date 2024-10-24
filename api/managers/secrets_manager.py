@@ -96,6 +96,24 @@ class SecretsManager:
             self._invalidate_cache()
             raise
 
+        # Load all keys from {secret_prefix}/cs-keys
+        cs_keys_name = f"{secret_prefix}/cs-keys"
+        try:
+            logger.info(f"Fetching cube_signer keys from {cs_keys_name}")
+            get_cs_keys_response = client.get_secret_value(SecretId=cs_keys_name)
+
+            if 'SecretString' in get_cs_keys_response:
+                cs_keys = json.loads(get_cs_keys_response['SecretString'])
+                secrets.update(cs_keys)  # Add all key-value pairs to the secrets dictionary
+                logger.info(f"Successfully loaded cs keys from {cs_keys_name}")
+            else:
+                logger.warning(f"No SecretString found in the response for {cs_keys_name}")
+
+        except ClientError as e:
+            logger.error(f"Error fetching cs keys from AWS Secrets Manager: {e}")
+            self._invalidate_cache()
+            raise
+
         # Load the partner API keys by searching for secrets that match the pattern {secret_prefix}/api-key-{partner}
         try:
             logger.info(f"Fetching partner API keys for {secret_prefix}")

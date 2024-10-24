@@ -2,6 +2,7 @@ import logging
 
 from django.core.exceptions import ObjectDoesNotExist
 from api.managers import Web3Manager, ConfigManager
+from eth_utils import to_checksum_address
 
 class PartyAPI:
     _instance = None
@@ -24,6 +25,9 @@ class PartyAPI:
         self.initialized = True  # Mark this instance as initialized
 
         self.ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+
+        self.wallet_addr = self.config["transactor_wallet_addr"]
+        self.checksum_wallet_addr = to_checksum_address(self.wallet_addr)
 
     def get_party_dict(self, party, party_idx, contract_idx):
         """Helper function to create party dict structure."""
@@ -54,29 +58,19 @@ class PartyAPI:
             self.validate_parties(parties)
             for party in parties:
                 party_address = self.get_party_address(party["party_code"])
-                nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
+                nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
 
                 # Build the transaction
                 transaction = self.w3_contract.functions.addParty(
                     contract_idx, [party["party_code"], party_address, party["party_type"]]
                 ).build_transaction({
-                    "from": self.config["wallet_addr"],
+                    "from": self.checksum_wallet_addr,
                     "nonce": nonce
                 })
 
-                # Estimate the gas required for the transaction
-                estimated_gas = self.w3.eth.estimate_gas(transaction)
-                self.logger.info(f"Estimated gas for addParty: {estimated_gas}")
-
-                # Set gas limit
-                gas_limit = max(estimated_gas, self.config["gas_limit"])
-                self.logger.info(f"Final gas limit: {gas_limit}")
-
-                # Add the gas to the transaction
-                transaction["gas"] = gas_limit
-
                 # Send the transaction
-                tx_receipt = self.w3_manager.get_tx_receipt(transaction)
+                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+
                 if tx_receipt["status"] != 1:
                     raise RuntimeError(f"Failed to add party {party['party_code']} to contract {contract_idx}")
             return True
@@ -99,27 +93,17 @@ class PartyAPI:
     def delete_parties(self, contract_idx):
         """Delete all parties from a given contract."""
         try:
-            nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
+            nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
 
             # Build the transaction
             transaction = self.w3_contract.functions.deleteParties(contract_idx).build_transaction({
-                "from": self.config["wallet_addr"],
+                "from": self.checksum_wallet_addr,
                 "nonce": nonce
             })
 
-            # Estimate the gas required for the transaction
-            estimated_gas = self.w3.eth.estimate_gas(transaction)
-            self.logger.info(f"Estimated gas for deleteParties: {estimated_gas}")
-
-            # Set gas limit
-            gas_limit = max(estimated_gas, self.config["gas_limit"])
-            self.logger.info(f"Final gas limit: {gas_limit}")
-
-            # Add the gas to the transaction
-            transaction["gas"] = gas_limit
-
             # Send the transaction
-            tx_receipt = self.w3_manager.get_tx_receipt(transaction)
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+
             if tx_receipt["status"] != 1:
                 raise RuntimeError(f"Failed to delete parties for contract {contract_idx}")
             return True
@@ -130,27 +114,17 @@ class PartyAPI:
     def delete_party(self, contract_idx, party_idx):
         """Delete a specific party from a given contract."""
         try:
-            nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
+            nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
 
             # Build the transaction
             transaction = self.w3_contract.functions.deleteParty(contract_idx, party_idx).build_transaction({
-                "from": self.config["wallet_addr"],
+                "from": self.checksum_wallet_addr,
                 "nonce": nonce
             })
 
-            # Estimate the gas required for the transaction
-            estimated_gas = self.w3.eth.estimate_gas(transaction)
-            self.logger.info(f"Estimated gas for deleteParty: {estimated_gas}")
-
-            # Set gas limit
-            gas_limit = max(estimated_gas, self.config["gas_limit"])
-            self.logger.info(f"Final gas limit: {gas_limit}")
-
-            # Add the gas to the transaction
-            transaction["gas"] = gas_limit
-
             # Send the transaction
-            tx_receipt = self.w3_manager.get_tx_receipt(transaction)
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+
             if tx_receipt["status"] != 1:
                 raise RuntimeError(f"Failed to delete party {party_idx} from contract {contract_idx}")
             return True
@@ -189,27 +163,17 @@ class PartyAPI:
                 self.logger.info(f"Importing party {party_code} to contract {contract_idx}")
 
                 # Build the transaction
-                nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
+                nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
                 transaction = self.w3_contract.functions.importParty(
                     contract_idx, [party_code, party_address, party_type]
                 ).build_transaction({
-                    "from": self.config["wallet_addr"],
+                    "from": self.checksum_wallet_addr,
                     "nonce": nonce
                 })
 
-                # Estimate the gas required for the transaction
-                estimated_gas = self.w3.eth.estimate_gas(transaction)
-                self.logger.info(f"Estimated gas for importing party {party_code}: {estimated_gas}")
-
-                # Set gas limit
-                gas_limit = max(estimated_gas, self.config["gas_limit"])
-                self.logger.info(f"Final gas limit for importing party {party_code}: {gas_limit}")
-
-                # Add the gas to the transaction
-                transaction["gas"] = gas_limit
-
                 # Send the transaction
-                tx_receipt = self.w3_manager.get_tx_receipt(transaction)
+                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+
                 if tx_receipt["status"] != 1:
                     raise RuntimeError(f"Failed to import party {party_code} to contract {contract_idx}")
 

@@ -7,6 +7,7 @@ from datetime import timezone
 from api.managers import Web3Manager, ConfigManager
 from api.interfaces import SettlementAPI, ContractAPI
 from api.adapters.bank import MercuryAdapter
+from eth_utils import to_checksum_address
 
 class ResidualAPI:
     _instance = None
@@ -31,6 +32,9 @@ class ResidualAPI:
 
             self.logger = logging.getLogger(__name__)
             self.initialized = True  # Mark this instance as initialized
+
+            self.wallet_addr = self.config["transactor_wallet_addr"]
+            self.checksum_wallet_addr = to_checksum_address(self.wallet_addr)
 
     def from_timestamp(self, ts):
         return None if ts == 0 else datetime.datetime.fromtimestamp(ts, tz=timezone.utc)
@@ -79,7 +83,7 @@ class ResidualAPI:
                         raise ValueError(f"Payment failed: {error_message}")
 
                     # Blockchain transaction for paying residuals
-                    nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
+                    nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
                     current_time = int(datetime.datetime.now().timestamp())
                     payment_amt = int(Decimal(residual["residual_calc_amt"]) * 100)
 
@@ -87,23 +91,13 @@ class ResidualAPI:
                     transaction = self.w3_contract.functions.payResidual(
                         contract_idx, residual["settle_idx"], current_time, payment_amt, "completed"
                     ).build_transaction({
-                        "from": self.config["wallet_addr"],
+                        "from": self.checksum_wallet_addr,
                         "nonce": nonce
                     })
 
-                    # Estimate the gas required for the transaction
-                    estimated_gas = self.w3.eth.estimate_gas(transaction)
-                    self.logger.info(f"Estimated gas for payResidual: {estimated_gas}")
-
-                    # Set gas limit dynamically based on estimated gas or config
-                    gas_limit = max(estimated_gas, self.config["gas_limit"])
-                    self.logger.info(f"Final gas limit: {gas_limit}")
-
-                    # Add the gas limit to the transaction
-                    transaction["gas"] = gas_limit
-
                     # Send the transaction
-                    tx_receipt = self.w3_manager.get_tx_receipt(transaction)
+                    tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+
                     if tx_receipt["status"] != 1:
                         raise RuntimeError("Transaction failed on the blockchain.")
 

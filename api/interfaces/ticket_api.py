@@ -44,6 +44,7 @@ class TicketAPI:
 
     def _get_engage_sources(self, contract):
         """Retrieve Engage source and destination objects."""
+        """
         try:
             engage_src = EngageSrc.objects.get(src_code=contract["extended_data"]["src_code"])
             engage_dest = EngageDest.objects.get(dest_code=contract["extended_data"]["dest_code"])
@@ -51,3 +52,4 @@ class TicketAPI:
         except ObjectDoesNotExist as e:
             self.logger.error(f"Engage source or destination not found for contract {contract['contract_idx']}: {str(e)}")
             raise ValueError(f"Engage source or destination not found for contract {contract['contract_idx']}") from e
+        """

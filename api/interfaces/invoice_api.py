@@ -18,9 +18,9 @@ class InvoiceAPI:
         """Initialize with Web3Manager, ConfigManager, and logger."""
         self.config_manager = ConfigManager()
         self.config = self.config_manager.load_config()
-        self.web3_manager = Web3Manager()
-        self.w3 = self.web3_manager.get_web3_instance()
-        self.w3_contract = self.web3_manager.get_web3_contract()
+        self.w3_manager = Web3Manager()
+        self.w3 = self.w3_manager.get_web3_instance()
+        self.w3_contract = self.w3_manager.get_web3_contract()
         self.contract_api = ContractAPI()
 
         self.logger = logging.getLogger(__name__)
@@ -50,6 +50,7 @@ class InvoiceAPI:
 
     def _get_engage_src_dest(self, contract):
         """Retrieve the EngageSrc and EngageDest objects based on the contract data."""
+        """
         try:
             engage_src = EngageSrc.objects.get(src_code=contract["extended_data"]["src_code"])
             engage_dest = EngageDest.objects.get(dest_code=contract["extended_data"]["dest_code"])
@@ -60,3 +61,4 @@ class InvoiceAPI:
         except EngageDest.DoesNotExist as e:
             self.logger.error(f"EngageDest not found for dest_code: {contract['extended_data']['dest_code']}")
             raise ValueError(f"Destination not found for dest_code: {contract['extended_data']['dest_code']}") from e
+        """

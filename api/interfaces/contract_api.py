@@ -2,6 +2,7 @@ import logging
 import json
 from decimal import Decimal
 from web3.exceptions import ContractLogicError, BadFunctionCallOutput
+from eth_utils import to_checksum_address
 
 from api.managers import Web3Manager, ConfigManager
 from api.interfaces.encryption_api import get_encryptor, get_decryptor
@@ -21,15 +22,19 @@ class ContractAPI:
         self.config_manager = ConfigManager()
         self.config = self.config_manager.load_config()
         self.w3_manager = Web3Manager()
-        self.w3 = self.w3_manager.get_web3_instance()
         self.w3_contract = self.w3_manager.get_web3_contract()
 
         self.logger = logging.getLogger(__name__)
-        self.initialized = True  # Mark this instance as initialized
+        self.initialized = True 
+
+        self.wallet_addr = self.config["transactor_wallet_addr"]
+        self.checksum_wallet_addr = to_checksum_address(self.wallet_addr)
 
     def get_contract_count(self):
         try:
-            return self.w3_contract.functions.getContractCount().call()
+            contract_count = self.w3_contract.functions.getContractCount().call() 
+            self.logger.info(f"Contract count: {contract_count}")
+            return contract_count
         except Exception as e:
             self.logger.error(f"Error retrieving contract count: {str(e)}")
             raise RuntimeError("Failed to retrieve contract count") from e
@@ -142,28 +147,17 @@ class ContractAPI:
 
     def update_contract(self, contract_idx, contract_dict):
         try:
+            self.logger.info(f"Updating contract: {contract_idx}")
             contract = self.build_contract(contract_dict, contract_idx)
-            nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
+            nonce = self.w3_manager.get_nonce(self.checksum_wallet_addr)
 
-            # Build the transaction
             transaction = self.w3_contract.functions.updateContract(contract_idx, contract).build_transaction({
-                "from": self.config["wallet_addr"],
+                "from": self.checksum_wallet_addr,
                 "nonce": nonce
             })
 
-            # Estimate the gas required for the transaction
-            estimated_gas = self.w3.eth.estimate_gas(transaction)
-            self.logger.info(f"Estimated gas for updateContract: {estimated_gas}")
-            
-            # Set gas limit
-            gas_limit = max(estimated_gas, self.config["gas_limit"])
-            self.logger.info(f"Final gas limit: {gas_limit}")
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
 
-            # Add the gas to the transaction
-            transaction["gas"] = gas_limit
-
-            # Send the transaction
-            tx_receipt = self.w3_manager.get_tx_receipt(transaction)
             if tx_receipt["status"] != 1:
                 self.logger.error(f"Transaction failed for contract {contract_idx}. Receipt: {tx_receipt}")
                 raise RuntimeError(f"Failed to update contract {contract_idx}. Transaction status: {tx_receipt['status']}")
@@ -175,29 +169,16 @@ class ContractAPI:
         try:
             contract_idx = self.get_contract_count()
             self.logger.info(f"Adding contract: {contract_idx}")
-
             contract = self.build_contract(contract_dict, contract_idx)
-            nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
+            nonce = self.w3_manager.get_nonce(self.checksum_wallet_addr)
 
-            # Build the transaction
             transaction = self.w3_contract.functions.addContract(contract).build_transaction({
-                "from": self.config["wallet_addr"],
+                "from": self.checksum_wallet_addr,
                 "nonce": nonce
             })
 
-            # Estimate the gas required for the transaction
-            estimated_gas = self.w3.eth.estimate_gas(transaction)
-            self.logger.info(f"Estimated gas for addContract: {estimated_gas}")
-            
-            # Set gas limit
-            gas_limit = max(estimated_gas, self.config["gas_limit"])
-            self.logger.info(f"Final gas limit: {gas_limit}")
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
 
-            # Add the gas to the transaction
-            transaction["gas"] = gas_limit
-
-            # Send the transaction
-            tx_receipt = self.w3_manager.get_tx_receipt(transaction)
             if tx_receipt["status"] == 1:
                 return contract_idx
             else:
@@ -209,33 +190,46 @@ class ContractAPI:
 
     def delete_contract(self, contract_idx):
         try:
-            nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
+            self.logger.info(f"Deleting contract: {contract_idx}")
+            nonce = self.w3_manager.get_nonce(self.checksum_wallet_addr)
 
-            # Build the transaction
             transaction = self.w3_contract.functions.deleteContract(contract_idx).build_transaction({
-                "from": self.config["wallet_addr"],
+                "from": self.checksum_wallet_addr,
                 "nonce": nonce
             })
 
-            # Estimate the gas required for the transaction
-            estimated_gas = self.w3.eth.estimate_gas(transaction)
-            self.logger.info(f"Estimated gas for deleteContract: {estimated_gas}")
-            
-            # Set gas limit
-            gas_limit = max(estimated_gas, self.config["gas_limit"])
-            self.logger.info(f"Final gas limit: {gas_limit}")
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
 
-            # Add the gas to the transaction
-            transaction["gas"] = gas_limit
-
-            # Send the transaction
-            tx_receipt = self.w3_manager.get_tx_receipt(transaction)
             if tx_receipt["status"] != 1:
                 self.logger.error(f"Transaction failed for contract {contract_idx}. Receipt: {tx_receipt}")
                 raise RuntimeError(f"Failed to delete contract {contract_idx}. Transaction status: {tx_receipt['status']}")
         except Exception as e:
             self.logger.error(f"Error deleting contract {contract_idx}: {str(e)}")
             raise RuntimeError(f"Failed to delete contract {contract_idx}") from e
+
+    def import_contract(self, contract_dict):
+        try:
+            contract_idx = self.get_contract_count()
+            self.logger.info(f"Importing contract: {contract_idx}")
+            contract = self.build_contract(contract_dict, contract_idx)
+            nonce = self.w3_manager.get_nonce(self.checksum_wallet_addr)
+
+            transaction = self.w3_contract.functions.importContract(contract).build_transaction({
+                "from": self.checksum_wallet_addr,
+                "nonce": nonce
+            })
+
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+
+            if tx_receipt["status"] == 1:
+                self.logger.info(f"Successfully imported contract: {contract_idx}")
+                return contract_idx
+            else:
+                self.logger.error(f"Transaction failed for importing contract {contract_idx}. Receipt: {tx_receipt}")
+                raise RuntimeError(f"Failed to import contract {contract_idx}. Transaction status: {tx_receipt['status']}")
+        except Exception as e:
+            self.logger.error(f"Error importing contract: {str(e)}")
+            raise RuntimeError("Failed to import contract") from e
 
     def validate_contract_data(self, contract_dict):
         # Retrieve contract types from config
@@ -306,41 +300,3 @@ class ContractAPI:
             return len(value.split('.')[1]) == 2
         except (ValueError, IndexError):
             return False
-
-    def import_contract(self, contract_dict):
-        try:
-            contract_idx = self.get_contract_count()
-            self.logger.info(f"Importing contract: {contract_idx}")
-
-            # Validate and build the contract using the existing build_contract function
-            contract = self.build_contract(contract_dict, contract_idx)
-
-            # Build the transaction for adding the contract to the blockchain
-            nonce = self.w3.eth.get_transaction_count(self.config["wallet_addr"])
-            transaction = self.w3_contract.functions.importContract(contract).build_transaction({
-                "from": self.config["wallet_addr"],
-                "nonce": nonce
-            })
-
-            # Estimate the gas required for the transaction
-            estimated_gas = self.w3.eth.estimate_gas(transaction)
-            self.logger.info(f"Estimated gas for importContract: {estimated_gas}")
-
-            # Set gas limit
-            gas_limit = max(estimated_gas, self.config["gas_limit"])
-            self.logger.info(f"Final gas limit: {gas_limit}")
-
-            # Add the gas to the transaction
-            transaction["gas"] = gas_limit
-
-            # Send the transaction to the blockchain
-            tx_receipt = self.w3_manager.get_tx_receipt(transaction)
-            if tx_receipt["status"] == 1:
-                self.logger.info(f"Successfully imported contract: {contract_idx}")
-                return contract_idx
-            else:
-                self.logger.error(f"Transaction failed for importing contract {contract_idx}. Receipt: {tx_receipt}")
-                raise RuntimeError(f"Failed to import contract {contract_idx}. Transaction status: {tx_receipt['status']}")
-        except Exception as e:
-            self.logger.error(f"Error importing contract: {str(e)}")
-            raise RuntimeError("Failed to import contract") from e

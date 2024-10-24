@@ -86,15 +86,6 @@ contract Delivery {
 
     event ContractEvent(uint indexed contract_idx, string eventType, string details);
 
-    constructor() {
-        owner = msg.sender;
-    }
-
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Access denied, only contract owner can call this function");
-        _;
-    }
-
     function getContractCount() public view returns (uint) {
         return contracts.length;
     }
@@ -104,7 +95,7 @@ contract Delivery {
         return contracts[contract_idx];
     }
 
-    function addContract (Contract memory contract_) public onlyOwner {
+    function addContract (Contract memory contract_) public {
         contracts.push(contract_);
         emit ContractEvent(contracts.length - 1, "ContractAdded", contract_.contract_name);
     }
@@ -115,7 +106,7 @@ contract Delivery {
         }
     }
 
-    function updateContract (uint contract_idx, Contract memory contract_) public onlyOwner {
+    function updateContract (uint contract_idx, Contract memory contract_) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         logContractChange(contract_idx, "extended_data", contracts[contract_idx].extended_data, contract_.extended_data);
         logContractChange(contract_idx, "contract_name", contracts[contract_idx].contract_name, contract_.contract_name);
@@ -134,7 +125,7 @@ contract Delivery {
     }
 
     // Mark a contract as inactive 
-    function deleteContract(uint contract_idx) public onlyOwner {
+    function deleteContract(uint contract_idx) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         contracts[contract_idx].is_active = false;
         emit ContractEvent(contract_idx, "ContractDeleted", uintToString(contract_idx));
@@ -145,13 +136,13 @@ contract Delivery {
         return parties[contract_idx];
     }
 
-    function addParty(uint contract_idx, Party memory party) public onlyOwner {
+    function addParty(uint contract_idx, Party memory party) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         parties[contract_idx].push(party);
         emit ContractEvent(contract_idx, "PartyAdded", party.party_code);
     }
 
-    function deleteParty(uint contract_idx, uint party_idx) public onlyOwner {
+    function deleteParty(uint contract_idx, uint party_idx) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         require(party_idx < parties[contract_idx].length, "Invalid party index");
 
@@ -164,7 +155,7 @@ contract Delivery {
         emit ContractEvent(contract_idx, "PartyDeleted", uintToString(party_idx));
     }
 
-    function deleteParties(uint contract_idx) public onlyOwner {
+    function deleteParties(uint contract_idx) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         delete parties[contract_idx];
         emit ContractEvent(contract_idx, "PartiesDeleted", "");
@@ -177,7 +168,7 @@ contract Delivery {
 
     // Update addArtifact function:
     function addArtifact(uint contract_idx, string memory doc_title, string memory doc_type, uint added_dt,
-        string memory s3_bucket, string memory s3_object_key, string memory s3_version_id) public onlyOwner {
+        string memory s3_bucket, string memory s3_object_key, string memory s3_version_id) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         Artifact memory artifact;
         artifact.doc_title = doc_title;
@@ -190,7 +181,7 @@ contract Delivery {
         emit ContractEvent(contract_idx, "ArtifactAdded", doc_title);
     }
 
-    function deleteArtifact(uint contract_idx, uint artifact_idx) public onlyOwner {
+    function deleteArtifact(uint contract_idx, uint artifact_idx) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         require(artifact_idx < artifacts[contract_idx].length, "Invalid artifact index");
 
@@ -203,7 +194,7 @@ contract Delivery {
         emit ContractEvent(contract_idx, "ArtifactDeleted", uintToString(artifact_idx));
     }
 
-    function deleteArtifacts(uint contract_idx) public onlyOwner {
+    function deleteArtifacts(uint contract_idx) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         delete artifacts[contract_idx];
         emit ContractEvent(contract_idx, "ArtifactsDeleted", "");
@@ -214,7 +205,7 @@ contract Delivery {
         return settlements[contract_idx];
     }
 
-    function addSettlement(uint contract_idx, string memory extended_data, uint settle_due_dt, uint transact_min_dt, uint transact_max_dt) public onlyOwner {
+    function addSettlement(uint contract_idx, string memory extended_data, uint settle_due_dt, uint transact_min_dt, uint transact_max_dt) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         Settlement memory settlement;
         settlement.settle_due_dt = settle_due_dt;
@@ -225,7 +216,7 @@ contract Delivery {
         emit ContractEvent(contract_idx, "SettlementAdded", settlement.extended_data);
     }
 
-    function deleteSettlements(uint contract_idx) public onlyOwner {
+    function deleteSettlements(uint contract_idx) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         delete settlements[contract_idx];
         emit ContractEvent(contract_idx, "SettlementsDeleted", "");
@@ -236,13 +227,13 @@ contract Delivery {
         return transactions[contract_idx];
     }
 
-    function deleteTransactions(uint contract_idx) public onlyOwner {
+    function deleteTransactions(uint contract_idx) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         delete transactions[contract_idx];
         emit ContractEvent(contract_idx, "TransactionsDeleted", "");
     }
 
-    function addTransaction(uint contract_idx, string memory extended_data, uint transact_dt, int transact_amt, string memory transact_data) public onlyOwner {
+    function addTransaction(uint contract_idx, string memory extended_data, uint transact_dt, int transact_amt, string memory transact_data) public {
         require(contract_idx < contracts.length, "Invalid contract index");
 
         Transaction memory transact;
@@ -289,7 +280,7 @@ contract Delivery {
         }
     }
 
-    function payAdvance(uint contract_idx, uint transact_idx, uint advance_pay_dt, uint advance_pay_amt, string memory advance_confirm) public onlyOwner {
+    function payAdvance(uint contract_idx, uint transact_idx, uint advance_pay_dt, uint advance_pay_amt, string memory advance_confirm) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         transactions[contract_idx][transact_idx].advance_pay_dt = advance_pay_dt;
         transactions[contract_idx][transact_idx].advance_pay_amt = advance_pay_amt;
@@ -297,7 +288,7 @@ contract Delivery {
         emit ContractEvent(contract_idx, "PayAdvance", "");
     }
 
-    function postSettlement(uint contract_idx, uint settle_idx, uint settle_pay_dt, int settle_pay_amt, string memory settle_confirm, string memory dispute_reason) public onlyOwner {
+    function postSettlement(uint contract_idx, uint settle_idx, uint settle_pay_dt, int settle_pay_amt, string memory settle_confirm, string memory dispute_reason) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         settlements[contract_idx][settle_idx].settle_pay_dt = settle_pay_dt;
         settlements[contract_idx][settle_idx].settle_pay_amt = settle_pay_amt;
@@ -329,7 +320,7 @@ contract Delivery {
         emit ContractEvent(contract_idx, "PostSettlement", "");
     }
 
-    function payResidual(uint contract_idx, uint settle_idx, uint residual_pay_dt, int residual_pay_amt, string memory residual_confirm) public onlyOwner {
+    function payResidual(uint contract_idx, uint settle_idx, uint residual_pay_dt, int residual_pay_amt, string memory residual_confirm) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         settlements[contract_idx][settle_idx].residual_pay_dt = residual_pay_dt;
         settlements[contract_idx][settle_idx].residual_pay_amt = residual_pay_amt;
@@ -337,26 +328,26 @@ contract Delivery {
         emit ContractEvent(contract_idx, "ResidualPaid", "");
     }
 
-    function importContract(Contract memory contract_) public onlyOwner {
+    function importContract(Contract memory contract_) public {
         contracts.push(contract_);
     }
 
-    function importParty(uint contract_idx, Party memory party) public onlyOwner {
+    function importParty(uint contract_idx, Party memory party) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         parties[contract_idx].push(party);
     }
 
-    function importSettlement(uint contract_idx, Settlement memory settlement) public onlyOwner {
+    function importSettlement(uint contract_idx, Settlement memory settlement) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         settlements[contract_idx].push(settlement);
     }
 
-    function importTransaction(uint contract_idx, Transaction memory transaction) public onlyOwner {
+    function importTransaction(uint contract_idx, Transaction memory transaction) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         transactions[contract_idx].push(transaction);
     }
 
-    function importArtifact(uint contract_idx, Artifact memory artifact) public onlyOwner {
+    function importArtifact(uint contract_idx, Artifact memory artifact) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         artifacts[contract_idx].push(artifact);
     }
