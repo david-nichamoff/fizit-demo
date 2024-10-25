@@ -82,7 +82,7 @@
 
 .for-buyers .buyer-image {
   position: relative;
-  width: 100%;
+  width: 75%;
   display: flex; 
   justify-content: center;
   align-items: center;
@@ -175,7 +175,7 @@
   }
 
   .for-buyers .cash-image {
-    width: 65%;
+    width: 50%;
   }
 }
 
