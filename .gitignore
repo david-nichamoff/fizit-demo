@@ -49,7 +49,7 @@ schema.yml
 
 # static files
 static/
-frontend/static/frontend/
+!/frontend/static/
 
 # dev specific start and stop scripts
 start.sh
