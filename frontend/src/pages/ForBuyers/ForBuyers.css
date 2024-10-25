@@ -39,7 +39,7 @@
 
 .for-buyers .hero-text-frame {
   gap: 16px;
-  text-align: center; 
+  text-align: left; 
   width: 100%;
 }
 
@@ -69,7 +69,7 @@
   width: 100%;
   margin-bottom: 40px;
   margin-right: 20px;
-  text-align: center; 
+  text-align: left; 
 }
 
 .for-buyers .quote-blade {
@@ -78,6 +78,18 @@
   align-items: center;
   width: 100%;
   padding: 20px 0;
+}
+
+.for-buyers .buyer-image {
+  position: relative;
+  width: 100%;
+  display: flex; 
+  justify-content: center;
+  align-items: center;
+}
+
+.for-buyers .buyer-image img {
+  width: 75%;
 }
 
 .for-buyers .quote-container {
@@ -155,18 +167,6 @@
   letter-spacing: var(--body-regular-letter-spacing);
   line-height: var(--body-regular-line-height);
   margin-right: 20px;
-}
-
-.for-buyers .cash-image {
-  position: relative;
-  width: 70%;
-  display: flex; 
-  justify-content: center;
-  align-items: center;
-}
-
-.for-buyers .cash-image img {
-  width: 100%;
 }
 
 @media (max-width: 1200px) {

@@ -76,11 +76,104 @@ textarea {
   line-height: var(--body-regular-line-height); 
 }
 
+.quote .right-blade {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 20px 0;
+}
+
+.quote .right-container {
+  background-color: var(--color-purple-main);
+  width: 70%;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: left;
+  align-items: center; 
+  border-radius: 10px;
+}
+
+.quote .right-header {
+  color: var(--color-white);
+  font-family: var(--body-large-font-family);
+  font-size: var(--body-large-font-size);
+  font-style: var(--body-large-font-style);
+  font-weight: var(--body-large-font-weight);
+  letter-spacing: var(--body-large-letter-spacing);
+  line-height: var(--body-large-font-line-height);
+  text-align: left;
+  max-width: 100%;
+}
+
+.quote .right-text {
+  color: var(--color-white); 
+  font-family: var(--body-regular-font-family);
+  font-size: var(--body-regular-font-size);
+  font-style: var(--body-regular-font-style);
+  font-weight: var(--body-regular-font-weight);
+  letter-spacing: var(--body-regular-letter-spacing);
+  line-height: var(--body-regular-line-height);
+  text-align: left;
+  max-width: 100%;
+}
+
 .submit-button:hover {
   background-color: var(--color-purple-darker);
 }
 
+@media (max-width: 1200px) {
+  .for-buyers .blade-heading {
+    font-size: calc(var(--heading-2-font-size) - 5px) !important; 
+  }
+
+  .for-buyers .cash-image {
+    width: 65%;
+  }
+}
+
+@media (max-width: 992px) {
+  .for-buyers .blade-heading {
+    font-size: calc(var(--heading-2-font-size) - 10px) !important;
+  }
+
+  .for-buyers .cash-image {
+    width: 70%;
+  }
+}
+
+@media (max-width: 768px) {
+  .for-buyers .blade-heading {
+    font-size: calc(var(--heading-2-font-size) - 20px) !important;
+  }
+
+  .for-buyers .blade-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .for-buyers .cash-image {
+    margin-top: 40px;
+    width: 70%;
+  }
+}
+
 @media (max-width: 576px) {
+  .for-buyers .blade-heading {
+    font-size: calc(var(--heading-2-font-size) - 30px) !important;
+  }
+
+  .for-buyers .blade-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .for-buyers .cash-image {
+    margin-top: 40px;
+    width: 50%;
+  }
+
   .submit-button {
     width: 50%;
   }

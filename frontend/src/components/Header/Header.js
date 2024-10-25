@@ -18,10 +18,10 @@ export const Header = ({ loginState }) => {
           <Logo className="logo-instance" logoType="default" />
         </div>
         <div className="nav-center">
-          <NavItem className="nav-link" status="default" text="How it Works" type="regular" to="/how-it-works" />
           <NavItem className="nav-link" status="default" text="For Buyers" type="regular" to="/for-buyers" />
           <NavItem className="nav-link" status="default" text="For Sellers" type="regular" to="/for-sellers" />
-          <NavItem className="nav-link" status="default" text="Get a Quote" type="regular" to="/get-a-quote" />
+          <NavItem className="nav-link" status="default" text="How it Works" type="regular" to="/how-it-works" />
+          <NavItem className="nav-link" status="default" text="Contact Us" type="regular" to="/get-a-quote" />
         </div>
       </div>
     </div>

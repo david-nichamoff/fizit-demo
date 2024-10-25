@@ -4,12 +4,10 @@ import { useNavigate } from "react-router-dom";
 import { Footer } from "../../components/Footer/Footer";
 import { Header } from "../../components/Header/Header";
 
-import personImage from "../../../static/assets/image/woman.png";
-import chartImage from "../../../static/assets/image/contracts_chart.png";
 import iotImage from "../../../static/assets/image/iot.png";
 import proofImage from "../../../static/assets/image/proof.png";
 import trustImage from "../../../static/assets/image/trust.png";
-import avalancheImage from "../../../static/assets/image/avalanche.png";
+import flowImage from "../../../static/assets/image/simple_flow.png";
 
 import "./HowItWorks.css";
 
@@ -22,14 +20,25 @@ export const HowItWorks = () => {
           <div className="blade-grid">
             <div className="blade-frame">
               <div className="blade-text-frame">
+                <p className="blade-heading">
+                As simple as buying gas…FIZIT is the flex you need to optimize cash flow
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flow-image">
+            <img className="flow" alt="flow" src={flowImage} />
+          </div>
+        </div>
+      </div>
+      <div className="blade">
+        <div className="blade-container">
+          <div className="blade-grid">
+            <div className="blade-frame">
+              <div className="blade-text-frame">
                 <p className="blade-heading">Use Existing IoT Devices</p>
                 <p className="blade-text">
-                  There has been an explosion in the availability of Internet 
-                  of Things (IoT) devices used in industrial processes. Companies 
-                  use these devices primarily for measurement, safety, and control. 
-                  The solution to today’s inefficiency is to go to the operational 
-                  devices and use them as proof of delivery (just like our gas pump 
-                  example).
+                There is no need to change your existing field automation systems.  From sensors to electronic meters and ticketing systems, FIZIT uses your systems to electronically confirm delivery of goods and services and initiate immediate payment.
                 </p>
               </div>
             </div>
@@ -44,20 +53,12 @@ export const HowItWorks = () => {
           <div className="blade-grid">
             <div className="blade-frame">
               <div className="blade-text-frame">
-                <p className="blade-heading">Use Proof of Delivery</p>
+                <p className="blade-heading">Use Proof of Value</p>
                 <p className="blade-text">
-                  FIZIT uses the proof of delivery and the existing commercial 
-                  contract between the buyer and seller to calculate payment 
-                  due. We don't need to wait a month for some checker to check 
-                  if the delivery was accurate. If the devices are good enough 
-                  for safety and control, they are good enough for payment. <br />
+                Combining IoT and Electronic Smart Contracts, FIZIT converts proof of delivery into proof of value and calculates the payment due.  This electronic tie virtually eliminates the checking and cross-checking in today’s invoice and payment processes.  
                   <br />
-                  The world's largest companies have proven this theory through 
-                  the confirmation of hundreds of millions of dollars' worth of 
-                  transactions. These automated transactions have proved to be 
-                  98% accurate. Even better news: the team on the ground resolves 
-                  the 2% of issues, rather than a team in an office removed from 
-                  the operation.
+                  <br />
+                FIZIT employs the same approach and technologies the world’s largest corporations have used to streamline processes, increase speed, and reduce errors .  Automated transactions, such as these have proved to be 98% accurate with the 2% resoled in the field before the back office even knows about it.  
                 </p>
               </div>
             </div>
@@ -74,14 +75,10 @@ export const HowItWorks = () => {
               <div className="blade-text-frame">
                 <p className="blade-heading">Trust the Transaction</p>
                 <p className="blade-text">
-                  A shared ledger permanently records the outcomes, ensuring 
-                  trust in the transaction since no party can alter it. <br />
+                Step-by-step, the details of each transaction are stored in an immutable shared ledger.  Buyers and sellers see the same unalterable information thus establishing trust and transparency.
                   <br />
-                  This process links payment directly to a delivery without 
-                  requiring an invoice. It provides a complete audit trail for 
-                  all transactions and has undergone testing across multinational 
-                  and small-scale businesses. It also has the added benefit of 
-                  removing opportunities for fraud.
+                  <br />
+                Linking delivery to value to payment without complicated and time-consuming invoice processes, optimizes cash flow,  reduces opportunities for error and fraud, and establishes a clear audit trail.
                 </p>
               </div>
             </div>

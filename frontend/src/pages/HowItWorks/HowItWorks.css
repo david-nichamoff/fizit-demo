@@ -45,8 +45,20 @@
   align-items: center;
 }
 
+.how-it-works .flow-image {
+  position: relative;
+  width: 95%;
+  display: flex; 
+  justify-content: center;
+  align-items: center;
+}
+
 .how-it-works .iot-image img {
   width: 100%;
+}
+
+.how-it-works .flow-image img {
+  width: 85%;
 }
 
 .how-it-works .trust-image img {

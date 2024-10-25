@@ -78,6 +78,25 @@ export const GetAQuote = () => {
   return (
     <div className="quote">
       <Header loginState="default" />
+      <div className="right-blade">
+        <div className="right-container">
+          <p className="right-header">
+            FIZIT is right when…
+          </p>
+          <p className="right-text">
+            Delivery is confirmed electronically<br/>
+          </p>
+          <p className="right-text">
+            Access to digital delivery information is available<br />
+          </p>
+          <p className="right-text">
+            Buy/sell contracts are unambiguous<br />
+          </p>
+          <p className="right-text">
+            Invoicing frequency is monthly or more, or on-delivery
+          </p>
+        </div>
+      </div>
       <div className="quote-container">
         <h1>Contact Us</h1>
         <form onSubmit={handleSubmit} className="quote-form">
