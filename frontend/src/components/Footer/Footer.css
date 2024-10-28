@@ -107,7 +107,7 @@
 
   .footer .nav-center {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 20px;              
     width: 100%;           
     position: static;     
