@@ -21,8 +21,7 @@
   margin: 0 auto;
 }
 
-.footer .nav-left,
-.footer .nav-right {
+.footer .nav-left {
   align-items: center;
   display: flex;
   gap: 10px;
@@ -38,11 +37,12 @@
 .footer .nav-center {
   align-items: flex-start;
   display: flex;
-  gap: 10%;
+  justify-content: space-around; 
   margin: 0 auto;
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+  width: 40%; 
 }
 
 .footer .column-header {
@@ -59,11 +59,6 @@
   margin-bottom: 8px;
   color: var(--color-white);
   white-space: nowrap; 
-}
-
-.footer .nav-right {
-  flex-direction: column;
-  gap: 32px;
 }
 
 .footer .logo-instance {
@@ -93,54 +88,84 @@
   width: 90%;
 }
 
-@media (max-width: 1200px) {
-  .footer .nav-center {
-    gap: 8%;
-  }
-}
-
-@media (max-width: 992px) {
-  .footer .nav-center {
-    gap: 6%;
-  }
-}
-
 @media (max-width: 768px) {
-  .footer .nav-center {
-    gap: 4%;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: flex-start;
+
+  .footer .container {
+    flex-direction: column; 
+    align-items: center;    
+    text-align: center;    
   }
 
-  .footer .column-header {
-    margin-bottom: 20px; /* Adjust margin as needed */
+  .footer .column-text {
+    font-size: var(--body-bold-font-size);
   }
-}
 
-@media (max-width: 576px) {
+  .footer .logo-instance {
+    margin-bottom: 10px;
+    align-self: center;     
+  }
+
   .footer .nav-center {
-    gap: 10%;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: flex-start;
-    position: static;
-    transform: none;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;              
+    width: 100%;           
+    position: static;     
+    transform: none;     
+    margin-top: 10px;   
+  }
+
+  .footer .nav-center .column-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    text-align: center;
   }
 
   .footer .nav-left {
     justify-content: center;
     padding-left: 0;
   }
+}
+
+@media (max-width: 576px) {
+
+  .footer .container {
+    flex-direction: column; 
+    align-items: center;    
+    text-align: center;    
+  }
 
   .footer .logo-instance {
     margin-bottom: 10px;
+    align-self: center;     
   }
 
-  .footer .container {
+  .footer .column-text {
+    font-size: var(--body-bold-font-size);
+  }
+
+  .footer .nav-center {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;              
+    width: 100%;           
+    position: static;     
+    transform: none;     
+    margin-top: 10px;   
+  }
+
+  .footer .nav-center .column-header {
+    display: flex;
     flex-direction: column;
     align-items: center;
+    width: 100%;
+    text-align: center;
+  }
+
+  .footer .nav-left {
+    justify-content: center;
+    padding-left: 0;
   }
 }

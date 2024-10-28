@@ -8,14 +8,10 @@
 }
 
 .frontpage .blade {
-  align-items: center;
   align-self: stretch;
-  display: flex;
   flex: 0 0 auto;
-  flex-direction: column;
   padding: 120px 0px 0px;
-  position: relative;
-  width: 100%;
+  width: 90%;
   max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
@@ -195,12 +191,11 @@
     transform: translate(-50%, -50%); 
   }
 
-  /* Add this new rule to adjust button and button text display */
   .frontpage .hero-quote-grid {
     flex-direction: column;
     align-items: center;
     width: 100%;
     text-align: center;
-    gap: 16px; /* Adjust the gap as needed */
+    gap: 16px; 
   }
 }
