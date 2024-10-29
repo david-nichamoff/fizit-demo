@@ -13,31 +13,35 @@ export const ForBuyers = () => {
   return (
     <div className="for-buyers">
       <Header loginState="default" />
-      <div className="blade">
-        <div className="hero-container">
-          <div className="hero-grid">
-            <div className="hero-frame">
-              <div className="hero-text-frame">
-                <p className="hero-heading">Why FIZIT?</p>
-                <p className="hero-text">
-                  It's Your Money and Timing is Everything
-                </p>
+      <div className="for-buyers-columns">
+        <div className="for-buyers-left">
+          <div className="blade">
+            <div className="hero-container">
+              <div className="hero-grid">
+                <div className="hero-frame">
+                  <div className="hero-text-frame">
+                    <p className="hero-heading">Why FIZIT?</p>
+                    <p className="hero-text">
+                    It's Your Money and Timing is Everything
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+          <div className="buyer-image">
+            <img className="buyer" alt="buyer" src={buyerImage} />
+          </div>
         </div>
-      </div>
-      <div className="buyer-image">
-          <img className="buyer" alt="buyer" src={buyerImage} />
-      </div>
-      <div className="quote-blade">
-        <div className="quote-container">
-          <p className="quote-text">
-          “Lengthening DPO is part of the path  to best-in-class cash conversion cycles.  We’re seeking DPO of 90+ days, while securing a strong supply chain and becoming a customer of choice.”
-          </p>
-          <p className="attribution-text">
-            Chief Procurement Officer, Chemical Manufacturer
-          </p>
+        <div className="for-buyers-right">
+          <div className="quote-container">
+            <p className="quote-text">
+            “Lengthening DPO is part of the path  to best-in-class cash conversion cycles.  We’re seeking DPO of 90+ days, while securing a strong supply chain and becoming a customer of choice.”
+            </p>
+            <p className="attribution-text">
+              Chief Procurement Officer, Chemical Manufacturer
+            </p>
+          </div>
         </div>
       </div>
       <Footer loginState="default" />

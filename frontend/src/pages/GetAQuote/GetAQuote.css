@@ -124,54 +124,46 @@ textarea {
 }
 
 @media (max-width: 1200px) {
-  .for-buyers .blade-heading {
-    font-size: calc(var(--heading-2-font-size) - 5px) !important; 
+  .quote .right-text {
+    font-size: calc(var(--body-regular-font-size) - 0px);
   }
 
-  .for-buyers .cash-image {
-    width: 65%;
+  h1 {
+    font-size: calc(var(--heading-2-font-size) - 10px);
   }
 }
 
 @media (max-width: 992px) {
-  .for-buyers .blade-heading {
-    font-size: calc(var(--heading-2-font-size) - 10px) !important;
+  .quote .right-text {
+    font-size: calc(var(--body-regular-font-size) - 2px);
   }
 
-  .for-buyers .cash-image {
-    width: 70%;
+  h1 {
+    font-size: calc(var(--heading-2-font-size) - 20px);
   }
 }
 
 @media (max-width: 768px) {
-  .for-buyers .blade-heading {
-    font-size: calc(var(--heading-2-font-size) - 20px) !important;
+  .quote .right-text {
+    font-size: calc(var(--body-regular-font-size) - 4px);
   }
 
-  .for-buyers .blade-container {
-    flex-direction: column;
-    align-items: center;
+  h1 {
+    font-size: calc(var(--heading-2-font-size) - 30px);
   }
 
-  .for-buyers .cash-image {
-    margin-top: 40px;
-    width: 70%;
+  .submit-button {
+    width: 40%;
   }
 }
 
 @media (max-width: 576px) {
-  .for-buyers .blade-heading {
-    font-size: calc(var(--heading-2-font-size) - 30px) !important;
+  .quote .right-text {
+    font-size: calc(var(--body-regular-font-size) - 4px);
   }
 
-  .for-buyers .blade-container {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .for-buyers .cash-image {
-    margin-top: 40px;
-    width: 50%;
+  h1 {
+    font-size: calc(var(--heading-2-font-size) - 40px);
   }
 
   .submit-button {

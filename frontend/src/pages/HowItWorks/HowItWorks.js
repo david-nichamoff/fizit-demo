@@ -20,8 +20,9 @@ export const HowItWorks = () => {
           <div className="blade-grid">
             <div className="blade-frame">
               <div className="blade-text-frame">
-                <p className="blade-heading">
-                As simple as buying gas…FIZIT is the flex you need to optimize cash flow
+                <p className="blade-heading">As Simple as Buying Gas</p>
+                <p className="blade-text">
+                  FIZIT is the flex you need to optimize cash flow
                 </p>
               </div>
             </div>

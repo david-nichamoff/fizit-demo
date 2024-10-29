@@ -13,31 +13,35 @@ export const ForSellers = () => {
   return (
     <div className="for-sellers">
       <Header loginState="default" />
-      <div className="blade">
-        <div className="hero-container">
-          <div className="hero-grid">
-            <div className="hero-frame">
-              <div className="hero-text-frame">
-                <p className="hero-heading">Why FIZIT?</p>
-                <p className="hero-text">
-                  It's Your Money and Timing is Everything
-                </p>
+      <div className="for-sellers-columns">
+        <div className="for-sellers-left">
+          <div className="blade">
+            <div className="hero-container">
+              <div className="hero-grid">
+                <div className="hero-frame">
+                  <div className="hero-text-frame">
+                    <p className="hero-heading">Why FIZIT?</p>
+                    <p className="hero-text">
+                    It's Your Money and Timing is Everything
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+          <div className="seller-image">
+            <img className="seller" alt="seller" src={sellerImage} />
+          </div>
         </div>
-      </div>
-      <div className="seller-image">
-          <img className="seller" alt="seller" src={sellerImage} />
-      </div>
-      <div className="quote-blade">
-        <div className="quote-container">
-          <p className="quote-text">
-          “Growth requires capital, and my customers have my money.” 
-          </p>
-          <p className="attribution-text">
-            Owner, Oilfield Services Company
-          </p>
+        <div className="for-sellers-right">
+          <div className="quote-container">
+            <p className="quote-text">
+            “Growth requires capital, and my customers have my money.” 
+            </p>
+            <p className="attribution-text">
+              Owner, Oilfield Services Company
+            </p>
+          </div>
         </div>
       </div>
       <Footer loginState="default" />
