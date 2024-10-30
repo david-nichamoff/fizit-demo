@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { Footer } from "../../components/Footer/Footer";
 import { Header } from "../../components/Header/Header";
+import { Button } from "../../components/Button/Button";
 
 import buyerImage from "../../../static/assets/image/for_buyers.png";
 
@@ -41,6 +42,15 @@ export const ForBuyers = () => {
             <p className="attribution-text">
               Chief Procurement Officer, Chemical Manufacturer
             </p>
+          </div>
+          <div className="button-container">
+            <Button
+              className="quote-button"
+              size="default"
+              style="primary"
+              text="Contact Us"
+              onClick={() => navigate("/get-a-quote")}
+            />
           </div>
         </div>
       </div>

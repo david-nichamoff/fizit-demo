@@ -114,7 +114,7 @@
 }
 
 .for-buyers .quote-container {
-  background-color: var(--color-purple-main);
+  background-color: var(--color-mint-darker-1);
   width: 90%;
   padding: 20px;
   display: flex;
@@ -147,6 +147,12 @@
   text-align: left;
   max-width: 100%;
   margin-top: 10px;
+}
+
+.button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px; /* Adjust as needed for spacing */
 }
 
 @media (max-width: 1200px) {
