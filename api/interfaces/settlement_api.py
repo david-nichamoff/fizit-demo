@@ -32,7 +32,7 @@ class SettlementAPI:
         self.logger = logging.getLogger(__name__)
         self.initialized = True  # Mark this instance as initialized
 
-        self.wallet_addr = self.config["transactor_wallet_addr"]
+        self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
         self.checksum_wallet_addr = to_checksum_address(self.wallet_addr)
 
     def from_timestamp(self, ts):

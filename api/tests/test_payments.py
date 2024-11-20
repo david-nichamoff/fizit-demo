@@ -10,8 +10,8 @@ from rest_framework import status
 
 from api.managers import SecretsManager, ConfigManager
 
-from api.tests.operations import ContractOperations, PartyOperations, SettlementOperations
-from api.tests.operations import TransactionOperations, CsrfOperations, BankOperations
+from api.operations import ContractOperations, PartyOperations, SettlementOperations
+from api.operations import TransactionOperations, CsrfOperations, BankOperations
 
 class PayAdvanceTests(TestCase):
 

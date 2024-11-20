@@ -1,0 +1,141 @@
+{
+    "contract_0": {
+        "contract_idx": 0,
+        "extended_data": {
+            "contract_ext_id": "contract number 100"
+        },
+        "contract_name": "Contract with everything",
+        "contract_type": "advance",
+        "funding_instr": {
+            "bank": "mercury",
+            "account_id": "61396d72-e780-11ee-b69b-137ed758771c",
+            "recipient_id": "627ecace-e780-11ee-b69b-f311fd81fcb4"
+        },
+        "service_fee_pct": "0.0250",
+        "service_fee_max": "0.0250",
+        "service_fee_amt": "5.50",
+        "advance_pct": "0.8000",
+        "late_fee_pct": "0.2200",
+        "transact_logic": {
+            "var": "invoice_amt"
+        },
+        "min_threshold": "-1000.00",
+        "max_threshold": "10000.00",
+        "notes": "contract with everything",
+        "is_active": true,
+        "is_quote": false,
+        "parties": [
+            {
+                "contract_idx": 0,
+                "party_idx": 0,
+                "party_code": "HaulerCo",
+                "party_type": "seller",
+                "party_address": "0x2000000000000000000000000000000000000000"
+            },
+            {
+                "contract_idx": 0,
+                "party_idx": 1,
+                "party_code": "OilCo",
+                "party_type": "buyer",
+                "party_address": "0x1000000000000000000000000000000000000000"
+            },
+            {
+                "contract_idx": 0,
+                "party_idx": 2,
+                "party_code": "FloatCo",
+                "party_type": "funder",
+                "party_address": "0x3000000000000000000000000000000000000000"
+            }
+        ],
+        "settlements": [
+            {
+                "contract_idx": 0,
+                "settle_idx": 0,
+                "contract_name": "Contract with everything",
+                "extended_data": {
+                    "settlement_id": "settlement number 1"
+                },
+                "funding_instr": "{'bank': 'mercury', 'account_id': '61396d72-e780-11ee-b69b-137ed758771c', 'recipient_id': '627ecace-e780-11ee-b69b-f311fd81fcb4'}",
+                "settle_due_dt": "2024-03-01T00:00:00Z",
+                "transact_min_dt": "2024-02-01T00:00:00Z",
+                "transact_max_dt": "2024-03-01T00:00:00Z",
+                "transact_count": 2,
+                "advance_amt": "3941.50",
+                "advance_amt_gross": "4080.00",
+                "settle_pay_dt": null,
+                "settle_exp_amt": "5100.00",
+                "settle_pay_amt": "0.00",
+                "settle_confirm": "",
+                "dispute_amt": "0.00",
+                "dispute_reason": "",
+                "days_late": 0,
+                "late_fee_amt": "0.00",
+                "residual_pay_dt": null,
+                "residual_exp_amt": "1020.00",
+                "residual_pay_amt": "0.00",
+                "residual_confirm": "",
+                "residual_calc_amt": "0.00"
+            }
+        ],
+        "transactions": [
+            {
+                "contract_idx": 0,
+                "transact_idx": 0,
+                "extended_data": {
+                    "transaction_id": "transaction number 2"
+                },
+                "funding_instr": "{'bank': 'mercury', 'account_id': '61396d72-e780-11ee-b69b-137ed758771c', 'recipient_id': '627ecace-e780-11ee-b69b-f311fd81fcb4'}",
+                "transact_dt": "2024-02-16T00:00:00Z",
+                "transact_amt": "2600.00",
+                "service_fee_amt": "70.50",
+                "advance_amt": "2009.50",
+                "transact_data": {
+                    "invoice_amt": 2600.0
+                },
+                "advance_pay_dt": null,
+                "advance_pay_amt": "0.00",
+                "advance_confirm": ""
+            },
+            {
+                "contract_idx": 0,
+                "transact_idx": 1,
+                "extended_data": {
+                    "transaction_id": "transaction number 1"
+                },
+                "funding_instr": "{'bank': 'mercury', 'account_id': '61396d72-e780-11ee-b69b-137ed758771c', 'recipient_id': '627ecace-e780-11ee-b69b-f311fd81fcb4'}",
+                "transact_dt": "2024-02-15T00:00:00Z",
+                "transact_amt": "2500.00",
+                "service_fee_amt": "68.00",
+                "advance_amt": "1932.00",
+                "transact_data": {
+                    "invoice_amt": 2500.0
+                },
+                "advance_pay_dt": null,
+                "advance_pay_amt": "0.00",
+                "advance_confirm": ""
+            }
+        ],
+        "artifacts": [
+            {
+                "contract_idx": 0,
+                "artifact_idx": 0,
+                "doc_title": "FIZIT+Executive+Summary.pdf",
+                "doc_type": "application/pdf",
+                "added_dt": "2024-10-03T20:36:28Z",
+                "s3_bucket": "fizit-devnet-artifacts",
+                "s3_object_key": "0/FIZIT+Executive+Summary.pdf",
+                "s3_version_id": "3mxbov37S5O_IuOAHGwlmvJi3TLZEu7r"
+            },
+            {
+                "contract_idx": 0,
+                "artifact_idx": 1,
+                "doc_title": "Fizit+Introduction+2023-12.pdf",
+                "doc_type": "application/pdf",
+                "added_dt": "2024-10-03T20:36:28Z",
+                "s3_bucket": "fizit-devnet-artifacts",
+                "s3_object_key": "0/Fizit+Introduction+2023-12.pdf",
+                "s3_version_id": "Z4rOnt9Ee84VvbCYfXwHu3yR0zwuHwgr"
+            }
+        ]
+    }
+}

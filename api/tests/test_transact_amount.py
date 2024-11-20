@@ -7,8 +7,8 @@ from decimal import Decimal, ROUND_DOWN
 from django.test import TestCase
 from rest_framework import status
 
-from api.tests.operations import ContractOperations, PartyOperations, SettlementOperations
-from api.tests.operations import TransactionOperations, CsrfOperations
+from api.operations import ContractOperations, PartyOperations, SettlementOperations
+from api.operations import TransactionOperations, CsrfOperations
 
 from api.managers import SecretsManager, ConfigManager
 

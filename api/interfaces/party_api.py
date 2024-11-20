@@ -26,7 +26,7 @@ class PartyAPI:
 
         self.ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
-        self.wallet_addr = self.config["transactor_wallet_addr"]
+        self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
         self.checksum_wallet_addr = to_checksum_address(self.wallet_addr)
 
     def get_party_dict(self, party, party_idx, contract_idx):
@@ -57,7 +57,7 @@ class PartyAPI:
         try:
             self.validate_parties(parties)
             for party in parties:
-                party_address = self.get_party_address(party["party_code"])
+                party_address = self.w3.to_checksum_address(self.get_party_address(party["party_code"]))
                 nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
 
                 # Build the transaction
@@ -81,10 +81,10 @@ class PartyAPI:
     def get_party_address(self, party_code):
         """Retrieve the party address based on party code from config."""
         try:
-            party_list = self.config.get("party_code", [])
-            for party in party_list:
-                if party["party_code"] == party_code:
-                    return party["address"]
+            parties = self.config.get("party_addr", [])
+            for party in parties:
+                if party["key"] == party_code:
+                    return party["value"]
             raise ValueError(f"Party with code '{party_code}' does not exist in the config.")
         except Exception as e:
             self.logger.error(f"Error retrieving address for party code '{party_code}': {str(e)}")
@@ -135,12 +135,12 @@ class PartyAPI:
     def validate_parties(self, parties):
         """Validate the parties before adding them to the contract."""
         try:
-            party_codes = self.config.get("party_code", [])
+            party_codes = self.config.get("party_addr", [])
             for party in parties:
                 # Validate party_code
                 if not party.get("party_code"):
                     raise ValueError("Party code is missing or empty.")
-                if not any(p["party_code"] == party["party_code"] for p in party_codes):
+                if not any(p["key"] == party["party_code"] for p in party_codes):
                     raise ValueError(f"Party code '{party['party_code']}' does not exist.")
 
                 # Validate party_type

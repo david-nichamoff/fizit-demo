@@ -7,7 +7,7 @@ from django.test import TestCase
 from rest_framework import status
 
 from api.managers import SecretsManager, ConfigManager
-from api.tests.operations import ContractOperations, ArtifactOperations, CsrfOperations
+from api.operations import ContractOperations, ArtifactOperations, CsrfOperations
 
 class TestArtifacts(TestCase):
     @classmethod

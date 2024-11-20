@@ -64,6 +64,23 @@ class ConfigManager:
         # Return the value associated with the key, or default if not found
         return self._config_cache.get(key, default)
 
+    def get_nested_config_value(self, parent_key, child_key, default=None):
+        """
+        Retrieve a value from a nested configuration where the parent key contains a list of dictionaries.
+        :param parent_key: The key of the parent configuration (e.g., 'rpc').
+        :param child_key: The key within the nested dictionaries (e.g., 'fizit').
+        :param default: The default value to return if the key is not found.
+        """
+        nested_list = self.get_config_value(parent_key, [])
+        if not isinstance(nested_list, list):
+            logger.error(f"Expected a list for '{parent_key}', got: {type(nested_list)}")
+            raise ValueError(f"Configuration '{parent_key}' is not a list.")
+
+        result = next((item['value'] for item in nested_list if item.get('key') == child_key), default)
+        if result is default:
+            logger.warning(f"'{child_key}' not found in configuration '{parent_key}', returning default: {default}")
+        return result
+
     def update_config_value(self, key, new_value):
         """Update a specific configuration value and write it back to the JSON file."""
         if self._config_cache is None:

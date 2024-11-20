@@ -1,0 +1,19 @@
+{
+    "params" :
+        {
+            "start_date" : "2024-02-01T20:39:53Z",
+            "end_date" : "2024-08-28T20:39:53Z"   
+        },
+    "deposits" :
+    {
+        "settle_idx": 0,
+        "dispute_reason": "none",
+        "settle_confirm": "confirmed",
+        "bank": "mercury",
+        "account_id": "61396d72-e780-11ee-b69b-137ed758771c",
+        "deposit_id": "62916e22-e780-11ee-b69b-2b4a3aa5b5d9",
+        "counterparty": "Frank Lloyd Wright, Inc.",
+        "deposit_amt": 5000.0,
+        "deposit_dt": "2024-03-21T12:41:45.690261Z"
+    }
+}

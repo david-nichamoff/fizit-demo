@@ -27,7 +27,7 @@ class ContractAPI:
         self.logger = logging.getLogger(__name__)
         self.initialized = True 
 
-        self.wallet_addr = self.config["transactor_wallet_addr"]
+        self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
         self.checksum_wallet_addr = to_checksum_address(self.wallet_addr)
 
     def get_contract_count(self):
@@ -243,7 +243,7 @@ class ContractAPI:
             )
 
         # Check if the funding_instr.bank is valid
-        if contract_dict["funding_instr"]["bank"] not in ['mercury']:
+        if contract_dict["funding_instr"]["bank"] not in ['mercury', 'token']:
             raise ValueError(f"Invalid bank: '{contract_dict['funding_instr']['bank']}'. Valid banks are: 'mercury'.")
 
         # Check if the percentage fields are valid

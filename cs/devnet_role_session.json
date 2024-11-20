@@ -1,0 +1,30 @@
+{
+  "org_id": "Org#99ac1dcc-598e-4df0-a856-5798969c18a3",
+  "role_id": "Role#678259b3-0363-4238-80a7-1f88951ae560",
+  "expiration": 1761938153,
+  "purpose": "Testing Session",
+  "token": "3d6fd7397:MWQ5NGY0OTMtNDdmZi00YThjLThlMGUtMDY1ZmYwNGUyZGZi.eyJlcG9jaF9udW0iOjEsImVwb2NoX3Rva2VuIjoiMnB0OHBVSGtpTitHQVZIMklvUjBKZE5WU2VSQ1FLRnRSYTIvN1ZkNmZsbz0iLCJvdGhlcl90b2tlbiI6IjFlQTVzNkxKM1Z6U3V2clFFam05ZTlPTXJ5TlFkWU9TZXVEUU1CamZFWGM9In0=",
+  "refresh_token": "3d6fd7397:MWQ5NGY0OTMtNDdmZi00YThjLThlMGUtMDY1ZmYwNGUyZGZi.eyJlcG9jaF9udW0iOjEsImVwb2NoX3Rva2VuIjoiMnB0OHBVSGtpTitHQVZIMklvUjBKZE5WU2VSQ1FLRnRSYTIvN1ZkNmZsbz0iLCJvdGhlcl90b2tlbiI6IjFlQTVzNkxKM1Z6U3V2clFFam05ZTlPTXJ5TlFkWU9TZXVEUU1CamZFWGM9In0=.gY9njYxFsxbfTA0i++3KrxVfNL6sk1B0VcE2GbfzJJ4=",
+  "env": {
+    "Dev-CubeSignerStack": {
+      "ClientId": "1tiou9ecj058khiidmhj4ds4rj",
+      "GoogleDeviceClientId": "59575607964-nc9hjnjka7jlb838jmg40qes4dtpsm6e.apps.googleusercontent.com",
+      "GoogleDeviceClientSecret": "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",
+      "Region": "us-east-1",
+      "UserPoolId": "us-east-1_RU7HEslOW",
+      "SignerApiRoot": "https://gamma.signer.cubist.dev",
+      "DefaultCredentialRpId": "cubist.dev",
+      "EncExportS3BucketName": null,
+      "DeletedKeysS3BucketName": null
+    }
+  },
+  "session_info": {
+    "auth_token": "1eA5s6LJ3VzSuvrQEjm9e9OMryNQdYOSeuDQMBjfEXc=",
+    "auth_token_exp": 1761938153,
+    "epoch": 1,
+    "epoch_token": "2pt8pUHkiN+GAVH2IoR0JdNVSeRCQKFtRa2/7Vd6flo=",
+    "refresh_token": "gY9njYxFsxbfTA0i++3KrxVfNL6sk1B0VcE2GbfzJJ4=",
+    "refresh_token_exp": 1730402154,
+    "session_id": "1d94f493-47ff-4a8c-8e0e-065ff04e2dfb"
+  }
+}

@@ -3,8 +3,8 @@ import json
 from django.test import TestCase
 from rest_framework import status
 
-from api.tests.operations import ContractOperations, PartyOperations
-from api.tests.operations import SettlementOperations, TransactionOperations
+from api.operations import ContractOperations, PartyOperations
+from api.operations import SettlementOperations, TransactionOperations
 
 from api.managers import SecretsManager, ConfigManager
 

@@ -1,0 +1,17 @@
+{
+    "extended_data"    : {"contract_ext_id":"contract number 100"},
+    "contract_name"    : "Small amount contract",
+    "contract_type"    : "advance",
+    "funding_instr"    : {"bank": "token", "token": "usdc"},
+    "service_fee_pct"  : "0.0250",
+    "service_fee_max"  : "0.0250",
+    "service_fee_amt"  : "0.00",
+    "advance_pct"      : "0.8000",
+    "late_fee_pct"     : "0.2200",
+    "transact_logic"   : {"var" : "invoice_amt"},
+    "min_threshold"    : "-1000.00",
+    "max_threshold"    : "10000.00",
+    "notes"            : "contract to test token transfers",
+    "is_active"        : true,
+    "is_quote"         : false
+}

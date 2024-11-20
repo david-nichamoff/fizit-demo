@@ -20,7 +20,7 @@ class Command(BaseCommand):
         self._initialize_config()
 
         # Import the exported data if transfer_data flag is set
-        fixture_file_path = os.path.join(settings.BASE_DIR, 'api', 'management', 'commands', 'fixtures', f'{import_contract_addr}_export.json')
+        fixture_file_path = os.path.join(settings.BASE_DIR, 'api', 'management', 'commands', 'fixtures', 'export', f'{import_contract_addr}_export.json')
         if os.path.exists(fixture_file_path):
             self._import_contract_data(fixture_file_path, import_contract_addr)
         else:

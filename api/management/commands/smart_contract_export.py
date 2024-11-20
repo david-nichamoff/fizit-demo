@@ -81,7 +81,7 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR(f"Failed to retrieve artifacts for contract_idx {contract_idx}"))
 
         # Save the exported data to a JSON file
-        export_file_path = os.path.join(settings.BASE_DIR, 'api', 'management', 'commands', 'fixtures', f'{self.config['contract_addr']}_export.json')
+        export_file_path = os.path.join(settings.BASE_DIR, 'api', 'management', 'commands', 'fixtures', 'export', f'{self.config['contract_addr']}_export.json')
 
         os.makedirs(os.path.dirname(export_file_path), exist_ok=True)
         with open(export_file_path, 'w') as f:

@@ -34,7 +34,7 @@ class TransactionAPI:
         self.logger = logging.getLogger(__name__)
         self.initialized = True  # Mark this instance as initialized
 
-        self.wallet_addr = self.config["transactor_wallet_addr"]
+        self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
         self.checksum_wallet_addr = to_checksum_address(self.wallet_addr)
 
     def from_timestamp(self, ts):
@@ -137,7 +137,7 @@ class TransactionAPI:
     def delete_transactions(self, contract_idx):
         try:
             nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
-            self.logger.info(f"Initiating delete for contract {contract_idx} from {self.config['transactor_wallet_addr']}")
+            self.logger.info(f"Initiating delete for contract {contract_idx} from {self.wallet_addr}")
             
             # Estimate the gas required for the transaction
             transaction = self.w3_contract.functions.deleteTransactions(contract_idx).build_transaction({

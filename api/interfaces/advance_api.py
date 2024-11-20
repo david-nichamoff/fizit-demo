@@ -4,9 +4,9 @@ from decimal import Decimal
 
 from datetime import timezone
 
-from api.managers import ConfigManager,Web3Manager
+from api.managers import ConfigManager, Web3Manager
 from api.interfaces import TransactionAPI, ContractAPI
-from api.adapters.bank import MercuryAdapter
+from api.adapters.bank import MercuryAdapter, TokenAdapter
 
 from eth_utils import to_checksum_address
 
@@ -28,11 +28,12 @@ class AdvanceAPI:
         self.contract_api = ContractAPI()
 
         self.mercury_adapter = MercuryAdapter()
+        self.token_adapter = TokenAdapter()
 
         self.logger = logging.getLogger(__name__)
         self.initialized = True  # Mark this instance as initialized
 
-        self.wallet_addr = self.config["transactor_wallet_addr"]
+        self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
         self.checksum_wallet_addr = to_checksum_address(self.wallet_addr)
 
     def from_timestamp(self, ts):
@@ -51,8 +52,8 @@ class AdvanceAPI:
                     "contract_idx": contract["contract_idx"],
                     "transact_idx": transact["transact_idx"],
                     "bank": contract["funding_instr"]["bank"],
-                    "account_id": contract["funding_instr"]["account_id"],
-                    "recipient_id": contract["funding_instr"]["recipient_id"],
+                    "account_id": contract["funding_instr"].get("account_id"),
+                    "recipient_id": contract["funding_instr"].get("recipient_id"),
                     "advance_amt": transact["advance_amt"]
                 }
                 advances.append(advance_dict)
@@ -61,17 +62,34 @@ class AdvanceAPI:
 
     def add_advances(self, contract_idx, advances):
         contract = self.contract_api.get_contract(contract_idx)
+        self.logger.info(f"advances {advances}")
+        self.logger.info(f"contract {contract}")
 
         for advance in advances:
             try:
-                # Directly use the mercury_adapter to make the payment
-                success, error_message = self.mercury_adapter.make_payment(
-                    advance["account_id"], advance["recipient_id"], advance["advance_amt"]
-                )
-
-                if not success:
-                    self.logger.error(f"Payment failed for contract {contract_idx}, transaction {advance['transact_idx']}: {error_message}")
-                    raise ValueError(f"Payment failed: {error_message}")
+                if advance["bank"] == "mercury":
+                    # Directly use the mercury_adapter to make the payment
+                    success, error_message = self.mercury_adapter.make_payment(
+                        advance["account_id"], advance["recipient_id"], advance["advance_amt"]
+                    )
+                    if not success:
+                        self.logger.error(f"Payment failed for contract {contract_idx}, transaction {advance['transact_idx']}: {error_message}")
+                        raise ValueError(f"Payment failed: {error_message}")
+                 
+                elif advance["bank"] == "token":
+                    # Use the token_adapter to make the payment
+                    funder_wallet = contract["parties"]["funder"]["wallet_addr"]
+                    recipient_wallet = contract["parties"]["seller"]["wallet_addr"]
+                    self.logger.info(f"funder_wallet {recipient_wallet}")
+                    success, error_message = self.token_adapter.make_payment(
+                        funder_wallet, recipient_wallet, advance["token"], advance["advance_amt"]
+                    )
+                    if not success:
+                        self.logger.error(f"Token transfer failed for contract {contract_idx}, transaction {advance['transact_idx']}: {error_message}")
+                        raise ValueError(f"Token transfer failed: {error_message}")
+                else:
+                    self.logger.error(f"Unsupported bank type {advance['bank']} for contract {contract_idx}")
+                    raise ValueError(f"Unsupported bank type: {advance['bank']}")
 
                 nonce = self.w3_manager.get_web3_instance().eth.get_transaction_count(self.checksum_wallet_addr)
                 current_time = int(datetime.datetime.now().timestamp())

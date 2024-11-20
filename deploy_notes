@@ -1,4 +1,5 @@
-10/23: install rlp
-10/28: upgrade pip
-    pip install --upgrade web3
-10/28: add cs-keys
+11/4: remove code in api/tests/operations
+11/13: add USDC configuration in config.json
+11/15: create user and role sessions for testnet in AWS
+11/18: update config for wallet list
+11/18: update config for rpc
