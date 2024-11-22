@@ -79,16 +79,14 @@ class Command(BaseCommand):
                 "settle_pay_dt": settlement[7],
                 "settle_exp_amt": settlement[8],
                 "settle_pay_amt": settlement[9],
-                "settle_confirm": settlement[10],
-                "dispute_amt": settlement[11],
-                "dispute_reason": settlement[12],
-                "days_late": settlement[13],
-                "late_fee_amt": settlement[14],
-                "residual_pay_dt": settlement[15],
-                "residual_pay_amt": settlement[16],
-                "residual_confirm": settlement[17],
-                "residual_exp_amt": settlement[18],
-                "residual_calc_amt": settlement[19]
+                "dispute_amt": settlement[10],
+                "dispute_reason": settlement[11],
+                "days_late": settlement[12],
+                "late_fee_amt": settlement[13],
+                "residual_pay_dt": settlement[14],
+                "residual_pay_amt": settlement[15],
+                "residual_exp_amt": settlement[16],
+                "residual_calc_amt": settlement[17]
             }
             settlements_data.append(settlement_data)
         return settlements_data
@@ -100,7 +98,7 @@ class Command(BaseCommand):
         for party in parties:
             party_data = {
                 "party_code": party[0],
-                "party_address": party[1],
+                "party_addr": party[1],
                 "party_type": party[2]
             }
             parties_data.append(party_data)
@@ -119,8 +117,7 @@ class Command(BaseCommand):
                 "advance_amt": transaction[4],
                 "transact_data": transaction[5],
                 "advance_pay_dt": transaction[6],
-                "advance_pay_amt": transaction[7],
-                "advance_confirm": transaction[8]
+                "advance_pay_amt": transaction[7]
             }
             transactions_data.append(transaction_data)
         return transactions_data

@@ -22,11 +22,10 @@ class Command(BaseCommand):
 
         try:
             # Fetch and print advances
-            self.logger.info(f"Fetching advances for contract {contract_idx}")
             advances = self.get_advances(contract_idx)
-            print("\n--- Advances ---")
+            self.stdout.write(self.style.SUCCESS("\n--- Advances ---"))
             for advance in advances:
-                print(advance)
+                self.stdout.write(f"{advance}")
 
             # Conditionally post advances if --post is set
             if post_advances:

@@ -5,7 +5,7 @@ from decimal import Decimal
 from datetime import timezone
 
 from api.managers import ConfigManager, Web3Manager
-from api.interfaces import TransactionAPI, ContractAPI
+from api.interfaces import TransactionAPI, ContractAPI, PartyAPI
 from api.adapters.bank import MercuryAdapter, TokenAdapter
 
 from eth_utils import to_checksum_address
@@ -26,6 +26,7 @@ class AdvanceAPI:
         self.w3 = self.w3_manager.get_web3_instance()
         self.transaction_api = TransactionAPI()
         self.contract_api = ContractAPI()
+        self.party_api = PartyAPI()
 
         self.mercury_adapter = MercuryAdapter()
         self.token_adapter = TokenAdapter()
@@ -43,28 +44,44 @@ class AdvanceAPI:
         advances = []
         transactions = self.transaction_api.get_transactions(contract_idx)
         contract = self.contract_api.get_contract(contract_idx)
+        parties = self.party_api.get_parties(contract_idx)
 
         for transact in transactions:
-            self.logger.info(f"{transact}")
-            self.logger.info(f"{contract}")
             if transact["advance_pay_amt"] == "0.00" and Decimal(transact["advance_amt"]) > Decimal(0.00):
+
+                for party in parties:
+                    if party.get("party_type") == "seller":
+                        recipient_addr = party.get("party_addr")
+                    elif party.get("party_type") == "funder":
+                        funder_addr = party.get("party_addr")    
+
                 advance_dict = {
                     "contract_idx": contract["contract_idx"],
                     "transact_idx": transact["transact_idx"],
                     "bank": contract["funding_instr"]["bank"],
-                    "account_id": contract["funding_instr"].get("account_id"),
-                    "recipient_id": contract["funding_instr"].get("recipient_id"),
+                    "recipient_addr":  recipient_addr,
+                    "funder_addr": funder_addr,
                     "advance_amt": transact["advance_amt"]
                 }
+
+                # Add account_id if it exists
+                if contract["funding_instr"].get("account_id"):
+                    advance_dict["account_id"] = contract["funding_instr"]["account_id"]
+
+                # Add recipient_id if it exists
+                if contract["funding_instr"].get("recipient_id"):
+                    advance_dict["recipient_id"] = contract["funding_instr"]["recipient_id"]
+
+                # Add token_symbol if it exists
+                if contract["funding_instr"].get("token_symbol"):
+                    advance_dict["token_symbol"] = contract["funding_instr"]["token_symbol"]
+
                 advances.append(advance_dict)
 
         return advances
 
     def add_advances(self, contract_idx, advances):
-        contract = self.contract_api.get_contract(contract_idx)
-        self.logger.info(f"advances {advances}")
-        self.logger.info(f"contract {contract}")
-
+        
         for advance in advances:
             try:
                 if advance["bank"] == "mercury":
@@ -78,11 +95,8 @@ class AdvanceAPI:
                  
                 elif advance["bank"] == "token":
                     # Use the token_adapter to make the payment
-                    funder_wallet = contract["parties"]["funder"]["wallet_addr"]
-                    recipient_wallet = contract["parties"]["seller"]["wallet_addr"]
-                    self.logger.info(f"funder_wallet {recipient_wallet}")
                     success, error_message = self.token_adapter.make_payment(
-                        funder_wallet, recipient_wallet, advance["token"], advance["advance_amt"]
+                        advance["contract_idx"], advance["funder_addr"], advance["recipient_addr"], advance["token_symbol"], advance["advance_amt"]
                     )
                     if not success:
                         self.logger.error(f"Token transfer failed for contract {contract_idx}, transaction {advance['transact_idx']}: {error_message}")
@@ -97,13 +111,13 @@ class AdvanceAPI:
 
                 # Build the transaction
                 transaction = self.w3_manager.get_web3_contract().functions.payAdvance(
-                    contract_idx, advance["transact_idx"], current_time, payment_amt, "completed"
+                    contract_idx, advance["transact_idx"], current_time, payment_amt
                 ).build_transaction({
                     "from": self.checksum_wallet_addr,
                     "nonce": nonce
                 })
 
-                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
                 if tx_receipt["status"] != 1:
                     self.logger.error(f"Blockchain transaction failed for contract {contract_idx}, transaction {advance['transact_idx']}.")

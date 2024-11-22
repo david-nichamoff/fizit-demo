@@ -33,7 +33,7 @@ class PartyAPI:
         """Helper function to create party dict structure."""
         return {
             "party_code": party[0],
-            "party_address": party[1],
+            "party_addr": party[1],
             "party_type": party[2],
             "contract_idx": contract_idx,
             "party_idx": party_idx
@@ -57,19 +57,19 @@ class PartyAPI:
         try:
             self.validate_parties(parties)
             for party in parties:
-                party_address = self.w3.to_checksum_address(self.get_party_address(party["party_code"]))
+                party_addr = self.w3.to_checksum_address(self.get_party_address(party["party_code"]))
                 nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
 
                 # Build the transaction
                 transaction = self.w3_contract.functions.addParty(
-                    contract_idx, [party["party_code"], party_address, party["party_type"]]
+                    contract_idx, [party["party_code"], party_addr, party["party_type"]]
                 ).build_transaction({
                     "from": self.checksum_wallet_addr,
                     "nonce": nonce
                 })
 
                 # Send the transaction
-                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
                 if tx_receipt["status"] != 1:
                     raise RuntimeError(f"Failed to add party {party['party_code']} to contract {contract_idx}")
@@ -102,7 +102,7 @@ class PartyAPI:
             })
 
             # Send the transaction
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
             if tx_receipt["status"] != 1:
                 raise RuntimeError(f"Failed to delete parties for contract {contract_idx}")
@@ -123,7 +123,7 @@ class PartyAPI:
             })
 
             # Send the transaction
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
             if tx_receipt["status"] != 1:
                 raise RuntimeError(f"Failed to delete party {party_idx} from contract {contract_idx}")
@@ -156,7 +156,7 @@ class PartyAPI:
     def import_parties(self, contract_idx, parties):
         try:
             for party in parties:
-                party_address = party.get("party_address", self.ZERO_ADDRESS)
+                party_addr = party.get("party_addr", self.ZERO_ADDRESS)
                 party_code = party.get("party_code")
                 party_type = party.get("party_type")
 
@@ -165,14 +165,14 @@ class PartyAPI:
                 # Build the transaction
                 nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
                 transaction = self.w3_contract.functions.importParty(
-                    contract_idx, [party_code, party_address, party_type]
+                    contract_idx, [party_code, party_addr, party_type]
                 ).build_transaction({
                     "from": self.checksum_wallet_addr,
                     "nonce": nonce
                 })
 
                 # Send the transaction
-                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
                 if tx_receipt["status"] != 1:
                     raise RuntimeError(f"Failed to import party {party_code} to contract {contract_idx}")

@@ -57,7 +57,6 @@ class TransactionAPI:
                 "transact_data": decrypted_transact_data,
                 "advance_pay_dt": self.from_timestamp(transact[6]),
                 "advance_pay_amt": f'{Decimal(transact[7]) / 100:.2f}',
-                "advance_confirm": transact[8],
                 "contract_idx": contract['contract_idx'],
                 "funding_instr": contract['funding_instr'],
                 "transact_idx": transact_idx
@@ -124,7 +123,7 @@ class TransactionAPI:
                     {"from": self.checksum_wallet_addr, "nonce": nonce}
                 )
 
-                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
                 if tx_receipt["status"] != 1:
                     raise RuntimeError(f"Failed to add transaction for contract {contract_idx}. Transaction status: {tx_receipt['status']}")
@@ -145,7 +144,7 @@ class TransactionAPI:
                 "nonce": nonce
             })
             
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
             if tx_receipt["status"] != 1:
                 raise RuntimeError(f"Failed to delete transactions for contract {contract_idx}. Transaction status: {tx_receipt['status']}")
@@ -194,7 +193,6 @@ class TransactionAPI:
                     encrypted_transact_data,  # transact_data
                     advance_pay_dt,  # advance_pay_dt
                     int(Decimal(transaction["advance_pay_amt"]) * 100),  # advance_pay_amt
-                    transaction["advance_confirm"]  # advance_confirm
                 )
 
                 # Get the current nonce
@@ -210,7 +208,7 @@ class TransactionAPI:
                 })
 
                 # Send the transaction
-                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
                 if tx_receipt["status"] != 1:
                     raise RuntimeError(f"Blockchain transaction failed for contract {contract_idx} transaction.")

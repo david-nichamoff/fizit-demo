@@ -13,7 +13,7 @@ from api.managers import SecretsManager, ConfigManager
 from api.operations import ContractOperations, PartyOperations, SettlementOperations
 from api.operations import TransactionOperations, CsrfOperations, BankOperations
 
-class PayAdvanceTests(TestCase):
+class PayFiatTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):

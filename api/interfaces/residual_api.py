@@ -89,14 +89,14 @@ class ResidualAPI:
 
                     # Build the transaction
                     transaction = self.w3_contract.functions.payResidual(
-                        contract_idx, residual["settle_idx"], current_time, payment_amt, "completed"
+                        contract_idx, residual["settle_idx"], current_time, payment_amt
                     ).build_transaction({
                         "from": self.checksum_wallet_addr,
                         "nonce": nonce
                     })
 
                     # Send the transaction
-                    tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+                    tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
                     if tx_receipt["status"] != 1:
                         raise RuntimeError("Transaction failed on the blockchain.")

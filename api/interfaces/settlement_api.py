@@ -55,16 +55,14 @@ class SettlementAPI:
                 "settle_pay_dt": self.from_timestamp(settle[7]),
                 "settle_exp_amt": f'{Decimal(settle[8]) / 100:.2f}',
                 "settle_pay_amt": f'{Decimal(settle[9]) / 100:.2f}',
-                "settle_confirm": settle[10],
-                "dispute_amt": f'{Decimal(settle[11]) / 100:.2f}',
-                "dispute_reason": settle[12],
-                "days_late": settle[13],
-                "late_fee_amt": f'{Decimal(settle[14]) / 100:.2f}',
-                "residual_pay_dt": self.from_timestamp(settle[15]),
-                "residual_pay_amt": f'{Decimal(settle[16]) / 100:.2f}',
-                "residual_confirm": settle[17],
-                "residual_exp_amt": f'{Decimal(settle[18]) / 100:.2f}',
-                "residual_calc_amt": f'{Decimal(settle[19]) / 100:.2f}',
+                "dispute_amt": f'{Decimal(settle[10]) / 100:.2f}',
+                "dispute_reason": settle[11],
+                "days_late": settle[12],
+                "late_fee_amt": f'{Decimal(settle[13]) / 100:.2f}',
+                "residual_pay_dt": self.from_timestamp(settle[14]),
+                "residual_pay_amt": f'{Decimal(settle[15]) / 100:.2f}',
+                "residual_exp_amt": f'{Decimal(settle[16]) / 100:.2f}',
+                "residual_calc_amt": f'{Decimal(settle[17]) / 100:.2f}',
                 "contract_idx": contract['contract_idx'],
                 "contract_name": contract['contract_name'],
                 "funding_instr": contract['funding_instr'],
@@ -124,7 +122,7 @@ class SettlementAPI:
                 })
 
                 # Send the transaction
-                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
                 if tx_receipt["status"] != 1:
                     raise RuntimeError(f"Blockchain transaction failed for contract {contract_idx} settlement.")
@@ -146,7 +144,7 @@ class SettlementAPI:
             })
 
             # Send the transaction
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
             if tx_receipt["status"] != 1:
                 raise RuntimeError(f"Blockchain transaction failed for deleting settlements in contract {contract_idx}.")
@@ -214,14 +212,12 @@ class SettlementAPI:
                     pay_dt,  # settle_pay_dt
                     int(Decimal(settlement["settle_exp_amt"]) * 100),  # settle_exp_amt
                     int(Decimal(settlement["settle_pay_amt"]) * 100),  # settle_pay_amt
-                    settlement["settle_confirm"],  # settle_confirm
                     int(Decimal(settlement["dispute_amt"]) * 100),  # dispute_amt
                     settlement["dispute_reason"],  # dispute_reason
                     settlement["days_late"],  # days_late
                     int(Decimal(settlement["late_fee_amt"]) * 100),  # late_fee_amt
                     residual_pay_dt,  # residual_pay_dt
                     int(Decimal(settlement["residual_pay_amt"]) * 100),  # residual_pay_amt
-                    settlement["residual_confirm"],  # residual_confirm
                     int(Decimal(settlement["residual_exp_amt"]) * 100),  # residual_exp_amt
                     int(Decimal(settlement["residual_calc_amt"]) * 100),  # residual_calc_amt
                 )
@@ -239,7 +235,7 @@ class SettlementAPI:
                 })
 
                 # Send the transaction
-                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
                 if tx_receipt["status"] != 1:
                     raise RuntimeError(f"Blockchain transaction failed for contract {contract_idx} settlement.")

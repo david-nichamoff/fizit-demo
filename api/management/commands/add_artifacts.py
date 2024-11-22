@@ -23,7 +23,7 @@ class Command(BaseCommand):
 
         # Load JSON file
         json_file_path = os.path.join(
-            'api', 'management', 'commands', 'fixtures', 'contract', 'artifacts.json'
+            'api', 'management', 'commands', 'fixtures', 'contract', 'add_artifacts.json'
         )
         if not os.path.exists(json_file_path):
             self.stdout.write(self.style.ERROR(f'Artifacts JSON file not found: {json_file_path}'))

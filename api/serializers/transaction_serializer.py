@@ -13,4 +13,3 @@ class TransactionSerializer(serializers.Serializer):
     transact_data = serializers.JSONField()
     advance_pay_dt = serializers.DateTimeField(read_only=True)
     advance_pay_amt = serializers.CharField(max_length=20, default = "0.00")
-    advance_confirm = serializers.CharField(read_only=True,max_length=1000)

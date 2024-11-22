@@ -15,6 +15,8 @@ from eth_account._utils.legacy_transactions import Transaction
 from web3.middleware.proof_of_authority import ExtraDataToPOAMiddleware
 
 from api.managers import SecretsManager, ConfigManager
+from api.models.event_models import Event 
+
 
 class Web3Manager:
     _instance = None
@@ -112,79 +114,6 @@ class Web3Manager:
         web3_instance = self.get_web3_instance(network)
         return web3_instance.eth.get_transaction_count(wallet_addr)
 
-    def send_signed_transaction(self, transaction, wallet_addr):
-            web3_instance = self.get_web3_instance()
-
-            # Check if web3 is connected before proceeding
-            if not web3_instance.is_connected():
-                logging.error("Web3 instance is not connected to the Avalanche network.")
-                raise ConnectionError("Web3 instance is not connected")
-
-            org_id = self.config_manager.get_nested_config_value("cs", "org_id")
-            encoded_org_id = urllib.parse.quote(org_id, safe='')
-
-            # Retrieve the session token from config or environment
-            role_session_token = self.keys.get("role_session_token")
-            if not role_session_token:
-                raise ValueError("Session token is missing in the configuration")
-
-            try:
-
-                # Estimate gas
-                estimated_gas = web3_instance.eth.estimate_gas(transaction)
-                max_priority_fee_per_gas = 0
-                max_fee_per_gas = 50000000000
-
-                tx_data = {
-                    "chain_id": self.config.get("chain_id"),
-                    "tx": {
-                        "chain_id": hex(int(self.config.get("chain_id"))),
-                        "gas": hex(estimated_gas),
-                        "maxFeePerGas": hex(max_fee_per_gas),
-                        "maxPriorityFeePerGas": hex(max_priority_fee_per_gas),
-                        "nonce": hex(transaction["nonce"]),
-                        "to": transaction["to"],
-                        "type": "0x2",
-                        "value": hex(transaction["value"]),
-                        "data": transaction.get("data", "0x")
-                    }
-                }
-
-                # Call the signing API
-                cs_url = self.config_manager.get_nested_config_value("cs", "url")
-                api_url = f"{cs_url}/v1/org/{encoded_org_id}/eth1/sign/{wallet_addr}"
-                headers = {
-                    "Content-Type": "application/json",
-                    "accept": "application/json",
-                    "Authorization": f"{role_session_token}"  # Include the session token in the Authorization header
-                }
-
-                response = requests.post(api_url, json=tx_data, headers=headers)
-                response.raise_for_status()  # Check for any HTTP errors
-
-                # Extract the signed transaction from the response
-                signed_tx = response.json().get("rlp_signed_tx")
-                if not signed_tx:
-                    raise ValueError("Signed transaction not found in response")
-
-                signed_tx_bytes = web3_instance.to_bytes(hexstr=signed_tx)
-
-                # Send the signed transaction to the Ethereum network
-                tx_hash = web3_instance.eth.send_raw_transaction(signed_tx_bytes)
-
-                # Add a timeout to wait for the transaction receipt (e.g., 120 seconds)
-                tx_receipt = web3_instance.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
-
-                return tx_receipt
-
-            except requests.exceptions.RequestException as e:
-                logging.error(f"Error sending request to signing API: {str(e)}")
-                raise
-
-            except Exception as e:
-                logging.error(f"Error occurred: {str(e)}")
-                raise
-
     def _decode_signed_transaction(self, signed_tx_raw, source="Core Wallet"):
         logging.info(f"[{source}] EIP-1559 transaction detected")
         decoded_tx = rlp.decode(signed_tx_raw[1:])
@@ -197,3 +126,100 @@ class Web3Manager:
         logging.info(f"[{source}] Recipient Address: {decoded_tx_hexbytes[5].hex()}")
         logging.info(f"[{source}] Transaction Data: {decoded_tx_hexbytes[6].hex()}")
         logging.info(f"[{source}] Full Transaction: {decoded_tx_hexbytes}")
+
+    def send_signed_transaction(self, transaction, wallet_addr, contract_idx, network="fizit"):
+        web3_instance = self.get_web3_instance(network)
+
+        # Check if web3 is connected before proceeding
+        if not web3_instance.is_connected():
+            logging.error(f"Web3 instance is not connected to the {network} network.")
+            raise ConnectionError("Web3 instance is not connected")
+
+        org_id = self.config_manager.get_nested_config_value("cs", "org_id")
+        encoded_org_id = urllib.parse.quote(org_id, safe='')
+
+        # Retrieve the session token from config or environment
+        role_session_token = self.keys.get("role_session_token")
+        if not role_session_token:
+            raise ValueError("Session token is missing in the configuration")
+
+        # Retrieve the chain ID for the specified network
+        chain_config = self.config_manager.get_config_value("chain")
+        chain_entry = next((item for item in chain_config if item["key"] == network), None)
+        if not chain_entry:
+            raise ValueError(f"Chain ID for network '{network}' not found in configuration.")
+
+        chain_id = chain_entry["value"]
+
+        try:
+            # Estimate gas
+            estimated_gas = web3_instance.eth.estimate_gas(transaction)
+            max_priority_fee_per_gas = 0
+            max_fee_per_gas = 50000000000
+
+            tx_data = {
+                "chain_id": chain_id,  # Use the chain ID from configuration
+                "tx": {
+                    "chain_id": hex(chain_id),
+                    "gas": hex(estimated_gas),
+                    "maxFeePerGas": hex(max_fee_per_gas),
+                    "maxPriorityFeePerGas": hex(max_priority_fee_per_gas),
+                    "nonce": hex(transaction["nonce"]),
+                    "to": transaction["to"],
+                    "type": "0x2",
+                    "value": hex(transaction["value"]),
+                    "data": transaction.get("data", "0x")
+                }
+            }
+
+            # Call the signing API
+            cs_url = self.config_manager.get_nested_config_value("cs", "url")
+            api_url = f"{cs_url}/v1/org/{encoded_org_id}/eth1/sign/{wallet_addr}"
+            headers = {
+                "Content-Type": "application/json",
+                "accept": "application/json",
+                "Authorization": f"{role_session_token}"  # Include the session token in the Authorization header
+            }
+
+            response = requests.post(api_url, json=tx_data, headers=headers)
+            response.raise_for_status()  # Check for any HTTP errors
+
+            # Extract the signed transaction from the response
+            signed_tx = response.json().get("rlp_signed_tx")
+            if not signed_tx:
+                raise ValueError("Signed transaction not found in response")
+
+            signed_tx_bytes = web3_instance.to_bytes(hexstr=signed_tx)
+
+            # Send the signed transaction to the network
+            tx_hash = web3_instance.eth.send_raw_transaction(signed_tx_bytes)
+            tx_hash_hex = tx_hash.hex()
+
+            # Ensure the prefix
+            if not tx_hash_hex.startswith("0x"):
+                tx_hash_hex = f"0x{tx_hash_hex}"
+
+            # Create a row in the Event table with known fields
+            Event.objects.create(
+                contract_idx=contract_idx,  
+                network=network,
+                from_addr=transaction["from"],
+                to_addr=transaction["to"],
+                tx_hash=tx_hash_hex,
+                event_type="TransactionSent",
+                details="Pending",
+                status="pending" 
+            )
+
+            # Add a timeout to wait for the transaction receipt (e.g., 120 seconds)
+            tx_receipt = web3_instance.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+
+            return tx_receipt
+
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Error sending request to signing API: {str(e)}")
+            raise
+
+        except Exception as e:
+            logging.error(f"Error occurred: {str(e)}")
+            raise

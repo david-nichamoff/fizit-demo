@@ -8,7 +8,6 @@
     {
         "settle_idx": 0,
         "dispute_reason": "none",
-        "settle_confirm": "confirmed",
         "bank": "mercury",
         "account_id": "61396d72-e780-11ee-b69b-137ed758771c",
         "deposit_id": "62916e22-e780-11ee-b69b-2b4a3aa5b5d9",

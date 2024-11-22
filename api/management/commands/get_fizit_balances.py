@@ -18,10 +18,10 @@ class Command(BaseCommand):
 
         for wallet in wallets:
             wallet_label = wallet.get("key", "Unknown")
-            wallet_address = wallet.get("value")
-            if wallet_address:
-                checksum_wallet_address = to_checksum_address(wallet_address)
-                balance = self._get_native_balance(checksum_wallet_address)
+            wallet_addr = wallet.get("value")
+            if wallet_addr:
+                checksum_wallet_addr = to_checksum_address(wallet_addr)
+                balance = self._get_native_balance(checksum_wallet_addr)
                 if balance is not None:
                     self.stdout.write(self.style.SUCCESS(f"{wallet_label} balance: {balance} FIZIT"))
                 else:

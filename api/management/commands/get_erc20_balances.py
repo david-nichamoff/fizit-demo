@@ -25,24 +25,24 @@ class Command(BaseCommand):
             return
 
         for token in tokens:
-            token_name = token.get("key")
-            token_address = token.get("value")
-            if not token_address:
-                self.stdout.write(self.style.ERROR(f"Token address for {token_name} is missing or invalid."))
+            token_symbol = token.get("key")
+            token_addr = token.get("value")
+            if not token_addr:
+                self.stdout.write(self.style.ERROR(f"Token address for {token_symbol} is missing or invalid."))
                 continue
 
-            self.stdout.write(self.style.SUCCESS(f"Checking balances for token: {token_name} ({token_address})"))
+            self.stdout.write(self.style.SUCCESS(f"Checking balances for token: {token_symbol} ({token_addr})"))
 
             for wallet in wallets:
                 wallet_label = wallet.get("key", "Unknown")
-                wallet_address = wallet.get("value")
-                if wallet_address:
-                    checksum_wallet_address = to_checksum_address(wallet_address)
-                    balance = self._get_erc20_balance(checksum_wallet_address, token_address)
+                wallet_addr = wallet.get("value")
+                if wallet_addr:
+                    checksum_wallet_addr = to_checksum_address(wallet_addr)
+                    balance = self._get_erc20_balance(checksum_wallet_addr, token_addr)
                     if balance is not None:
-                        self.stdout.write(self.style.SUCCESS(f"{wallet_label} balance: {balance} {token_name}"))
+                        self.stdout.write(self.style.SUCCESS(f"{wallet_label} balance: {balance} {token_symbol}"))
                     else:
-                        self.stdout.write(self.style.ERROR(f"Failed to retrieve balance for {wallet_label} ({token_name})"))
+                        self.stdout.write(self.style.ERROR(f"Failed to retrieve balance for {wallet_label} ({token_symbol})"))
                 else:
                     self.stdout.write(self.style.ERROR(f"Wallet address missing for {wallet_label}"))
 
@@ -60,11 +60,11 @@ class Command(BaseCommand):
         self.w3_manager = Web3Manager()
         self.w3 = self.w3_manager.get_web3_instance(network="avalanche")
 
-    def _get_erc20_balance(self, address, token_address):
+    def _get_erc20_balance(self, address, token_addr):
         """Retrieve the ERC-20 token balance of a wallet."""
         try:
             token_contract = self.w3.eth.contract(
-                address=to_checksum_address(token_address), 
+                address=to_checksum_address(token_addr), 
                 abi=self._get_erc20_abi()
             )
 

@@ -23,7 +23,7 @@ class Command(BaseCommand):
 
         # Load JSON file
         json_file_path = os.path.join(
-            'api', 'management', 'commands', 'fixtures', 'contract', 'parties.json'
+            'api', 'management', 'commands', 'fixtures', 'contract', 'add_parties.json'
         )
         if not os.path.exists(json_file_path):
             self.stdout.write(self.style.ERROR(f'Parties JSON file not found: {json_file_path}'))

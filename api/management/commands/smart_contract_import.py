@@ -44,7 +44,7 @@ class Command(BaseCommand):
             'Content-Type': 'application/json'
         }
 
-    def _import_contract_data(self, fixture_file_path, new_contract_address):
+    def _import_contract_data(self, fixture_file_path, new_contract_addr):
         with open(fixture_file_path, 'r') as fixture_file:
             data = json.load(fixture_file)
 

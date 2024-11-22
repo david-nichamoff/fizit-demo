@@ -3,3 +3,4 @@
 11/15: create user and role sessions for testnet in AWS
 11/18: update config for wallet list
 11/18: update config for rpc
+11/21: update event table, truncate it first 

@@ -69,21 +69,20 @@ class DepositAPI:
 
                     # Extract the necessary values
                     settle_idx = deposit["settle_idx"]
-                    settle_confirm = deposit["settle_confirm"]
                     dispute_reason = deposit["dispute_reason"]
 
                     nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
 
                     # Build the transaction
                     transaction = self.w3_contract.functions.postSettlement(
-                        contract_idx, settle_idx, settlement_timestamp, payment_amt, settle_confirm, dispute_reason
+                        contract_idx, settle_idx, settlement_timestamp, payment_amt, dispute_reason
                     ).build_transaction({
                         "from": self.checksum_wallet_addr,
                         "nonce": nonce
                     })
 
                     # Send the transaction
-                    tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+                    tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
                     if tx_receipt["status"] != 1:
                         raise RuntimeError(f"Transaction failed with status: {tx_receipt['status']}")

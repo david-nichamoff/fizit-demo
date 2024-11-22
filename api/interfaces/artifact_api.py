@@ -129,7 +129,7 @@ class ArtifactAPI:
                         "nonce": nonce
                     })
 
-                    tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+                    tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
                     # Check the transaction status
                     if tx_receipt['status'] != 1:
@@ -186,7 +186,7 @@ class ArtifactAPI:
             })
 
             # Send the transaction
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
             if tx_receipt["status"] != 1:
                 raise RuntimeError(f"Failed to delete artifacts on blockchain. Transaction status: {tx_receipt['status']}")
@@ -224,7 +224,7 @@ class ArtifactAPI:
                 })
 
                 # Send the transaction
-                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
                 if tx_receipt["status"] != 1:
                     raise RuntimeError(f"Failed to import artifact {artifact['doc_title']} to contract {contract_idx}")

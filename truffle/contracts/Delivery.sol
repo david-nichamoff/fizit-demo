@@ -14,7 +14,6 @@ contract Delivery {
     // every field ending in _dt is a unix timestamp
     // every field ending in _amt is an integer representing a float with 2 decimals
     // every field ending in _pct is an integer represending a float value with 4 decimals 
-    // every field ending in _confirm is a string returned from the fiat payment provider
 
     struct Contract {
         string extended_data;           // json extended data
@@ -45,14 +44,12 @@ contract Delivery {
         uint settle_pay_dt;             // when the settlement was paid
         int settle_exp_amt;             // expected amount of settlement 0
         int settle_pay_amt;             // actual amount paid from the buyer
-        string settle_confirm;          // confirmation from payment source
         int dispute_amt;                // if expected < actual, assume there was a dispute
         string dispute_reason;          // if dispute_amt > 0, what was the reason (if provided)
         uint days_late;                 // number of days late the payment was made
         int late_fee_amt;               // amount of the late fee, will be taken out of the residual
         uint residual_pay_dt;           // date and time the residual was paid
         int residual_pay_amt;           // will equal residual_calc_amt after payment intitiated
-        string residual_confirm;        // residual confirmation from the payment source
         int residual_exp_amt;           // expected amount of the residual
         int residual_calc_amt;          // what the actual residual will be (exp - late_fee - dispute)
     }
@@ -66,7 +63,6 @@ contract Delivery {
         string transact_data;           // data regarding transaction for jsonlogic    
         uint advance_pay_dt;            // payment of advance
         uint advance_pay_amt;           // will equal advance amt after payment initiated
-        string advance_confirm;         // payment confirmation of the advance from payment source
     }
 
     struct Artifact {
@@ -80,7 +76,7 @@ contract Delivery {
 
     struct Party {
         string party_code;              // code associated with a party
-        address party_address;          // wallet address
+        address party_addr;             // wallet address
         string party_type;              // the type of party associated with contract
     }
 
@@ -213,7 +209,7 @@ contract Delivery {
         settlement.transact_max_dt = transact_max_dt;
         settlement.extended_data = extended_data;
         settlements[contract_idx].push(settlement);
-        emit ContractEvent(contract_idx, "SettlementAdded", settlement.extended_data);
+        emit ContractEvent(contract_idx, "SettlementAdded", uintToString(settle_due_dt));
     }
 
     function deleteSettlements(uint contract_idx) public {
@@ -274,25 +270,23 @@ contract Delivery {
 
         if (settle_found) {
             transactions[contract_idx].push(transact);
-            emit ContractEvent(contract_idx, "TransactionAdded", transact.extended_data);
+            emit ContractEvent(contract_idx, "TransactionAdded", uintToString(transact.transact_dt));
         } else {
             emit ContractEvent(contract_idx, "TransactionError", "No valid settlement period");
         }
     }
 
-    function payAdvance(uint contract_idx, uint transact_idx, uint advance_pay_dt, uint advance_pay_amt, string memory advance_confirm) public {
+    function payAdvance(uint contract_idx, uint transact_idx, uint advance_pay_dt, uint advance_pay_amt) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         transactions[contract_idx][transact_idx].advance_pay_dt = advance_pay_dt;
         transactions[contract_idx][transact_idx].advance_pay_amt = advance_pay_amt;
-        transactions[contract_idx][transact_idx].advance_confirm = advance_confirm;
         emit ContractEvent(contract_idx, "PayAdvance", "");
     }
 
-    function postSettlement(uint contract_idx, uint settle_idx, uint settle_pay_dt, int settle_pay_amt, string memory settle_confirm, string memory dispute_reason) public {
+    function postSettlement(uint contract_idx, uint settle_idx, uint settle_pay_dt, int settle_pay_amt, string memory dispute_reason) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         settlements[contract_idx][settle_idx].settle_pay_dt = settle_pay_dt;
         settlements[contract_idx][settle_idx].settle_pay_amt = settle_pay_amt;
-        settlements[contract_idx][settle_idx].settle_confirm = settle_confirm;
 
         if (settle_pay_dt > settlements[contract_idx][settle_idx].settle_due_dt) {
             settlements[contract_idx][settle_idx].days_late = (settle_pay_dt - settlements[contract_idx][settle_idx].settle_due_dt) / 60 / 60 / 24;
@@ -320,11 +314,10 @@ contract Delivery {
         emit ContractEvent(contract_idx, "PostSettlement", "");
     }
 
-    function payResidual(uint contract_idx, uint settle_idx, uint residual_pay_dt, int residual_pay_amt, string memory residual_confirm) public {
+    function payResidual(uint contract_idx, uint settle_idx, uint residual_pay_dt, int residual_pay_amt) public {
         require(contract_idx < contracts.length, "Invalid contract index");
         settlements[contract_idx][settle_idx].residual_pay_dt = residual_pay_dt;
         settlements[contract_idx][settle_idx].residual_pay_amt = residual_pay_amt;
-        settlements[contract_idx][settle_idx].residual_confirm = residual_confirm;
         emit ContractEvent(contract_idx, "ResidualPaid", "");
     }
 

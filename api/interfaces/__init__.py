@@ -1,4 +1,5 @@
 from .contract_api import ContractAPI
+from .party_api import PartyAPI
 from .transaction_api import TransactionAPI
 from .settlement_api import SettlementAPI
 from .recipient_api import RecipientAPI
@@ -6,7 +7,6 @@ from .advance_api import AdvanceAPI
 from .artifact_api import ArtifactAPI
 from .deposit_api import DepositAPI
 from .invoice_api import InvoiceAPI
-from .party_api import PartyAPI
 from .residual_api import ResidualAPI
 from .ticket_api import TicketAPI
 from .account_api import AccountAPI

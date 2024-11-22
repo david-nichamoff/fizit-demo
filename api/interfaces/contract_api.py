@@ -156,7 +156,7 @@ class ContractAPI:
                 "nonce": nonce
             })
 
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
             if tx_receipt["status"] != 1:
                 self.logger.error(f"Transaction failed for contract {contract_idx}. Receipt: {tx_receipt}")
@@ -177,7 +177,7 @@ class ContractAPI:
                 "nonce": nonce
             })
 
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
             if tx_receipt["status"] == 1:
                 return contract_idx
@@ -198,7 +198,7 @@ class ContractAPI:
                 "nonce": nonce
             })
 
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
             if tx_receipt["status"] != 1:
                 self.logger.error(f"Transaction failed for contract {contract_idx}. Receipt: {tx_receipt}")
@@ -219,7 +219,7 @@ class ContractAPI:
                 "nonce": nonce
             })
 
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr)
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
             if tx_receipt["status"] == 1:
                 self.logger.info(f"Successfully imported contract: {contract_idx}")

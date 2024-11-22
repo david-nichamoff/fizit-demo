@@ -9,4 +9,3 @@ class DepositSerializer(serializers.Serializer):
     deposit_amt = serializers.CharField(max_length=40)
     deposit_dt = serializers.DateTimeField()
     dispute_reason = serializers.CharField(max_length=255)
-    settle_confirm = serializers.CharField(max_length=255)
