@@ -70,13 +70,17 @@ class MercuryAdapter:
     def get_deposits(self, start_date, end_date, contract):
         """Fetch deposit transactions for a specific account within a date range."""
         deposits = []
-        account_id = contract["funding_instr"]["account_id"]
-
-        url = f"{self.config['mercury_url']}/account/{account_id}/transactions"
-        payload = {"start": start_date.strftime('%Y-%m-%d'), "end": end_date.strftime('%Y-%m-%d')}
-        headers = {"accept": "application/json"}
-
+        
         try:
+            # Ensure deposit_instr and account_id exist and are not null
+            if "deposit_instr" not in contract or not contract["deposit_instr"].get("account_id"):
+                raise ValueError("The contract's deposit_instr.account_id is missing or null.")
+            
+            account_id = contract["deposit_instr"]["account_id"]
+            url = f"{self.config['mercury_url']}/account/{account_id}/transactions"
+            payload = {"start": start_date.strftime('%Y-%m-%d'), "end": end_date.strftime('%Y-%m-%d')}
+            headers = {"accept": "application/json"}
+
             response = requests.get(url, auth=(self.keys['mercury_token'], ''), headers=headers, params=payload)
             response.raise_for_status()
             deposit_data = response.json().get('transactions', [])
@@ -93,6 +97,9 @@ class MercuryAdapter:
                     })
 
             return deposits
+        except ValueError as e:
+            self.logger.error(f"Validation Error: {e}")
+            raise RuntimeError(f"Validation Error: {e}")
         except requests.exceptions.RequestException as e:
             error_message = f"Error fetching deposits: {e}"
             self.logger.error(error_message)

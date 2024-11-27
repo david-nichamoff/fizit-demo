@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from datetime import timezone
 
-from api.adapters.bank import MercuryAdapter
+from api.adapters.bank import MercuryAdapter, TokenAdapter
 from api.managers import Web3Manager, ConfigManager
 from api.interfaces import ContractAPI, TransactionAPI
 from eth_utils import to_checksum_address
@@ -30,6 +30,7 @@ class DepositAPI:
             self.contract_api = ContractAPI()
 
             self.mercury_adapter = MercuryAdapter()
+            self.token_adapter = TokenAdapter()
 
             self.logger = logging.getLogger(__name__)
             self.initialized = True  # Mark this instance as initialized
@@ -41,12 +42,27 @@ class DepositAPI:
         return None if ts == 0 else datetime.datetime.fromtimestamp(ts, tz=timezone.utc)
 
     def get_deposits(self, start_date, end_date, contract_idx):
-        """Retrieve deposits from the bank adapter for a given contract."""
+        """Retrieve deposits from the appropriate bank adapter for a given contract."""
         try:
             contract = self.contract_api.get_contract(contract_idx)
 
-            # Directly call the mercury adapter to get deposits
-            deposits = self.mercury_adapter.get_deposits(start_date, end_date, contract)
+            # Check the bank type and call the appropriate adapter
+            bank_type = contract.get("deposit_instr", {}).get("bank")
+
+            if bank_type == "mercury":
+                self.logger.info(f"Fetching deposits using Mercury adapter for contract {contract_idx}")
+                deposits = self.mercury_adapter.get_deposits(start_date, end_date, contract)
+            elif bank_type == "token":
+                self.logger.info(f"Fetching deposits using Token adapter for contract {contract_idx}")
+
+                # Add token_symbol if it exists
+                if contract["funding_instr"].get("token_symbol"):
+                    token_symbol = contract["funding_instr"]["token_symbol"]
+
+                deposits = self.token_adapter.get_deposits(start_date, end_date, token_symbol, contract)
+            else:
+                raise ValueError(f"Unsupported bank type '{bank_type}' for contract {contract_idx}")
+
             return deposits
         except Exception as e:
             self.logger.error(f"Error retrieving deposits for contract {contract_idx}: {str(e)}")

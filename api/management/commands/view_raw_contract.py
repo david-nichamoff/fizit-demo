@@ -49,17 +49,18 @@ class Command(BaseCommand):
             "contract_name": contract[1],
             "contract_type": contract[2],
             "funding_instr": contract[3],  # Raw data as it is on-chain
-            "service_fee_pct": contract[4],  # Unformatted
-            "service_fee_max": contract[5],  # Unformatted
-            "service_fee_amt": contract[6],  # Unformatted
-            "advance_pct": contract[7],      # Unformatted
-            "late_fee_pct": contract[8],     # Unformatted
-            "transact_logic": contract[9],   # Raw data as it is on-chain
-            "min_threshold": contract[10],   # Unformatted
-            "max_threshold": contract[11],   # Unformatted
-            "notes": contract[12],
-            "is_active": contract[13],
-            "is_quote": contract[14],
+            "deposit_instr": contract[4],  # Raw data as it is on-chain
+            "service_fee_pct": contract[5],  # Unformatted
+            "service_fee_max": contract[6],  # Unformatted
+            "service_fee_amt": contract[7],  # Unformatted
+            "advance_pct": contract[8],      # Unformatted
+            "late_fee_pct": contract[9],     # Unformatted
+            "transact_logic": contract[10],   # Raw data as it is on-chain
+            "min_threshold": contract[11],   # Unformatted
+            "max_threshold": contract[12],   # Unformatted
+            "notes": contract[13],
+            "is_active": contract[14],
+            "is_quote": contract[15],
         }
         return contract_data
 

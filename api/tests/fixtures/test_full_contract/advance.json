@@ -5,6 +5,7 @@
         "contract_name"    : "Contract with everything",
         "contract_type"    : "advance",
         "funding_instr"    : {"bank": "mercury", "account_id" : "61396d72-e780-11ee-b69b-137ed758771c", "recipient_id": "627ecace-e780-11ee-b69b-f311fd81fcb4"},
+        "deposit_instr"    : {"bank": "mercury", "account_id" : "61396d72-e780-11ee-b69b-137ed758771c", "recipient_id": "627ecace-e780-11ee-b69b-f311fd81fcb4"},
         "service_fee_pct"  : "0.0250",
         "service_fee_max"  : "0.0250",
         "service_fee_amt"  : "5.50",

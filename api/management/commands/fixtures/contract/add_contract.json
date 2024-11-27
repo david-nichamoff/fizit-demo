@@ -3,6 +3,7 @@
     "contract_name"    : "Small amount contract",
     "contract_type"    : "advance",
     "funding_instr"    : {"bank": "token", "token_symbol": "usdc"},
+    "deposit_instr"    : {"bank": "token", "token_symbol": "usdc"},
     "service_fee_pct"  : "0.0250",
     "service_fee_max"  : "0.0250",
     "service_fee_amt"  : "0.00",

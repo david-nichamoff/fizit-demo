@@ -60,24 +60,25 @@ class ContractAPI:
         try:
             # Decrypt sensitive fields after retrieving from blockchain
             decrypted_extended_data = decryptor.decrypt(contract[0])
-            decrypted_transact_logic = decryptor.decrypt(contract[9])
+            decrypted_transact_logic = decryptor.decrypt(contract[10])
 
             # Convert decrypted strings back into JSON objects
             contract_dict["extended_data"] = decrypted_extended_data
             contract_dict["contract_name"] = contract[1]
             contract_dict["contract_type"] = contract[2]
             contract_dict["funding_instr"] = json.loads(contract[3])
-            contract_dict["service_fee_pct"] = f'{Decimal(contract[4]) / 10000:.4f}'
-            contract_dict["service_fee_max"] = f'{Decimal(contract[5]) / 10000:.4f}'
-            contract_dict["service_fee_amt"] = f'{Decimal(contract[6]) / 100:.2f}'
-            contract_dict["advance_pct"] = f'{Decimal(contract[7]) / 10000:.4f}'
-            contract_dict["late_fee_pct"] = f'{Decimal(contract[8]) / 10000:.4f}'
+            contract_dict["deposit_instr"] = json.loads(contract[4])
+            contract_dict["service_fee_pct"] = f'{Decimal(contract[5]) / 10000:.4f}'
+            contract_dict["service_fee_max"] = f'{Decimal(contract[6]) / 10000:.4f}'
+            contract_dict["service_fee_amt"] = f'{Decimal(contract[7]) / 100:.2f}'
+            contract_dict["advance_pct"] = f'{Decimal(contract[8]) / 10000:.4f}'
+            contract_dict["late_fee_pct"] = f'{Decimal(contract[9]) / 10000:.4f}'
             contract_dict["transact_logic"] = decrypted_transact_logic
-            contract_dict["min_threshold"] = f'{Decimal(contract[10]) / 100:.2f}'
-            contract_dict["max_threshold"] = f'{Decimal(contract[11]) / 100:.2f}'
-            contract_dict["notes"] = contract[12]
-            contract_dict["is_active"] = contract[13]
-            contract_dict["is_quote"] = contract[14]
+            contract_dict["min_threshold"] = f'{Decimal(contract[11]) / 100:.2f}'
+            contract_dict["max_threshold"] = f'{Decimal(contract[12]) / 100:.2f}'
+            contract_dict["notes"] = contract[13]
+            contract_dict["is_active"] = contract[14]
+            contract_dict["is_quote"] = contract[15]
             contract_dict["contract_idx"] = contract_idx
         except json.JSONDecodeError as e:
             self.logger.error(f"JSON decoding error for contract {contract_idx}: {str(e)}")
@@ -131,6 +132,7 @@ class ContractAPI:
         contract.append(contract_dict["contract_name"])
         contract.append(contract_dict["contract_type"])
         contract.append(json.dumps(contract_dict["funding_instr"]))
+        contract.append(json.dumps(contract_dict["deposit_instr"]))
         contract.append(int(Decimal(contract_dict["service_fee_pct"]) * 10000))
         contract.append(int(Decimal(contract_dict["service_fee_max"]) * 10000))
         contract.append(int(Decimal(contract_dict["service_fee_amt"]) * 100))
@@ -244,7 +246,11 @@ class ContractAPI:
 
         # Check if the funding_instr.bank is valid
         if contract_dict["funding_instr"]["bank"] not in ['mercury', 'token']:
-            raise ValueError(f"Invalid bank: '{contract_dict['funding_instr']['bank']}'. Valid banks are: 'mercury'.")
+            raise ValueError(f"Invalid bank: '{contract_dict['funding_instr']['bank']}'. Valid banks are: 'mercury', 'token'.")
+
+        # Check if the deposit_instr.bank is valid
+        if contract_dict["deposit_instr"]["bank"] not in ['mercury', 'token']:
+            raise ValueError(f"Invalid bank: '{contract_dict['deposit_instr']['bank']}'. Valid banks are: 'mercury', 'token'.")
 
         # Check if the percentage fields are valid
         for field in ["service_fee_pct", "service_fee_max", "advance_pct", "late_fee_pct"]:

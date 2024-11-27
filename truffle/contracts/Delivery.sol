@@ -19,7 +19,8 @@ contract Delivery {
         string extended_data;           // json extended data
         string contract_name;           // description for display purposes
         string contract_type;           // the type of contract, e.g. ticketing, construction
-        string funding_instr;           // buyer funding instructions
+        string funding_instr;           // funding instructions
+        string deposit_instr;           // deposit instructions
         uint service_fee_pct;           // service fee pct <= service_fee_max
         uint service_fee_max;           // maximum fee that can be charged if the rate is variable
         int service_fee_amt;            // flat rate amt if not percentage based
@@ -108,6 +109,7 @@ contract Delivery {
         logContractChange(contract_idx, "contract_name", contracts[contract_idx].contract_name, contract_.contract_name);
         logContractChange(contract_idx, "contract_type", contracts[contract_idx].contract_type, contract_.contract_type);
         logContractChange(contract_idx, "funding_instr", contracts[contract_idx].funding_instr, contract_.funding_instr);
+        logContractChange(contract_idx, "deposit_instr", contracts[contract_idx].deposit_instr, contract_.deposit_instr);
         logContractChange(contract_idx, "service_fee_pct", uintToString(contracts[contract_idx].service_fee_pct), uintToString(contract_.service_fee_pct));
         logContractChange(contract_idx, "service_fee_max", uintToString(contracts[contract_idx].service_fee_max), uintToString(contract_.service_fee_max));
         logContractChange(contract_idx, "service_fee_amt", intToString(contracts[contract_idx].service_fee_amt), intToString(contract_.service_fee_amt));

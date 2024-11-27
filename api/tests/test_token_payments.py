@@ -13,7 +13,7 @@ from api.managers import SecretsManager, ConfigManager
 from api.operations import ContractOperations, PartyOperations, SettlementOperations
 from api.operations import TransactionOperations, CsrfOperations, BankOperations
 
-class PayFiatTests(TestCase):
+class PayTokenTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
@@ -37,8 +37,8 @@ class PayFiatTests(TestCase):
         self.transaction_ops = TransactionOperations(self.headers, self.config)
         self.csrf_ops = CsrfOperations(self.headers, self.config)
 
-    def test_payments(self):
-        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_fiat_payments')
+    def test_token_payments(self):
+        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_token_payments')
         advance_filename = 'pay_advance.json'
         deposit_filename = 'deposit_params.json'
         fixture_path = os.path.join(fixtures_dir, advance_filename)
@@ -99,7 +99,7 @@ class PayFiatTests(TestCase):
 
         print(f"Advances loaded for contract: {contract_idx}")
 
-        # Now, call the payment_ops.add_advancess function with the advances
+        # Now, call the payment_ops.add_advances function with the advances
         csrf_token = self.csrf_ops._get_csrf_token()
         add_advance_response = self.payment_ops.add_advances(contract_idx, advances, csrf_token)
         self.assertEqual(
@@ -124,7 +124,7 @@ class PayFiatTests(TestCase):
         )
 
     def _test_get_deposits(self, contract_idx, fixture_filename="deposit_params.json"):
-        fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures', "test_fiat_payments", fixture_filename)
+        fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures', "test_token_payments", fixture_filename)
 
         with open(fixture_path, 'r') as file:
             data = json.load(file)
@@ -143,9 +143,6 @@ class PayFiatTests(TestCase):
         match_found = False
         for deposit in deposits:
             if (deposit['bank'] == expected_result['bank'] and
-                deposit['account_id'] == expected_result['account_id'] and
-                deposit['deposit_id'] == expected_result['deposit_id'] and
-                deposit['counterparty'] == expected_result['counterparty'] and
                 Decimal(deposit['deposit_amt']) == Decimal(expected_result['deposit_amt']) and
                 deposit['deposit_dt'] == expected_result['deposit_dt']):
 
@@ -178,6 +175,7 @@ class PayFiatTests(TestCase):
         )
 
         print(f"Residuals loaded for contract: {contract_idx}")
+        print(f"residuals {residuals}")
 
         # Now, call the payment_ops.add_residuals function with the residuals
         csrf_token = self.csrf_ops._get_csrf_token()

@@ -66,6 +66,7 @@ class SettlementAPI:
                 "contract_idx": contract['contract_idx'],
                 "contract_name": contract['contract_name'],
                 "funding_instr": contract['funding_instr'],
+                "deposit_instr": contract['deposit_instr'],
                 "settle_idx": settle_idx
             }
 

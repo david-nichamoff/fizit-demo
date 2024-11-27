@@ -6,6 +6,7 @@ class SettlementSerializer(serializers.Serializer):
     contract_name = serializers.CharField(read_only=True, max_length=50)
     extended_data = serializers.JSONField()
     funding_instr = serializers.CharField(read_only=True)
+    deposit_instr = serializers.CharField(read_only=True)
     settle_due_dt = serializers.DateTimeField() 
     transact_min_dt =  serializers.DateTimeField()  
     transact_max_dt =  serializers.DateTimeField() 

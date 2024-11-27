@@ -164,7 +164,7 @@ class Command(BaseCommand):
                 gas_used = receipt.get("gasUsed") if receipt else None
                 block_timestamp = self.avalanche_w3.eth.get_block(block_number).timestamp
 
-                details = f"Transfer from {from_addr} to {to_addr}, amount: {value}, token: {token_addr}"
+                details = f"Transfer {value}, token: {token_addr}"
 
                 # Fetch the existing event based on tx_hash
                 existing_event = Event.objects.filter(tx_hash=tx_hash).first()
@@ -173,15 +173,14 @@ class Command(BaseCommand):
                     existing_event.contract_addr = token_addr
                     existing_event.event_type = "ERC-20 Transfer"
                     existing_event.details = details
+                    existing_event.from_addr = from_addr
+                    existing_event.to_addr = to_addr
                     existing_event.event_dt = datetime.fromtimestamp(block_timestamp, tz=timezone.utc)
                     existing_event.gas_used = gas_used
                     existing_event.status = "complete"
                     existing_event.network = "avalanche"
                     existing_event.save()
                     self.logger.info(f'Updated Avalanche transfer event: tx_hash={tx_hash}')
-                else:
-                    # Log a warning if no matching event is found
-                    self.logger.warning(f"No matching Event found for Avalanche tx_hash={tx_hash}. Skipping update.")
 
             except Exception as e:
                 self.logger.error(f"Error processing Avalanche transfer event: {str(e)}")
