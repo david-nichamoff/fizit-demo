@@ -11,5 +11,5 @@ class Contact(models.Model):
         return self.name
 
     class Meta:
-        verbose_name = "Contact"
-        verbose_name_plural = "Contacts"
+        verbose_name = "Web Contact"
+        verbose_name_plural = "Web Contacts"

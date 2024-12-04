@@ -1,0 +1,41 @@
+{% load static %}
+
+<div id="content-main" class="section-container">
+    {% for section in custom_links %}
+    <div class="section">
+        <!-- Header for each section -->
+        <h2 class="admin-header">{{ section.section }}</h2>
+        <div class="grid-container">
+            {% for link in section.links %}
+            <div class="grid-item">
+                <a href="{{ link.url }}">{{ link.name }}</a>
+            </div>
+            {% empty %}
+            <div class="grid-item">
+                <p>No links available.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div id="app-list" class="section-container">
+    {% for app in app_list %}
+    <div class="app-section">
+        <!-- Header for each app section -->
+        <h3 class="admin-header">{{ app.name }}</h3>
+        <div class="grid-container">
+            {% for model in app.models %}
+            <div class="grid-item">
+                <a href="{{ model.admin_url }}">{{ model.name }}</a>
+            </div>
+            {% empty %}
+            <div class="grid-item">
+                <p>No models available.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>

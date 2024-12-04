@@ -17,5 +17,5 @@ class Event(models.Model):
         return f'Contract {self.contract_idx} updated at {self.event_dt}'
 
     class Meta:
-        verbose_name = "Event"
-        verbose_name_plural = "Events"
+        verbose_name = "Audit Event"
+        verbose_name_plural = "Audit Events"

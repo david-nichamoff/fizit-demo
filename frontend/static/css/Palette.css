@@ -1,11 +1,11 @@
 :root {
-    --color-darkblue:   #0D3F67;
-    --color-lightblue:  #2D93E5;
-    --color-purple:     #6B48FF;
-    --color-grey:       #ADB2D3;
-    --color-green:      #16A799;
-    --color-turquoise:  #1DDFCC;
-    --color-error:      #D32F2F;  
-    --color-warning:    #FFC107;
-};
-  
+    /* Standard Django colors */
+    --color-white:      #ffffff; /* White for backgrounds */
+    --color-lightgrey:  #f9f9f9; /* Light grey for alternating row backgrounds */
+    --color-grey:       #ececec; /* Light border or inactive elements */
+    --color-darkgrey:   #333333; /* Text color for headers and important elements */
+    --color-blue:       #007bff; /* Default link color */
+    --color-darkblue:   #0056b3; /* Hover state for links */
+    --color-green:      #28a745; /* Success state for hover or active elements */
+    --color-red:        #dc3545; /* Error or alert elements */
+}

@@ -9,5 +9,5 @@ class Contract(models.Model):
         return f'Contract {self.contract_addr} (created at {self.created_dt})'
 
     class Meta:
-        verbose_name = "Contract"
-        verbose_name_plural = "Contracts"
+        verbose_name = "Smart Contract History"
+        verbose_name_plural = "Smart Contract History"

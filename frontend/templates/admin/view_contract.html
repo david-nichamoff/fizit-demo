@@ -1,0 +1,62 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block content %}
+<div class="content-section">
+    {% if error %}
+        <div class="error-message">
+            <p>{{ error }}</p>
+        </div>
+    {% else %}
+        <h1>Contract Details for ID: {{ contract_idx }}</h1>
+        <div class="section">
+            <h2>Contract Data</h2>
+            <ul>
+                {% for key, value in contract_data.items %}
+                <li><strong>{{ key }}:</strong> {{ value }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="section">
+            <h2>Settlements</h2>
+            {% for settlement in settlements %}
+            <ul>
+                {% for key, value in settlement.items %}
+                <li><strong>{{ key }}:</strong> {{ value }}</li>
+                {% endfor %}
+            </ul>
+            {% endfor %}
+        </div>
+        <div class="section">
+            <h2>Parties</h2>
+            {% for party in parties %}
+            <ul>
+                {% for key, value in party.items %}
+                <li><strong>{{ key }}:</strong> {{ value }}</li>
+                {% endfor %}
+            </ul>
+            {% endfor %}
+        </div>
+        <div class="section">
+            <h2>Transactions</h2>
+            {% for transaction in transactions %}
+            <ul>
+                {% for key, value in transaction.items %}
+                <li><strong>{{ key }}:</strong> {{ value }}</li>
+                {% endfor %}
+            </ul>
+            {% endfor %}
+        </div>
+        <div class="section">
+            <h2>Artifacts</h2>
+            {% for artifact in artifacts %}
+            <ul>
+                {% for key, value in artifact.items %}
+                <li><strong>{{ key }}:</strong> {{ value }}</li>
+                {% endfor %}
+            </ul>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Event, Contact, Contract
+from ..models import Event
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
@@ -12,15 +12,3 @@ class EventAdmin(admin.ModelAdmin):
 
     # Optional: Customize the display of readonly fields
     readonly_fields = ('event_dt',)  # Mark auto-generated date fields as readonly
-
-@admin.register(Contact)
-class ContactAdmin(admin.ModelAdmin):
-    list_display = ('name', 'email', 'company', 'message')
-    search_fields = ('name', 'email', 'company')
-    list_display = ('name', 'email', 'company')
-
-@admin.register(Contract)
-class ContractAdmin(admin.ModelAdmin):
-    list_display = ('contract_addr', 'created_dt', 'expiry_dt')
-    search_fields = ('contract_addr', 'created_dt', 'expiry_dt')
-    list_display = ('contract_addr', 'created_dt', 'expiry_dt')

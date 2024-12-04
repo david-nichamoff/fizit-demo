@@ -12,7 +12,32 @@
 <link rel="stylesheet" type="text/css" href="{% static 'css/custom_admin.css' %}">
 {% endblock %}
 
-{% block extrahead %}
-{{ block.super }}
-<script type="text/javascript" src="{% static 'js/custom_admin.js' %}"></script>
+{% block content %}
+    {{ block.super }}
+
+    <div id="content-main">
+        <h2 class="admin-header custom-links-header">Custom Links</h2>
+        <ul>
+            {% for link in custom_links %}
+                <li><a href="{{ link.url }}">{{ link.name }}</a></li>
+            {% empty %}
+                <li>No custom links available</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div id="app-list">
+        {% for app in app_list %}
+        <div class="app">
+            <h3 class="admin-header">{{ app.name }}</h3>
+            <ul>
+                {% for model in app.models %}
+                <li>
+                    <a href="{{ model.admin_url }}">{{ model.name }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
 {% endblock %}

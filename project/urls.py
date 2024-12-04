@@ -8,8 +8,11 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.permissions import AllowAny
 from api.authentication import NoAuthForSwagger
 
+from frontend.admin.custom_admin_site import custom_admin_site 
+
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('admin/', custom_admin_site.urls),  
+    #path('admin/', admin.site.urls),  
     path('api/', include('api.urls')), 
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
