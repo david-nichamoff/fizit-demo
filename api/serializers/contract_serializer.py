@@ -14,11 +14,11 @@ class ContractSerializer(serializers.Serializer):
     advance_pct = serializers.CharField(max_length=10)  
     late_fee_pct = serializers.CharField(max_length=10)  
     transact_logic = serializers.JSONField()
-    min_threshold = serializers.CharField(max_length=20)  
-    max_threshold = serializers.CharField(max_length=20)  
-    notes = serializers.CharField()
-    is_active = serializers.BooleanField()
-    is_quote = serializers.BooleanField()
+    min_threshold_amt = serializers.CharField(max_length=20)  
+    max_threshold_amt = serializers.CharField(max_length=20)  
+    notes = serializers.CharField(required=False)
+    is_active = serializers.BooleanField(default=True)
+    is_quote = serializers.BooleanField(default=False)
 
     def update(self, instance, validated_data):
         """Update method for partially updating the instance."""
@@ -33,8 +33,8 @@ class ContractSerializer(serializers.Serializer):
         instance['advance_pct'] = validated_data.get('advance_pct', instance['advance_pct'])
         instance['late_fee_pct'] = validated_data.get('late_fee_pct', instance['late_fee_pct'])
         instance['transact_logic'] = validated_data.get('transact_logic', instance['transact_logic'])
-        instance['min_threshold'] = validated_data.get('min_threshold', instance['min_threshold'])
-        instance['max_threshold'] = validated_data.get('max_threshold', instance['max_threshold'])
+        instance['min_threshold_amt'] = validated_data.get('min_threshold_amt', instance['min_threshold_amt'])
+        instance['max_threshold_amt'] = validated_data.get('max_threshold_amt', instance['max_threshold_amt'])
         instance['notes'] = validated_data.get('notes', instance['notes'])
         instance['is_active'] = validated_data.get('is_active', instance['is_active'])
         instance['is_quote'] = validated_data.get('is_quote', instance['is_quote'])

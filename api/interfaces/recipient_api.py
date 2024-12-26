@@ -27,6 +27,8 @@ class RecipientAPI:
         """Get recipients based on the bank type."""
         if bank == "mercury":
             return self.mercury_adapter.get_recipients()
+        elif bank == "token":
+            return []
         else:
             error_message = f"Unsupported bank: {bank}"
             self.logger.error(error_message)

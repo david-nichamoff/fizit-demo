@@ -114,7 +114,7 @@ class PartyAPI:
     def delete_party(self, contract_idx, party_idx):
         """Delete a specific party from a given contract."""
         try:
-            nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
+            nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr, 'pending')
 
             # Build the transaction
             transaction = self.w3_contract.functions.deleteParty(contract_idx, party_idx).build_transaction({

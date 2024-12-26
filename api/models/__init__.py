@@ -1,3 +1,3 @@
-from .contact_models import Contact
-from .event_models import Event
-from .contract_models import Contract
+from .contact_model import Contact
+from .event_model import Event
+from .contract_model import Contract

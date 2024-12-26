@@ -19,8 +19,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,

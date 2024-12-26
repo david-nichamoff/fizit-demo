@@ -1,7 +1,7 @@
 import logging
 import time
 from django.core.management.base import BaseCommand
-from api.models.event_models import Event
+from api.models.event_model import Event
 from api.managers import Web3Manager, ConfigManager
 from eth_abi import decode
 from datetime import datetime, timezone

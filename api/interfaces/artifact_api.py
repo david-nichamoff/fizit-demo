@@ -45,7 +45,6 @@ class ArtifactAPI:
             facts = self.w3_contract.functions.getArtifacts(contract['contract_idx']).call()
 
             # Log the facts to see what is returned
-            self.logger.info(f"Artifacts returned for contract {contract_idx}: {facts}")
             artifact_idx = 0
 
             for artifact in facts:
@@ -134,8 +133,6 @@ class ArtifactAPI:
                     # Check the transaction status
                     if tx_receipt['status'] != 1:
                         raise RuntimeError(f"Transaction failed for artifact {artifact_filename} in contract {contract_idx}")
-
-                    self.logger.info(f"Artifact {artifact_filename} uploaded from URL and added to contract {contract_idx}.")
 
                 except requests.RequestException as e:
                     self.logger.error(f"Error downloading artifact from {artifact_url}: {str(e)}")
@@ -234,3 +231,32 @@ class ArtifactAPI:
         except Exception as e:
             self.logger.error(f"Error importing artifacts to contract {contract_idx}: {str(e)}")
             raise 
+
+    def generate_presigned_url(self, s3_bucket, s3_object_key, s3_version_id=None, expiration=3600):
+        """
+        Generate a presigned URL for accessing an S3 object.
+        
+        Args:
+            s3_bucket (str): The name of the S3 bucket.
+            s3_object_key (str): The key of the object in the S3 bucket.
+            s3_version_id (str, optional): The version ID of the object. Default is None.
+            expiration (int, optional): The expiration time of the URL in seconds. Default is 3600.
+        
+        Returns:
+            str: A presigned URL for the S3 object.
+        """
+        try:
+            params = {"Bucket": s3_bucket, "Key": s3_object_key}
+            if s3_version_id:
+                params["VersionId"] = s3_version_id
+            
+            presigned_url = self.s3_client.generate_presigned_url(
+                "get_object",
+                Params=params,
+                ExpiresIn=expiration
+            )
+            return presigned_url
+
+        except ClientError as e:
+            self.logger.error(f"Failed to generate presigned URL: {e}")
+            raise RuntimeError("Failed to generate presigned URL") from e

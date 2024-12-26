@@ -24,7 +24,6 @@ class SecretsManager:
     def load_keys(self):
         # Check if cache is valid or needs to be refreshed
         if self._is_cache_valid():
-            logger.info("Returning cached secrets.")
             return SecretsManager._secrets_cache
 
         # Fetch secrets from AWS Secrets Manager
@@ -45,13 +44,11 @@ class SecretsManager:
         # Load the FIZIT_MASTER_KEY
         master_key_name = f"{secret_prefix}/master-key"
         try:
-            logger.info(f"Fetching FIZIT_MASTER_KEY from {master_key_name}")
             get_secret_value_response = client.get_secret_value(SecretId=master_key_name)
 
             if 'SecretString' in get_secret_value_response:
                 loaded_master_key = json.loads(get_secret_value_response['SecretString'])
                 secrets['FIZIT_MASTER_KEY'] = loaded_master_key.get('api_key')
-                logger.info(f"Successfully loaded FIZIT_MASTER_KEY from {master_key_name}")
             else:
                 logger.warning(f"No SecretString found in the response for {master_key_name}")
 
@@ -63,13 +60,11 @@ class SecretsManager:
         # Load the AES key from {secret_prefix}/contract-key
         aes_key_name = f"{secret_prefix}/contract-key"
         try:
-            logger.info(f"Fetching AES key from {aes_key_name}")
             get_aes_key_response = client.get_secret_value(SecretId=aes_key_name)
 
             if 'SecretString' in get_aes_key_response:
                 aes_key_data = json.loads(get_aes_key_response['SecretString'])
                 secrets['aes_key'] = aes_key_data.get('aes_key')
-                logger.info(f"Successfully loaded AES key from {aes_key_name}")
             else:
                 logger.warning(f"No SecretString found in the response for {aes_key_name}")
 
@@ -81,13 +76,11 @@ class SecretsManager:
         # Load all keys from {secret_prefix}/static-keys
         static_keys_name = f"{secret_prefix}/static-keys"
         try:
-            logger.info(f"Fetching static keys from {static_keys_name}")
             get_static_keys_response = client.get_secret_value(SecretId=static_keys_name)
 
             if 'SecretString' in get_static_keys_response:
                 static_keys = json.loads(get_static_keys_response['SecretString'])
                 secrets.update(static_keys)  # Add all key-value pairs to the secrets dictionary
-                logger.info(f"Successfully loaded static keys from {static_keys_name}")
             else:
                 logger.warning(f"No SecretString found in the response for {static_keys_name}")
 
@@ -99,13 +92,11 @@ class SecretsManager:
         # Load all keys from {secret_prefix}/cs-keys
         cs_keys_name = f"{secret_prefix}/cs-keys"
         try:
-            logger.info(f"Fetching cube_signer keys from {cs_keys_name}")
             get_cs_keys_response = client.get_secret_value(SecretId=cs_keys_name)
 
             if 'SecretString' in get_cs_keys_response:
                 cs_keys = json.loads(get_cs_keys_response['SecretString'])
                 secrets.update(cs_keys)  # Add all key-value pairs to the secrets dictionary
-                logger.info(f"Successfully loaded cs keys from {cs_keys_name}")
             else:
                 logger.warning(f"No SecretString found in the response for {cs_keys_name}")
 
@@ -116,7 +107,6 @@ class SecretsManager:
 
         # Load the partner API keys by searching for secrets that match the pattern {secret_prefix}/api-key-{partner}
         try:
-            logger.info(f"Fetching partner API keys for {secret_prefix}")
             list_secrets_response = client.list_secrets(Filters=[
                 {'Key': 'name', 'Values': [f"{secret_prefix}/api-key-"]}
             ])
@@ -124,7 +114,6 @@ class SecretsManager:
             for secret in list_secrets_response.get('SecretList', []):
                 secret_name = secret['Name']
                 partner_code = secret_name.split(f"{secret_prefix}/api-key-")[-1]  # Extract the partner code
-                logger.info(f"Fetching API key for partner {partner_code}")
 
                 try:
                     get_secret_value_response = client.get_secret_value(SecretId=secret_name)
@@ -132,7 +121,6 @@ class SecretsManager:
                     if 'SecretString' in get_secret_value_response:
                         loaded_partner_key = json.loads(get_secret_value_response['SecretString'])
                         secrets[partner_code] = loaded_partner_key.get('api_key')
-                        logger.info(f"Successfully loaded API key for partner {partner_code}")
                     else:
                         logger.warning(f"No SecretString found in the response for {secret_name}")
 
@@ -149,7 +137,6 @@ class SecretsManager:
         # Cache the loaded secrets and update the timestamp
         SecretsManager._secrets_cache = secrets
         SecretsManager._cache_timestamp = datetime.now()
-        logger.info(f"Secrets loaded and cached successfully")
         return secrets
 
     def _is_cache_valid(self):
@@ -164,7 +151,6 @@ class SecretsManager:
 
         # Check if the cache has expired based on the set duration
         if datetime.now() - SecretsManager._cache_timestamp > SecretsManager._cache_duration:
-            logger.info("Cache has expired. Secrets need to be refreshed.")
             return False
 
         return True
@@ -175,4 +161,4 @@ class SecretsManager:
         """
         SecretsManager._secrets_cache = None
         SecretsManager._cache_timestamp = None
-        logger.info("Cache invalidated.")
+        logger.warning("Cache invalidated.")

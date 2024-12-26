@@ -8,6 +8,9 @@ from api.managers import ConfigManager, Web3Manager
 from api.interfaces import TransactionAPI, ContractAPI, PartyAPI
 from api.adapters.bank import MercuryAdapter, TokenAdapter
 
+from api.interfaces.account_api import AccountAPI
+from api.interfaces.recipient_api import RecipientAPI
+
 from eth_utils import to_checksum_address
 
 class AdvanceAPI:
@@ -26,6 +29,8 @@ class AdvanceAPI:
         self.w3 = self.w3_manager.get_web3_instance()
         self.transaction_api = TransactionAPI()
         self.contract_api = ContractAPI()
+        self.account_api = AccountAPI()
+        self.recipient_api = RecipientAPI()
         self.party_api = PartyAPI()
 
         self.mercury_adapter = MercuryAdapter()
@@ -46,27 +51,50 @@ class AdvanceAPI:
         contract = self.contract_api.get_contract(contract_idx)
         parties = self.party_api.get_parties(contract_idx)
 
+        accounts = self.account_api.get_accounts(contract["funding_instr"]["bank"])
+        recipients = self.recipient_api.get_recipients(contract["funding_instr"]["bank"])
+
         for transact in transactions:
             if transact["advance_pay_amt"] == "0.00" and Decimal(transact["advance_amt"]) > Decimal(0.00):
 
                 for party in parties:
                     if party.get("party_type") == "seller":
                         recipient_addr = party.get("party_addr")
+                        recipient_party_code = party["party_code"]
                     elif party.get("party_type") == "funder":
                         funder_addr = party.get("party_addr")    
+                        funder_party_code = party["party_code"]
 
                 advance_dict = {
                     "contract_idx": contract["contract_idx"],
+                    "contract_name": contract["contract_name"],
                     "transact_idx": transact["transact_idx"],
+                    "transact_dt": transact["transact_dt"],
                     "bank": contract["funding_instr"]["bank"],
                     "recipient_addr":  recipient_addr,
+                    "recipient_party_code": recipient_party_code,
                     "funder_addr": funder_addr,
+                    "funder_party_code": funder_party_code,
                     "advance_amt": transact["advance_amt"]
                 }
 
                 # Add account_id if it exists
                 if contract["funding_instr"].get("account_id"):
                     advance_dict["account_id"] = contract["funding_instr"]["account_id"]
+
+                    # find matching account_name for display purposes
+                    matching_account = next(
+                        (account for account in accounts if account.get("account_id") == contract["funding_instr"]["account_id"]),
+                        None
+                    )
+                    advance_dict["account_name"] = matching_account.get("account_name") if matching_account else "N/A"
+
+                    # find matching recipient_name for display purposes
+                    matching_recipient = next(
+                        (recipient for recipient in recipients if recipient.get("recipient_id") == contract["funding_instr"]["recipient_id"]),
+                        None
+                    )
+                    advance_dict["recipient_name"] = matching_recipient.get("recipient_name") if matching_recipient else "N/A"
 
                 # Add recipient_id if it exists
                 if contract["funding_instr"].get("recipient_id"):

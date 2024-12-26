@@ -15,7 +15,7 @@ from eth_account._utils.legacy_transactions import Transaction
 from web3.middleware.proof_of_authority import ExtraDataToPOAMiddleware
 
 from api.managers import SecretsManager, ConfigManager
-from api.models.event_models import Event 
+from api.models.event_model import Event 
 
 
 class Web3Manager:

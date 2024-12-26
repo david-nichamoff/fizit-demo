@@ -56,8 +56,8 @@ class Command(BaseCommand):
             "advance_pct": contract[8],      # Unformatted
             "late_fee_pct": contract[9],     # Unformatted
             "transact_logic": contract[10],   # Raw data as it is on-chain
-            "min_threshold": contract[11],   # Unformatted
-            "max_threshold": contract[12],   # Unformatted
+            "min_threshold_amt": contract[11],   # Unformatted
+            "max_threshold_amt": contract[12],   # Unformatted
             "notes": contract[13],
             "is_active": contract[14],
             "is_quote": contract[15],

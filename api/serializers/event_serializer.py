@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from api.models.event_models import Event
+from api.models.event_model import Event
 
 class EventSerializer(serializers.ModelSerializer):
     class Meta:

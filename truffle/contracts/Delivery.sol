@@ -27,8 +27,8 @@ contract Delivery {
         uint advance_pct;               // amount of money that will be advanced to seller for every transaction
         uint late_fee_pct;              // an APR, daily rate calculated as late_fee_pct / 365
         string transact_logic;          // jsonlogic formula for calculating transaction amount
-        int min_threshold;              // minimum expected amount for a deliverable (could be negative)
-        int max_threshold;              // maximum expected amount for a deliverable
+        int min_threshold_amt;          // minimum expected amount for a deliverable (could be negative)
+        int max_threshold_amt;          // maximum expected amount for a deliverable
         string notes;                   // contract notes, can be used for additonal data requests
         bool is_active;                 // instead of deleting, clear this flag to False
         bool is_quote;                  // true if still in the quote stage

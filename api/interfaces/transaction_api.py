@@ -116,14 +116,21 @@ class TransactionAPI:
                 nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
 
                 # Build the transaction
-                self.logger.info(f"from: {self.checksum_wallet_addr}")
                 transaction = self.w3_contract.functions.addTransaction(
                     contract_idx, encrypted_extended_data, transact_dt, transact_amt, encrypted_transact_data
                 ).build_transaction(
                     {"from": self.checksum_wallet_addr, "nonce": nonce}
                 )
 
+                self.logger.info(f"transaction: {transaction}")
+                
                 tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
+
+                self.logger.info(f"status: {tx_receipt["status"]}")
+                self.logger.info(f"tx hash: {tx_receipt["transactionHash"]}")
+                self.logger.info(f"logs: {tx_receipt["logs"]}")
+                self.logger.info(f"address: {tx_receipt["contractAddress"]}")
+
 
                 if tx_receipt["status"] != 1:
                     raise RuntimeError(f"Failed to add transaction for contract {contract_idx}. Transaction status: {tx_receipt['status']}")

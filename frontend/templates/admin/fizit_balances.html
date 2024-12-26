@@ -1,57 +1,67 @@
 {% extends "admin/base_site.html" %}
 
 {% block content %}
-<h1 class="admin-header">View FIZIT Balances</h1>
+<div id="content-main">
+    <h1 class="title">View FIZIT Balances</h1>
 
-{% if error %}
-    <p style="color: red;">{{ error }}</p>
-{% else %}
-    <h3 class="admin-header">Operations Balances</h3>
-    <table class="admin-table">
-        <thead>
-            <tr>
-                <th>Label</th>
-                <th>Address</th>
-                <th>Balance</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for wallet in balances.wallets %}
-            <tr>
-                <td>{{ wallet.label }}</td>
-                <td>{{ wallet.address }}</td>
-                <td>{{ wallet.balance }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="3">No wallets found.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    {% if error %}
+        <div class="errornote">
+            <p>{{ error }}</p>
+        </div>
+    {% else %}
+        <!-- Operations Balances Section -->
+        <div class="module">
+            <h2 class="subhead">Operations Balances</h2>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th scope="col">Label</th>
+                        <th scope="col">Address</th>
+                        <th scope="col">Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for wallet in balances.wallets %}
+                    <tr>
+                        <td>{{ wallet.label }}</td>
+                        <td>{{ wallet.address }}</td>
+                        <td>{{ wallet.balance }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="empty-result">No wallets found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
-    <h3 class="admin-header">Party Balances</h3>
-    <table class="admin-table">
-        <thead>
-            <tr>
-                <th>Label</th>
-                <th>Address</th>
-                <th>Balance</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for party in balances.parties %}
-            <tr>
-                <td>{{ party.label }}</td>
-                <td>{{ party.address }}</td>
-                <td>{{ party.balance }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="3">No parties found.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-{% endif %}
+        <!-- Party Balances Section -->
+        <div class="module">
+            <h2 class="subhead">Party Balances</h2>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th scope="col">Label</th>
+                        <th scope="col">Address</th>
+                        <th scope="col">Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for party in balances.parties %}
+                    <tr>
+                        <td>{{ party.label }}</td>
+                        <td>{{ party.address }}</td>
+                        <td>{{ party.balance }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="empty-result">No parties found.</td>
+                    </tr>
+                    {% endfor %} 
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
 {% endblock %}

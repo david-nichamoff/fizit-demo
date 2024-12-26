@@ -92,7 +92,7 @@ class SettlementAPI:
                 settle_dict = self.get_settle_dict(settle, settle_idx, contract, api_key, parties)
                 settlements.append(settle_dict)
 
-            return sorted(settlements, key=lambda d: d['settle_due_dt'], reverse=False)
+            return sorted(settlements, key=lambda d: d['settle_due_dt'], reverse=True)
 
         except Exception as e:
             self.logger.error(f"Error retrieving settlements for contract {contract_idx}: {str(e)}")
@@ -105,9 +105,9 @@ class SettlementAPI:
             encryptor = get_encryptor()
 
             for settlement in settlements:
-                due_dt = int(datetime.combine(settlement["settle_due_dt"], time.min).timestamp())
-                min_dt = int(datetime.combine(settlement["transact_min_dt"], time.min).timestamp())
-                max_dt = int(datetime.combine(settlement["transact_max_dt"], time.min).timestamp())
+                due_dt = int(settlement["settle_due_dt"].timestamp())
+                min_dt = int(settlement["transact_min_dt"].timestamp())
+                max_dt = int(settlement["transact_max_dt"].timestamp())
                 
                 # Encrypt sensitive fields before sending to the blockchain
                 encrypted_extended_data = encryptor.encrypt(settlement["extended_data"])

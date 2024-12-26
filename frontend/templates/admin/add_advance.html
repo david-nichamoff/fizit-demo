@@ -1,0 +1,60 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+<script>
+    const contracts = {{ contracts|default:"[]"|safe }};
+    const advancesByContract = {{ advances_by_contract|default:"{}"|safe }};
+    console.log("Contracts data:", contracts);
+    console.log("Grouped advances:", advancesByContract);
+</script>
+<script src="{% static 'js/add_advance.js' %}?v1.0"></script>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    {% if error %}
+        <div class="errornote">
+            <p>{{ error }}</p>
+        </div>
+    {% else %}
+        <h1 class="title">View Advances by Contract</h1>
+
+        <form method="post" class="advance-form">
+            {% csrf_token %}
+            <fieldset class="module aligned">
+                <!-- Select Contract -->
+                <div class="form-row">
+                    <div class="flex-container">
+                        <label class="required" for="id_contract_idx">{{ advance_form.contract_idx.label }}</label>
+                        {{ advance_form.contract_idx }}
+                    </div>
+                    <div class="help">{{ advance_form.contract_idx.help_text }}</div>
+                </div>
+            </fieldset>
+
+            <div class="module">
+                <table class="table table-striped results" id="advances-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Select</th>
+                            <th scope="col">Index</th>
+                            <th scope="col">Bank</th>
+                            <th scope="col">Date</th>
+                            <th scope="col">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="5" class="empty-result">Please select a contract.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="submit-row">
+                <input type="submit" value="Post Advances" class="default" />
+            </div>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

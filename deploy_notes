@@ -4,3 +4,6 @@
 11/18: update config for wallet list
 11/18: update config for rpc
 11/21: update event table, truncate it first 
+12/4: add bank and usdt options to config.json
+12/5: remove old command
+12/6: add humanize to installed apps

@@ -4,7 +4,7 @@ from .views import ContractViewSet, PartyViewSet, SettlementViewSet
 from .views import TransactionViewSet, ArtifactViewSet, AccountViewSet
 from .views import RecipientViewSet, EventViewSet, AddressViewSet
 from .views import ResidualViewSet, AdvanceViewSet, DepositViewSet
-from .views import ContactViewSet, get_csrf_token
+from .views import ContactViewSet, LibraryViewSet, get_csrf_token
 
 urlpatterns = [
     path('contracts/', ContractViewSet.as_view({'get':'list','post':'add'}), name='contract-list'),
@@ -24,5 +24,6 @@ urlpatterns = [
     path('address/', AddressViewSet.as_view({'get':'get'}), name='address'),
     path('contacts/', ContactViewSet.as_view({'get':'list', 'post':'add'}), name='contact-list'),
     path('contacts/<int:contact_idx>/', ContactViewSet.as_view({'delete':'delete'}), name='contact-detail'),
+    path('library/', LibraryViewSet.as_view({'get':'list'}), name='library-templates'),
     path('get-csrf-token/', get_csrf_token, name='get_csrf_token'),
 ]

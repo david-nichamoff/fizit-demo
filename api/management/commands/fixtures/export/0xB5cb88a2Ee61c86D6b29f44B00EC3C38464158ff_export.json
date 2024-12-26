@@ -19,8 +19,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -49,8 +49,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -79,8 +79,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -109,8 +109,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -139,8 +139,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -169,8 +169,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -199,8 +199,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -229,8 +229,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -259,8 +259,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -289,8 +289,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -319,8 +319,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -349,8 +349,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -379,8 +379,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -409,8 +409,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -439,8 +439,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -469,8 +469,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -499,8 +499,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -529,8 +529,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -610,8 +610,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -691,8 +691,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -772,8 +772,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -853,8 +853,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -934,8 +934,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -1015,8 +1015,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -1096,8 +1096,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -1177,8 +1177,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -1258,8 +1258,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -1339,8 +1339,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -1420,8 +1420,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -1501,8 +1501,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -1582,8 +1582,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -1663,8 +1663,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -1744,8 +1744,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -1825,8 +1825,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -1964,8 +1964,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -2101,8 +2101,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -2204,8 +2204,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "patched by unit test",
         "is_active": true,
         "is_quote": false,
@@ -4478,8 +4478,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test for invalid party code",
         "is_active": true,
         "is_quote": false,
@@ -4508,8 +4508,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test for invalid party code",
         "is_active": true,
         "is_quote": false,
@@ -4538,8 +4538,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test for invalid party code",
         "is_active": true,
         "is_quote": false,
@@ -4566,8 +4566,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -4594,8 +4594,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -4622,8 +4622,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -4650,8 +4650,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -4678,8 +4678,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -4712,8 +4712,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Bank Test",
         "is_active": true,
         "is_quote": false,
@@ -4822,8 +4822,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Artifacts should be deleted",
         "is_active": true,
         "is_quote": false,
@@ -4871,8 +4871,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -4991,8 +4991,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -5301,8 +5301,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -5421,8 +5421,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -5515,8 +5515,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -5602,8 +5602,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -5696,8 +5696,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -5783,8 +5783,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -5877,8 +5877,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -5964,8 +5964,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -6058,8 +6058,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -6145,8 +6145,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -6239,8 +6239,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -6326,8 +6326,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -6420,8 +6420,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -6509,8 +6509,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -6655,8 +6655,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "patched by unit test",
         "is_active": true,
         "is_quote": false,
@@ -8954,8 +8954,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "load contract test case",
         "is_active": true,
         "is_quote": false,
@@ -9013,8 +9013,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "patched by unit test",
         "is_active": false,
         "is_quote": false,
@@ -9050,8 +9050,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "patched by unit test",
         "is_active": false,
         "is_quote": false,
@@ -9087,8 +9087,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "patched by unit test",
         "is_active": false,
         "is_quote": false,
@@ -9117,8 +9117,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -9147,8 +9147,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -9177,8 +9177,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -9207,8 +9207,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -9237,8 +9237,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -9267,8 +9267,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -9297,8 +9297,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -9327,8 +9327,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -9357,8 +9357,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -9394,8 +9394,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "patched by unit test",
         "is_active": false,
         "is_quote": false,
@@ -9422,8 +9422,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -9525,8 +9525,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "patched by unit test",
         "is_active": false,
         "is_quote": false,
@@ -9555,8 +9555,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test for invalid party code",
         "is_active": true,
         "is_quote": false,
@@ -9585,8 +9585,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test for invalid party code",
         "is_active": true,
         "is_quote": false,
@@ -9615,8 +9615,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test for invalid party code",
         "is_active": true,
         "is_quote": false,
@@ -9643,8 +9643,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -9671,8 +9671,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -9699,8 +9699,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -9727,8 +9727,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -9755,8 +9755,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -9789,8 +9789,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Bank Test",
         "is_active": true,
         "is_quote": false,
@@ -9899,8 +9899,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Artifacts should be deleted",
         "is_active": true,
         "is_quote": false,
@@ -9948,8 +9948,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -10068,8 +10068,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -10378,8 +10378,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -10498,8 +10498,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -10592,8 +10592,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -10679,8 +10679,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -10773,8 +10773,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -10860,8 +10860,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -10954,8 +10954,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -11041,8 +11041,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -11135,8 +11135,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -11222,8 +11222,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -11316,8 +11316,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -11403,8 +11403,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -11497,8 +11497,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -11586,8 +11586,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -11723,8 +11723,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Artifacts should be deleted",
         "is_active": true,
         "is_quote": false,
@@ -11772,8 +11772,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Artifacts should be deleted",
         "is_active": true,
         "is_quote": false,
@@ -11821,8 +11821,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Artifacts should be deleted",
         "is_active": true,
         "is_quote": false,
@@ -11849,8 +11849,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -11952,8 +11952,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "patched by unit test",
         "is_active": false,
         "is_quote": false,
@@ -11982,8 +11982,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test for invalid party code",
         "is_active": true,
         "is_quote": false,
@@ -12012,8 +12012,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test for invalid party code",
         "is_active": true,
         "is_quote": false,
@@ -12042,8 +12042,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test for invalid party code",
         "is_active": true,
         "is_quote": false,
@@ -12070,8 +12070,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -12098,8 +12098,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -12126,8 +12126,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -12154,8 +12154,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -12182,8 +12182,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -12216,8 +12216,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Bank Test",
         "is_active": true,
         "is_quote": false,
@@ -12326,8 +12326,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Artifacts should be deleted",
         "is_active": true,
         "is_quote": false,
@@ -12354,8 +12354,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -12474,8 +12474,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -12784,8 +12784,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -12904,8 +12904,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -12998,8 +12998,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -13085,8 +13085,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -13179,8 +13179,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -13266,8 +13266,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -13360,8 +13360,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -13447,8 +13447,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -13541,8 +13541,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -13628,8 +13628,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -13722,8 +13722,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -13809,8 +13809,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -13903,8 +13903,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -13992,8 +13992,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -14131,8 +14131,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -14161,8 +14161,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -14191,8 +14191,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -14219,8 +14219,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -14322,8 +14322,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "load contract test case",
         "is_active": true,
         "is_quote": false,
@@ -14992,8 +14992,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -15095,8 +15095,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "patched by unit test",
         "is_active": false,
         "is_quote": false,
@@ -15125,8 +15125,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test for invalid party code",
         "is_active": true,
         "is_quote": false,
@@ -15155,8 +15155,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test for invalid party code",
         "is_active": true,
         "is_quote": false,
@@ -15185,8 +15185,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test for invalid party code",
         "is_active": true,
         "is_quote": false,
@@ -15213,8 +15213,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -15241,8 +15241,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -15269,8 +15269,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -15297,8 +15297,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -15325,8 +15325,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -15359,8 +15359,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Bank Test",
         "is_active": true,
         "is_quote": false,
@@ -15469,8 +15469,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Artifacts should be deleted",
         "is_active": true,
         "is_quote": false,
@@ -15497,8 +15497,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -15617,8 +15617,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -15927,8 +15927,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -16047,8 +16047,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -16141,8 +16141,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -16228,8 +16228,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -16322,8 +16322,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -16409,8 +16409,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -16503,8 +16503,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -16590,8 +16590,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -16684,8 +16684,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -16771,8 +16771,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -16865,8 +16865,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -16952,8 +16952,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -17046,8 +17046,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -17135,8 +17135,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,
@@ -17278,8 +17278,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Bank Test",
         "is_active": true,
         "is_quote": false,
@@ -17388,8 +17388,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -17491,8 +17491,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "patched by unit test",
         "is_active": false,
         "is_quote": false,
@@ -17521,8 +17521,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test for invalid party code",
         "is_active": true,
         "is_quote": false,
@@ -17551,8 +17551,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test for invalid party code",
         "is_active": true,
         "is_quote": false,
@@ -17581,8 +17581,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test for invalid party code",
         "is_active": true,
         "is_quote": false,
@@ -17609,8 +17609,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -17637,8 +17637,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -17665,8 +17665,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -17693,8 +17693,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -17721,8 +17721,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -17749,8 +17749,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Artifacts should be deleted",
         "is_active": true,
         "is_quote": false,
@@ -17777,8 +17777,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -17897,8 +17897,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -18207,8 +18207,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -18327,8 +18327,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -18421,8 +18421,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -18508,8 +18508,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -18602,8 +18602,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -18689,8 +18689,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -18783,8 +18783,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -18870,8 +18870,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -18964,8 +18964,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -19051,8 +19051,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -19145,8 +19145,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -19232,8 +19232,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -19326,8 +19326,8 @@
         "transact_logic": {
             "var": "ticket_amt"
         },
-        "min_threshold": "-100.00",
-        "max_threshold": "1000.00",
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
         "notes": "Test",
         "is_active": true,
         "is_quote": false,
@@ -19415,8 +19415,8 @@
         "transact_logic": {
             "var": "invoice_amt"
         },
-        "min_threshold": "-1000.00",
-        "max_threshold": "10000.00",
+        "min_threshold_amt": "-1000.00",
+        "max_threshold_amt": "10000.00",
         "notes": "contract with everything",
         "is_active": true,
         "is_quote": false,

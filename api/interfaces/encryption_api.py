@@ -52,7 +52,6 @@ class Decryptor:
                 logging.warning(f"Decryption failed: {e}. Returning 'encrypted data'.")
                 return "encrypted data"  # Return 'encrypted data' if decryption fails
         else:
-            logging.info("No decryption key available. Returning 'encrypted data'.")
             return "encrypted data"  # Return 'encrypted data' if no key is available
 
 def get_aes_key_for_decryption(api_key: str, parties: list):
@@ -76,7 +75,6 @@ def get_aes_key_for_decryption(api_key: str, parties: list):
 
 def get_decryptor(api_key: str, parties: list):
     """Create a Decryptor instance for decryption."""
-    logging.info("Fetching AES key for decryption")
 
     # Get the AES key for decryption
     aes_key = get_aes_key_for_decryption(api_key, parties)
@@ -85,5 +83,4 @@ def get_decryptor(api_key: str, parties: list):
         decryption_key = aes_key.encode()  # Ensure the key is in bytes
         return Decryptor(decryption_key)
     else:
-        logging.warning("No matching API key or master key found. Returning Decryptor that returns 'encrypted data'.")
         return Decryptor()  # No key provided, return 'encrypted data'

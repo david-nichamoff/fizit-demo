@@ -15,7 +15,6 @@ class AWSSecretsAPIKeyAuthentication(BaseAuthentication):
     def authenticate(self, request):
         # Get the API key from the request's Authorization header
         api_key = request.META.get('HTTP_AUTHORIZATION')
-        logger.info("Starting authentication process.")
 
         if not api_key:
             logger.warning("Authorization header missing or empty.")
@@ -27,13 +26,11 @@ class AWSSecretsAPIKeyAuthentication(BaseAuthentication):
             raise AuthenticationFailed('Authorization header must start with "Api-Key "')
 
         api_key = api_key.replace("Api-Key ", "", 1)
-        logger.info("Extracted API key.")
 
         try:
             # Initialize the SecretsManager and load the keys
             secrets_manager = SecretsManager()
             valid_keys = secrets_manager.load_keys()  # Expecting valid_keys to be a dictionary
-            logger.info("Loaded valid keys from SecretsManager.")
         except Exception as e:
             logger.error("Error loading keys from SecretsManager: %s", str(e))
             raise AuthenticationFailed('Error loading API keys.')
@@ -41,9 +38,7 @@ class AWSSecretsAPIKeyAuthentication(BaseAuthentication):
         # Check for the FIZIT_MASTER_KEY in the loaded keys
         master_key = valid_keys.get("FIZIT_MASTER_KEY")
         if master_key:
-            logger.info("Master key loaded for comparison.")
             if api_key == master_key:
-                logger.info("Master key used for authentication.")
                 return (None, {'api_key': api_key, 'is_master_key': True})
 
         # Check if the provided API key matches any of the loaded keys
@@ -60,5 +55,4 @@ class AWSSecretsAPIKeyAuthentication(BaseAuthentication):
         This method returns the value for the 'WWW-Authenticate' header, 
         which is used when an authentication failure occurs and a 401 response is returned.
         """
-        logger.info("Returning authentication header: 'Api-Key'")
         return 'Api-Key'  # The client will know to use 'Api-Key {your_key}' in the Authorization header

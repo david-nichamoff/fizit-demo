@@ -2,35 +2,114 @@
 {% load static %}
 
 {% block content %}
-<div class="content-section">
+<div id="content-start" class="content">
     {% if error %}
-        <div class="error-message">
+        <div class="errornote">
             <p>{{ error }}</p>
         </div>
     {% else %}
-        <h1>Contracts</h1>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Contract Index</th>
-                    <th>Contract Name</th>
-                    <th>Contract Type</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for contract in contracts %}
-                <tr onclick="location.href='{% url 'custom_admin:view_contract' %}?contract_idx={{ contract.contract_idx }}'" style="cursor: pointer;">
-                    <td>{{ contract.contract_idx }}</td>
-                    <td>{{ contract.contract_name }}</td>
-                    <td>{{ contract.contract_type }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="3">No contracts available.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <!-- Header Section with Add Contract Button -->
+        <div class="breadcrumbs-module">
+            <h1 class="title">Select Contract to view</h1>
+            <ul class="object-tools">
+                <li>
+                    <a href="{% url 'custom_admin:add_contract' %}" class="addlink">
+                        Add Contract
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Contracts Table -->
+        <div class="module">
+            <table class="table table-striped results">
+                <thead>
+                    <tr>
+                        <th scope="col" class="{% if ordering == 'contract_idx' or ordering == '-contract_idx' %}sorted{% endif %}">
+                            <a href="{{ sorting_links.contract_idx }}">
+                                Contract Index
+                                {% if ordering == 'contract_idx' %}
+                                    <span class="sorting-indicator">&#x25B2;</span>
+                                {% elif ordering == '-contract_idx' %}
+                                    <span class="sorting-indicator">&#x25BC;</span>
+                                {% endif %}
+                            </a>
+                        </th>
+                        <th scope="col" class="{% if ordering == 'contract_name' or ordering == '-contract_name' %}sorted{% endif %}">
+                            <a href="{{ sorting_links.contract_name }}">
+                                Contract Name
+                                {% if ordering == 'contract_name' %}
+                                    <span class="sorting-indicator">&#x25B2;</span>
+                                {% elif ordering == '-contract_name' %}
+                                    <span class="sorting-indicator">&#x25BC;</span>
+                                {% endif %}
+                            </a>
+                        </th>
+                        <th scope="col" class="{% if ordering == 'contract_type' or ordering == '-contract_type' %}sorted{% endif %}">
+                            <a href="{{ sorting_links.contract_type }}">
+                                Contract Type
+                                {% if ordering == 'contract_type' %}
+                                    <span class="sorting-indicator">&#x25B2;</span>
+                                {% elif ordering == '-contract_type' %}
+                                    <span class="sorting-indicator">&#x25BC;</span>
+                                {% endif %}
+                            </a>
+                        </th>
+                        <th scope="col" class="{% if ordering == 'is_quote' or ordering == '-is_quote' %}sorted{% endif %}">
+                            <a href="{{ sorting_links.is_quote }}">
+                                Is Quote?
+                                {% if ordering == 'is_quote' %}
+                                    <span class="sorting-indicator">&#x25B2;</span>
+                                {% elif ordering == '-is_quote' %}
+                                    <span class="sorting-indicator">&#x25BC;</span>
+                                {% endif %}
+                            </a>
+                        </th>                        
+                        <th scope="col" class="{% if ordering == 'is_active' or ordering == '-is_active' %}sorted{% endif %}">
+                            <a href="{{ sorting_links.is_active }}">
+                                Is Active?
+                                {% if ordering == 'is_active' %}
+                                    <span class="sorting-indicator">&#x25B2;</span>
+                                {% elif ordering == '-is_active' %}
+                                    <span class="sorting-indicator">&#x25BC;</span>
+                                {% endif %}
+                            </a>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for contract in contracts %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'custom_admin:view_contract' %}?contract_idx={{ contract.contract_idx }}">
+                                {{ contract.contract_idx }}
+                            </a>
+                        </td>
+                        <td>{{ contract.contract_name }}</td>
+                        <td>{{ contract.contract_type }}</td>
+                        <td>
+                            {% if contract.is_quote %}
+                                <img src="{% static 'admin/img/icon-yes.svg' %}" alt="True" class="icon-yes">
+                            {% else %}
+                                <img src="{% static 'admin/img/icon-no.svg' %}" alt="False" class="icon-no">
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if contract.is_active %}
+                                <img src="{% static 'admin/img/icon-yes.svg' %}" alt="True" class="icon-yes">
+                            {% else %}
+                                <img src="{% static 'admin/img/icon-no.svg' %}" alt="False" class="icon-no">
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="empty-result">No contracts available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% endif %}
 </div>
 {% endblock %}
