@@ -13,3 +13,4 @@ class TransactionSerializer(serializers.Serializer):
     transact_data = serializers.JSONField()
     advance_pay_dt = serializers.DateTimeField(read_only=True)
     advance_pay_amt = serializers.CharField(max_length=20, default = "0.00")
+    advance_tx_hash = serializers.CharField(max_length=32, read_only=True) 

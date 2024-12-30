@@ -1,0 +1,70 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+<script>
+    const deposits = {{ deposits|default:"[]"|safe }};
+</script>
+{% endblock %}
+
+{% block content %}
+<h1 class="title">Find Deposits</h1>
+
+<!-- Find Deposits Form -->
+<form method="post" class="deposit-form">
+    {% csrf_token %}
+    <fieldset class="module aligned">
+        <!-- Select Contract -->
+        <div class="form-row flex-container">
+            <label for="{{ find_deposits_form.contract_idx.id_for_label }}">{{ find_deposits_form.contract_idx.label }}</label>
+            {{ find_deposits_form.contract_idx }}
+        </div>
+
+        <!-- Start and End Dates -->
+        <div class="form-row flex-container">
+            <label for="{{ find_deposits_form.start_date.id_for_label }}">{{ find_deposits_form.start_date.label }}</label>
+            {{ find_deposits_form.start_date }}
+        </div>
+        <div class="form-row flex-container">
+            <label for="{{ find_deposits_form.end_date.id_for_label }}">{{ find_deposits_form.end_date.label }}</label>
+            {{ find_deposits_form.end_date }}
+        </div>
+    </fieldset>
+
+    <div class="submit-row">
+        <input type="submit" name="find_deposits" value="Find Deposits" class="default" />
+    </div>
+</form>
+
+<!-- Deposits Table -->
+{% if deposits %}
+<div class="module">
+    <table class="table table-striped results" id="deposits-table">
+        <thead>
+            <tr>
+                <th scope="col">Buyer</th>
+                <th scope="col">Funder</th>
+                <th scope="col">Amount</th>
+                <th scope="col">Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for deposit in deposits %}
+            <tr>
+                <td>{{ deposit.buyer_addr }}</td>
+                <td>{{ deposit.funder_addr }}</td>
+                <td>{{ deposit.deposit_amt }}</td>
+                <td>{{ deposit.deposit_dt }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="submit-row">
+        <form method="get" action="{% url 'custom_admin:post_deposit' %}">
+            <input type="hidden" name="contract_idx" value="{{ selected_contract_idx }}" />
+            <input type="submit" value="Next: Post Deposit" class="default" />
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

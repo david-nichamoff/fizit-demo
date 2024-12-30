@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ "$FIZIT_ENV" = "dev" ]; then
-    ROLE_ID="Role#678259b3-0363-4238-80a7-1f88951ae560"
+    ROLE_ID="Role#361727aa-353f-46c8-b9fc-2f2f0a23ec25"
     OUTPUT="devnet_role_session.json"
     PURPOSE="Role_DEV"
 elif [ "$FIZIT_ENV" = "test" ]; then

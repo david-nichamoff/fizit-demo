@@ -61,9 +61,6 @@ class Command(BaseCommand):
         self.w3_manager = Web3Manager()
         self.w3 = self.w3_manager.get_web3_instance(network=self.network)
 
-        # Inject middleware for POA chains if necessary
-        self.w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
-
     def _send_native_token(self, from_addr, to_addr, amount, token_name):
         """Send native token (AVAX or FIZIT)."""
         try:
@@ -76,8 +73,6 @@ class Command(BaseCommand):
                 'from': checksum_from_addr,
                 'to': checksum_to_addr,
                 'value': value,
-                'gas': 21000,
-                'gasPrice': self.w3.eth.gas_price,
                 'nonce': self.w3.eth.get_transaction_count(checksum_from_addr),
             }
 

@@ -57,6 +57,7 @@ class TransactionAPI:
                 "transact_data": decrypted_transact_data,
                 "advance_pay_dt": self.from_timestamp(transact[6]),
                 "advance_pay_amt": f'{Decimal(transact[7]) / 100:.2f}',
+                "advance_tx_hash": transact[8],
                 "contract_idx": contract['contract_idx'],
                 "funding_instr": contract['funding_instr'],
                 "transact_idx": transact_idx

@@ -1,10 +1,10 @@
 {
   "org_id": "Org#99ac1dcc-598e-4df0-a856-5798969c18a3",
-  "role_id": "Role#678259b3-0363-4238-80a7-1f88951ae560",
-  "expiration": 1761938153,
-  "purpose": "Testing Session",
-  "token": "3d6fd7397:MWQ5NGY0OTMtNDdmZi00YThjLThlMGUtMDY1ZmYwNGUyZGZi.eyJlcG9jaF9udW0iOjEsImVwb2NoX3Rva2VuIjoiMnB0OHBVSGtpTitHQVZIMklvUjBKZE5WU2VSQ1FLRnRSYTIvN1ZkNmZsbz0iLCJvdGhlcl90b2tlbiI6IjFlQTVzNkxKM1Z6U3V2clFFam05ZTlPTXJ5TlFkWU9TZXVEUU1CamZFWGM9In0=",
-  "refresh_token": "3d6fd7397:MWQ5NGY0OTMtNDdmZi00YThjLThlMGUtMDY1ZmYwNGUyZGZi.eyJlcG9jaF9udW0iOjEsImVwb2NoX3Rva2VuIjoiMnB0OHBVSGtpTitHQVZIMklvUjBKZE5WU2VSQ1FLRnRSYTIvN1ZkNmZsbz0iLCJvdGhlcl90b2tlbiI6IjFlQTVzNkxKM1Z6U3V2clFFam05ZTlPTXJ5TlFkWU9TZXVEUU1CamZFWGM9In0=.gY9njYxFsxbfTA0i++3KrxVfNL6sk1B0VcE2GbfzJJ4=",
+  "role_id": "Role#361727aa-353f-46c8-b9fc-2f2f0a23ec25",
+  "expiration": 1767047106,
+  "purpose": "Role_DEV",
+  "token": "3d6fd7397:NjgwMmQ1ZDMtMmZhNS00YWViLWFiZGYtZmFiMjRhNDVkNzZh.eyJlcG9jaF9udW0iOjEsImVwb2NoX3Rva2VuIjoiNHBraHQvU0Q4ZzJmSENmZVBIMnhYdnVFaE9jKzAxZUJERlFBWHk1SUxaTT0iLCJvdGhlcl90b2tlbiI6InlvSGdzdUY1MER3UU1YQnRZQ2R1dXQ2YzlwMks4b0RkMjkyVFVRQS9Uc1E9In0=",
+  "refresh_token": "3d6fd7397:NjgwMmQ1ZDMtMmZhNS00YWViLWFiZGYtZmFiMjRhNDVkNzZh.eyJlcG9jaF9udW0iOjEsImVwb2NoX3Rva2VuIjoiNHBraHQvU0Q4ZzJmSENmZVBIMnhYdnVFaE9jKzAxZUJERlFBWHk1SUxaTT0iLCJvdGhlcl90b2tlbiI6InlvSGdzdUY1MER3UU1YQnRZQ2R1dXQ2YzlwMks4b0RkMjkyVFVRQS9Uc1E9In0=.a2+752VgbIbfVmAdip9eJfclgUWPr/pLy9dH3F7g6EA=",
   "env": {
     "Dev-CubeSignerStack": {
       "ClientId": "1tiou9ecj058khiidmhj4ds4rj",
@@ -19,12 +19,12 @@
     }
   },
   "session_info": {
-    "auth_token": "1eA5s6LJ3VzSuvrQEjm9e9OMryNQdYOSeuDQMBjfEXc=",
-    "auth_token_exp": 1761938153,
+    "auth_token": "yoHgsuF50DwQMXBtYCduut6c9p2K8oDd292TUQA/TsQ=",
+    "auth_token_exp": 1767047106,
     "epoch": 1,
-    "epoch_token": "2pt8pUHkiN+GAVH2IoR0JdNVSeRCQKFtRa2/7Vd6flo=",
-    "refresh_token": "gY9njYxFsxbfTA0i++3KrxVfNL6sk1B0VcE2GbfzJJ4=",
-    "refresh_token_exp": 1730402154,
-    "session_id": "1d94f493-47ff-4a8c-8e0e-065ff04e2dfb"
+    "epoch_token": "4pkht/SD8g2fHCfePH2xXvuEhOc+01eBDFQAXy5ILZM=",
+    "refresh_token": "a2+752VgbIbfVmAdip9eJfclgUWPr/pLy9dH3F7g6EA=",
+    "refresh_token_exp": 1735511107,
+    "session_id": "6802d5d3-2fa5-4aeb-abdf-fab24a45d76a"
   }
 }

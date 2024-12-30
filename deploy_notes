@@ -7,3 +7,5 @@
 12/4: add bank and usdt options to config.json
 12/5: remove old command
 12/6: add humanize to installed apps
+12/31: pip install py-solc-x
+python -c "from solcx import install_solc; install_solc('0.8.0')"

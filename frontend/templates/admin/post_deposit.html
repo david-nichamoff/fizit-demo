@@ -1,0 +1,106 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+<script>
+    const settlements = {{ settlements|default:"[]"|safe }};
+    const deposits = {{ deposits|default:"[]"|safe }};
+</script>
+<script src="{% static 'js/post_deposit.js' %}?v1.3"></script>
+{% endblock %}
+
+{% block content %}
+<h1 class="title">Post Deposit</h1>
+
+<!-- Deposits Table -->
+{% if deposits %}
+<div class="module">
+    <table class="table table-striped results" id="deposits-table">
+        <thead>
+            <tr>
+                <th scope="col">Select</th>
+                <th scope="col">Buyer</th>
+                <th scope="col">Funder</th>
+                <th scope="col">Amount</th>
+                <th scope="col">Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for deposit in deposits %}
+            <tr>
+                <td>
+                    <input type="radio" name="selected_deposit" 
+                           data-deposit-dt="{{ deposit.deposit_dt }}" 
+                           data-deposit-amt="{{ deposit.deposit_amt }}" 
+                           value="{{ deposit.deposit_id }}">
+                </td>
+                <td>{{ deposit.buyer_addr }}</td>
+                <td>{{ deposit.funder_addr }}</td>
+                <td>{{ deposit.deposit_amt }}</td>
+                <td>{{ deposit.deposit_dt }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="form-row">
+        <div class="help">Select a deposit to proceed</div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Settlements Table -->
+{% if settlements %}
+<div class="module">
+    <table class="table table-striped results" id="settlements-table">
+        <thead>
+            <tr>
+                <th scope="col">Select</th>
+                <th scope="col">Settlement ID</th>
+                <th scope="col">Due Date</th>
+                <th scope="col">Expected Amount</th>
+                <th scope="col">Payment Date</th>
+                <th scope="col">Payment Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for settlement in settlements %}
+            <tr>
+                <td>
+                    <input type="radio" name="selected_settlement" 
+                           data-settlement-id="{{ settlement.settle_idx }}" 
+                           value="{{ settlement.settle_idx }}">
+                </td>
+                <td>{{ settlement.settle_idx }}</td>
+                <td>{{ settlement.settle_due_dt }}</td>
+                <td>{{ settlement.settle_exp_amt }}</td>
+                <td>{{ settlement.settle_pay_dt }}</td>
+                <td>{{ settlement.settle_pay_amt }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="form-row">
+        <div class="help">Select a settlement to proceed</div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Post Deposit Form -->
+<form method="post" class="post-deposit-form">
+    {% csrf_token %}
+    <fieldset class="module aligned">
+        <input type="hidden" name="contract_idx" value="{{ selected_contract_idx }}">
+        <input type="hidden" name="deposit_dt" id="selected-deposit-dt">
+        <input type="hidden" name="deposit_amt" id="selected-deposit-amt">
+        <input type="hidden" name="settle_idx" id="selected-settlement-idx">
+        <div class="form-row">
+            <label for="{{ post_deposit_form.dispute_reason.id_for_label }}">{{ post_deposit_form.dispute_reason.label }}</label>
+            {{ post_deposit_form.dispute_reason }}
+        </div>
+    </fieldset>
+
+    <div class="submit-row">
+        <input type="submit" name="post_deposit" value="Post Deposit" class="default" />
+    </div>
+</form>
+{% endblock %}

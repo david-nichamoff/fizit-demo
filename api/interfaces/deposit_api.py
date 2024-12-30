@@ -1,5 +1,7 @@
 import datetime
 import logging
+import json
+
 from decimal import Decimal
 
 from datetime import timezone
@@ -64,6 +66,7 @@ class DepositAPI:
                 raise ValueError(f"Unsupported bank type '{bank_type}' for contract {contract_idx}")
 
             return deposits
+
         except Exception as e:
             self.logger.error(f"Error retrieving deposits for contract {contract_idx}: {str(e)}")
             raise RuntimeError(f"Failed to retrieve deposits for contract {contract_idx}") from e

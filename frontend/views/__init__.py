@@ -12,5 +12,6 @@ from .list_contracts_view import  list_contracts_view
 from .add_contract_view import add_contract_view
 from .add_transaction_view import add_transaction_view
 from .add_advance_view import add_advance_view
-from .add_deposit_view import add_deposit_view
 from .add_residual_view import add_residual_view
+from .find_deposits_view import find_deposits_view
+from .post_deposit_view import post_deposit_view

@@ -23,6 +23,7 @@ class SettlementForm(BaseSettlementForm):
         initial=lambda: datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat(),
         widget=forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'datetime-input'}),
         help_text="Enter the date the settlement will be paid in UTC (Coordinated Universal Time)",
+        label="Settlement due date:"
     )
 
     transact_min_dt = forms.DateTimeField(
@@ -30,6 +31,7 @@ class SettlementForm(BaseSettlementForm):
         initial=lambda: datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat(),
         widget=forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'datetime-input'}),
         help_text="Enter the minimum date for transactions in UTC (Coordinated Universal Time)",
+        label="Transaction min date:"
     )
 
     transact_max_dt = forms.DateTimeField(
@@ -37,4 +39,5 @@ class SettlementForm(BaseSettlementForm):
         initial=lambda: datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat(),
         widget=forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'datetime-input'}),
         help_text="Enter the maximum date for transactions in UTC (Coordinated Universal Time)",
+        label="Transaction max date:"
     )

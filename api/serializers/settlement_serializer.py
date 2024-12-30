@@ -16,6 +16,7 @@ class SettlementSerializer(serializers.Serializer):
     settle_pay_dt =  serializers.DateTimeField(read_only=True) 
     settle_exp_amt = serializers.CharField(max_length=20, default = "0.00")
     settle_pay_amt = serializers.CharField(max_length=20, default = "0.00")
+    settle_tx_hash = serializers.CharField(max_length=32, required=False)
     dispute_amt = serializers.CharField(max_length=20, default = "0.00")
     dispute_reason =  serializers.CharField(read_only=True,max_length=1000)
     days_late = serializers.IntegerField(read_only=True)
@@ -24,3 +25,4 @@ class SettlementSerializer(serializers.Serializer):
     residual_exp_amt = serializers.CharField(max_length=20, default = "0.00")
     residual_pay_amt = serializers.CharField(max_length=20, default = "0.00")
     residual_calc_amt = serializers.CharField(max_length=20, default = "0.00")
+    residual_tx_hash = serializers.CharField(max_length=32, required=False)

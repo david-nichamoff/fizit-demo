@@ -100,14 +100,16 @@ class ContractForm(BaseContractForm):
 
     funding_instr = forms.JSONField(
         widget=forms.HiddenInput(attrs={"id": "id_funding_instr"}),
-        required=True,
-        label="Funding instructions:"
+        required=False,
+        label="Funding instructions:",
+        initial = {"dummy": "value"} 
     )
 
     deposit_instr = forms.JSONField(
         widget=forms.HiddenInput(attrs={"id": "id_deposit_instr"}),
-        required=True,
-        label="Deposit instructions:"
+        required=False,
+        label="Deposit instructions:",
+        initial = {"dummy": "value"} 
     )
 
     transact_logic = forms.JSONField(
@@ -186,5 +188,11 @@ class ContractForm(BaseContractForm):
                     cleaned_data[field_name] = f"{float(cleaned_data[field_name]):.4f}"
                 except (ValueError, TypeError):
                     raise forms.ValidationError(f"Invalid value for {field_name}.")
+
+        if cleaned_data.get("funding_instr") == {"dummy": "value"}:
+            cleaned_data["funding_instr"] = {}
+
+        if cleaned_data.get("deposit_instr") == {"dummy": "value"}:
+            cleaned_data["deposit_instr"] = {}
 
         

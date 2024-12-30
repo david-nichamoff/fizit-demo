@@ -128,71 +128,111 @@ class Web3Manager:
         logging.info(f"[{source}] Full Transaction: {decoded_tx_hexbytes}")
 
     def send_signed_transaction(self, transaction, wallet_addr, contract_idx, network="fizit"):
-        """
-        Original function signature preserved for compatibility.
-        Calls the generalized transaction handler.
-        """
-        return self._send_transaction_internal(
-            wallet_addr=transaction.get("from", wallet_addr),
-            contract_idx=contract_idx,
-            network=network,
-            to=transaction["to"],
-            value=transaction.get("value", 0),
-            data=transaction.get("data"),
-            nonce=transaction.get("nonce")
-        )
+        web3_instance = self.get_web3_instance(network)
 
-    def send_contract_deployment(self, bytecode, constructor_args, wallet_addr, contract_idx, network="fizit", abi=None):
-        """
-        Refactored to use the generalized transaction handler for contract deployment.
-        """
-        return self._send_transaction_internal(
-            wallet_addr=wallet_addr,
-            contract_idx=contract_idx,
-            network=network,
-            to=None,  # Contract deployment
-            value=0,
-            data=None,
-            bytecode=bytecode,
-            constructor_args=constructor_args,
-            abi=abi
-        )
+        # Check if web3 is connected before proceeding
+        if not web3_instance.is_connected():
+            logging.error(f"Web3 instance is not connected to the {network} network.")
+            raise ConnectionError("Web3 instance is not connected")
 
-    def _send_transaction_internal(
-        self,
-        wallet_addr,
-        contract_idx,
-        network="fizit",
-        to=None,
-        value=0,
-        data=None,
-        bytecode=None,
-        constructor_args=None,
-        nonce=None,
-        abi=None
-    ):
-        """
-        Generalized private method for handling both regular transactions and contract deployments.
-        """
+        org_id = self.config_manager.get_nested_config_value("cs", "org_id")
+        encoded_org_id = urllib.parse.quote(org_id, safe='')
 
+        # Retrieve the session token from config or environment
+        role_session_token = self.keys.get("role_session_token")
+        if not role_session_token:
+            raise ValueError("Session token is missing in the configuration")
+
+        # Retrieve the chain ID for the specified network
+        chain_config = self.config_manager.get_config_value("chain")
+        chain_entry = next((item for item in chain_config if item["key"] == network), None)
+        if not chain_entry:
+            raise ValueError(f"Chain ID for network '{network}' not found in configuration.")
+
+        chain_id = chain_entry["value"]
+
+        try:
+            # Estimate gas
+            estimated_gas = web3_instance.eth.estimate_gas(transaction)
+            max_priority_fee_per_gas = 0
+            max_fee_per_gas = 50000000000
+
+            tx_data = {
+                "chain_id": chain_id,  # Use the chain ID from configuration
+                "tx": {
+                    "chain_id": hex(chain_id),
+                    "gas": hex(estimated_gas),
+                    "maxFeePerGas": hex(max_fee_per_gas),
+                    "maxPriorityFeePerGas": hex(max_priority_fee_per_gas),
+                    "nonce": hex(transaction["nonce"]),
+                    "to": transaction["to"],
+                    "type": "0x2",
+                    "value": hex(transaction["value"]),
+                    "data": transaction.get("data", "0x")
+                }
+            }
+
+            # Call the signing API
+            cs_url = self.config_manager.get_nested_config_value("cs", "url")
+            api_url = f"{cs_url}/v1/org/{encoded_org_id}/eth1/sign/{wallet_addr}"
+            headers = {
+                "Content-Type": "application/json",
+                "accept": "application/json",
+                "Authorization": f"{role_session_token}"  # Include the session token in the Authorization header
+            }
+
+            response = requests.post(api_url, json=tx_data, headers=headers)
+            response.raise_for_status()  # Check for any HTTP errors
+
+            # Extract the signed transaction from the response
+            signed_tx = response.json().get("rlp_signed_tx")
+            if not signed_tx:
+                raise ValueError("Signed transaction not found in response")
+
+            signed_tx_bytes = web3_instance.to_bytes(hexstr=signed_tx)
+
+            # Send the signed transaction to the network
+            tx_hash = web3_instance.eth.send_raw_transaction(signed_tx_bytes)
+            tx_hash_hex = tx_hash.hex()
+
+            # Ensure the prefix
+            if not tx_hash_hex.startswith("0x"):
+                tx_hash_hex = f"0x{tx_hash_hex}"
+
+            # Create a row in the Event table with known fields
+            Event.objects.create(
+                contract_idx=contract_idx,  
+                network=network,
+                from_addr=transaction["from"],
+                to_addr=transaction["to"],
+                tx_hash=tx_hash_hex,
+                event_type="TransactionSent",
+                details="Pending",
+                status="pending" 
+            )
+
+            # Add a timeout to wait for the transaction receipt (e.g., 120 seconds)
+            tx_receipt = web3_instance.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+
+            return tx_receipt
+
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Error sending request to signing API: {str(e)}")
+            raise
+
+        except Exception as e:
+            logging.error(f"Error occurred: {str(e)}")
+            raise
+
+    def send_contract_deployment(self, bytecode, constructor_args, wallet_addr, contract_idx, network="fizit"):
         web3_instance = self.get_web3_instance(network)
 
         if not web3_instance.is_connected():
             logging.error(f"Web3 instance is not connected to the {network} network.")
             raise ConnectionError("Web3 instance is not connected")
 
-        # Convert addresses to checksum format
-        try:
-            wallet_addr = to_checksum_address(wallet_addr)
-            if to:
-                to = to_checksum_address(to)
-        except Exception as e:
-            logging.error(f"Invalid address format: {e}")
-            raise ValueError(f"Invalid address format: {e}")
-
         org_id = self.config_manager.get_nested_config_value("cs", "org_id")
         encoded_org_id = urllib.parse.quote(org_id, safe='')
-
         role_session_token = self.keys.get("role_session_token")
         if not role_session_token:
             raise ValueError("Session token is missing in the configuration")
@@ -205,49 +245,31 @@ class Web3Manager:
         chain_id = chain_entry["value"]
 
         try:
-            # Prepare the transaction
-            if nonce is None:
-                nonce = web3_instance.eth.get_transaction_count(wallet_addr)
-
-            tx = {
+            # Prepare the contract data
+            contract = web3_instance.eth.contract(bytecode=bytecode)
+            constructor_txn = contract.constructor(*constructor_args).build_transaction({
                 "from": wallet_addr,
-                "nonce": hex(nonce),
-                "value": hex(value),
-                "to": to,  # None for contract deployment
-                "type": "0x2",  # EIP-1559
-            }
+                "nonce": web3_instance.eth.get_transaction_count(wallet_addr),
+            })
 
-            if bytecode:
-                contract = web3_instance.eth.contract(abi=abi, bytecode=bytecode)
+            # Estimate gas for contract deployment
+            estimated_gas = web3_instance.eth.estimate_gas(constructor_txn)
+            max_priority_fee_per_gas = 0
+            max_fee_per_gas = 50000000000
 
-                # Check if the ABI includes a constructor definition
-                constructor_abi = next(
-                    (item for item in contract.abi if item.get("type") == "constructor"), None
-                )
-
-                if constructor_abi is None or not constructor_abi.get("inputs"):
-                    # No constructor or no inputs required
-                    logging.info("No constructor or arguments required; deploying with bytecode only.")
-                    tx["data"] = bytecode  # Use raw bytecode for deployment
-                else:
-                    # Constructor exists, build the transaction
-                    logging.info(f"Constructor inputs expected: {constructor_abi['inputs']}")
-                    constructor_txn = contract.constructor(*constructor_args).build_transaction(tx)
-                    tx.update({"data": constructor_txn["data"]})
-            elif data:
-                # Regular transaction case
-                tx.update({"data": data})
-
-            # Estimate gas
-            estimated_gas = web3_instance.eth.estimate_gas(tx)
-            tx["gas"] = hex(estimated_gas)
-            tx["maxFeePerGas"] = hex(50000000000)  
-            tx["maxPriorityFeePerGas"] = hex(0)  
-
-            # Prepare the signing payload
             tx_data = {
                 "chain_id": chain_id,
-                "tx": tx
+                "tx": {
+                    "chain_id": hex(chain_id),
+                    "gas": hex(estimated_gas),
+                    "maxFeePerGas": hex(max_fee_per_gas),
+                    "maxPriorityFeePerGas": hex(max_priority_fee_per_gas),
+                    "nonce": hex(constructor_txn["nonce"]),
+                    "to": None,  # Contract deployment
+                    "type": "0x2",
+                    "value": "0x0",
+                    "data": constructor_txn["data"]
+                }
             }
 
             cs_url = self.config_manager.get_nested_config_value("cs", "url")
@@ -271,19 +293,6 @@ class Web3Manager:
 
             if not tx_hash_hex.startswith("0x"):
                 tx_hash_hex = f"0x{tx_hash_hex}"
-
-            event_type = "ContractDeployed" if to is None else "TransactionSent"
-
-            Event.objects.create(
-                contract_idx=contract_idx,
-                network=network,
-                from_addr=wallet_addr,
-                to_addr=to,
-                tx_hash=tx_hash_hex,
-                event_type=event_type,
-                details="Pending",
-                status="pending"
-            )
 
             tx_receipt = web3_instance.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
             return tx_receipt

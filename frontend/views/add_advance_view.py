@@ -1,5 +1,6 @@
 import requests
 import logging
+import json
 
 from django.contrib import messages
 from api.managers import ConfigManager, SecretsManager
@@ -38,7 +39,6 @@ def fetch_all_contracts(headers, config):
         return []
 
     contract_count = count_response.json()['contract_count']
-    logger.info(f"contract_count: {contract_count}")
 
     # Fetch contracts one by one
     contracts = []
@@ -53,7 +53,6 @@ def fetch_all_contracts(headers, config):
 
     return contracts
 
-# Fetch total contract count and fetch each contract one by one
 def fetch_all_advances(headers, config):
     base_url = config["url"]
     logger.info(f"base_url: {base_url}")
@@ -87,29 +86,25 @@ def handle_post_request(request, headers, config):
     try:
         # Retrieve selected advances from the form
         contract_idx = request.POST.get("contract_idx")
+        advances_json = request.POST.get("advances")
 
-        if not contract_idx:
-            messages.error(request, "No contract selected.")
+        if not contract_idx or not advances_json:
+            messages.error(request, "No contract or advances selected.")
+            return redirect(request.path)
+
+        advances_to_post = json.loads(advances_json)
+
+        if not advances_to_post:
+            messages.error(request, "No valid advances found for posting.")
             return redirect(request.path)
 
         base_url = config["url"]
-        operations = BankOperations(headers, config)
-
-        # Fetch advances for the selected contract
-        advances = fetch_all_advances(headers, config)
-        advances_for_contract = [
-            advance for advance in advances if advance["contract_idx"] == int(contract_idx)
-        ]
-
-        if not advances_for_contract:
-            messages.error(request, "No advances found for the selected contract.")
-            return redirect(request.path)
 
         # Call the backend API to post the advances
         post_url = f"{base_url}/api/contracts/{contract_idx}/advances/"
-        response = requests.post(post_url, headers=headers, json={"advances": advances_for_contract})
+        response = requests.post(post_url, headers=headers, json=advances_to_post)
 
-        if response.status_code == 200:
+        if response.status_code == 201:
             messages.success(request, "Advances posted successfully.")
         else:
             logger.error(f"Failed to post advances: {response.json()}")

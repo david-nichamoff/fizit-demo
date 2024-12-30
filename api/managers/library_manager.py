@@ -12,7 +12,7 @@ class LibraryManager:
     """
     _instance = None
     _library_cache = None
-    LIBRARY_FILE_PATH = os.path.join(settings.BASE_DIR, 'api', 'managers', 'fixtures', 'library.json')
+    LIBRARY_FILE_PATH = os.path.join(settings.BASE_DIR, 'api', 'config', 'library.json')
 
     def __new__(cls, *args, **kwargs):
         """Ensure the class is a singleton."""

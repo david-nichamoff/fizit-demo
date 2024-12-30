@@ -88,11 +88,15 @@ def add_contract_view(request, extra_context=None):
     account_choices = [(account['id'], account['name']) for account in accounts]
     recipient_choices = [(recipient['id'], recipient['name']) for recipient in recipients]
 
+    logger.info(f"request method: {request.method}")
+
     # Initialize form for POST or GET
     if request.method == 'POST':
         contract_form = ContractForm(request.POST)
     else:
         contract_form = ContractForm()
+
+    logger.info(f"contract form errors: {contract_form.errors}")
 
     # Set dynamic choices explicitly
     contract_form.fields['funding_account'].choices = account_choices
@@ -118,6 +122,8 @@ def handle_post_request(request, headers, config, base_url, contract_form):
     logger.info(f"Contract form errors:  {contract_form.errors}")
 
     contract_data = contract_form.cleaned_data
+
+    logger.info(f"contract_data: {contract_data}")
 
     # Generate funding and deposit instructions
     contract_data["funding_instr"] = generate_instruction_data(

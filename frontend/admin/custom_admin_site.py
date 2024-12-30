@@ -7,7 +7,8 @@ from api.models import Event, Contact, Contract
 
 from frontend.views import erc20_balances_view, avax_balances_view, fizit_balances_view, mercury_balances_view
 from frontend.views import view_contract_view, list_contracts_view, add_contract_view
-from frontend.views import add_transaction_view, add_advance_view, add_deposit_view, add_residual_view
+from frontend.views import add_transaction_view, add_advance_view, add_residual_view
+from frontend.views import find_deposits_view, post_deposit_view
 
 from frontend.views import EventAdmin, ContactAdmin, ContractAdmin
 
@@ -39,7 +40,8 @@ class CustomAdminSite(AdminSite):
             path('add-contract/', self.admin_view(self.add_contract_view), name='add_contract'),  
             path('add-transaction/', self.admin_view(self.add_transaction_view), name='add_transaction'),  
             path('add-advance/', self.admin_view(self.add_advance_view), name='add_advance'),  
-            path('add-deposit/', self.admin_view(self.add_deposit_view), name='add_deposit'),  
+            path('find-deposits/', self.admin_view(self.find_deposits_view), name='find_deposits'),  
+            path('post-deposit/', self.admin_view(self.post_deposit_view), name='post_deposit'),  
             path('add-residual/', self.admin_view(self.add_residual_view), name='add_residual'),  
         ]
         return custom_urls + urls
@@ -80,13 +82,17 @@ class CustomAdminSite(AdminSite):
         context = self.each_context(request)
         return add_advance_view(request, extra_context=context)
 
-    def add_deposit_view(self, request):
-        context = self.each_context(request)
-        return add_deposit_view(request, extra_context=context)
-
     def add_residual_view(self, request):
         context = self.each_context(request)
         return add_residual_view(request, extra_context=context)
+
+    def find_deposits_view(self, request):
+        context = self.each_context(request)
+        return find_deposits_view(request, extra_context=context)
+
+    def post_deposit_view(self, request):
+        context = self.each_context(request)
+        return post_deposit_view(request, extra_context=context)
 
     def each_context(self, request):
         """
@@ -110,7 +116,7 @@ class CustomAdminSite(AdminSite):
                     {'name': 'Contracts', 'url': reverse('custom_admin:list_contracts')},
                     {'name': 'Transactions', 'url': reverse('custom_admin:add_transaction')},
                     {'name': 'Advances', 'url': reverse('custom_admin:add_advance')},
-                    {'name': 'Deposits', 'url': reverse('custom_admin:add_deposit')},
+                    {'name': 'Deposits', 'url': reverse('custom_admin:find_deposits')},
                     {'name': 'Residuals', 'url': reverse('custom_admin:add_residual')},
                 ],
             },

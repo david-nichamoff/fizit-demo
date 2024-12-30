@@ -184,8 +184,8 @@
                             <th scope="col">Txn Count</th>
                             <th scope="col">Expected Amount</th>
                             <th scope="col">Date Paid</th>
-                            <th scope="col">Amount Paid</th>
-                            <th scope="col">Residual Paid</th>
+                            <th scope="col">Amount Received</th>
+                            <th scope="col">Residual</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -248,7 +248,7 @@
                         </div>
                         <div class="form-row">
                             <div class="flex-container">
-                                <label class="required" for="{{ settlement_form.transact_max_dt.id_for_label }}">{{ settlement_form.transact_max_dt.id_for_label }}</label>
+                                <label class="required" for="{{ settlement_form.transact_max_dt.id_for_label }}">{{ settlement_form.transact_max_dt.label }}</label>
                                 {{ settlement_form.transact_max_dt }}
                             </div>
                             <div class="help">{{ settlement_form.transact_max_dt.help_text }}</div>

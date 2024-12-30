@@ -58,6 +58,7 @@ class TokenAdapter:
 
             # Get token contract details
             token_config = self.config_manager.get_config_value("token_addr")
+
             token_entry = next(
                 (token for token in token_config if token["key"].lower() == token_symbol.lower()), None
             )
@@ -88,7 +89,6 @@ class TokenAdapter:
             # Break block range into chunks and query logs
             for start in range(from_block, to_block + 1, max_blocks):
                 end = min(start + max_blocks - 1, to_block)
-                self.logger.info(f"Querying blocks from {start} to {end}.")
 
                 logs = self.w3.eth.get_logs({
                     "fromBlock": start,
@@ -156,7 +156,15 @@ class TokenAdapter:
 
         while start_block <= end_block:
             mid_block = (start_block + end_block) // 2
-            mid_block_data = self.w3.eth.get_block(mid_block)
+
+            try:
+                mid_block_data = self.w3.eth.get_block(mid_block)
+            except Exception as e:
+                self.logger.warning(f"Block {mid_block} not found: {e}")
+            
+                # Adjust search range to continue binary search
+                end_block = mid_block - 1
+                continue
 
             if mid_block_data.timestamp < timestamp:
                 start_block = mid_block + 1
@@ -164,7 +172,7 @@ class TokenAdapter:
                 end_block = mid_block - 1
             else:
                 return mid_block
-
+        
         # Return the closest block (end_block will be just before the timestamp)
         return end_block
 
@@ -179,18 +187,12 @@ class TokenAdapter:
             funder_addr = to_checksum_address(funder_addr)
             recipient_addr = to_checksum_address(recipient_addr)
 
-            self.logger.info(f"funder_addr: {funder_addr}")
-            self.logger.info(f"recipient_addr: {recipient_addr}")
-
             # Retrieve token contract address from configuration
             token_config = self.config_manager.get_config_value("token_addr")
             if not token_config:
                 error_message = "Token configurations are missing in the configuration."
                 self.logger.error(error_message)
                 return False, error_message
-
-            self.logger.info(f"token_config: {token_config}")
-            self.logger.info(f"token_symbol {token_symbol}")
 
             token_entry = next(
                 (token for token in token_config if token["key"].lower() == token_symbol.lower()), None
@@ -200,22 +202,15 @@ class TokenAdapter:
                 self.logger.error(error_message)
                 return False, error_message
 
-            self.logger.info(f"token_entry: {token_entry}")
-
             token_contract_addr = to_checksum_address(token_entry["value"])
 
             token_contract = self.w3.eth.contract(
                 address=token_contract_addr, abi=self._get_erc20_abi()
             )
 
-            self.logger.info(f"token_contract: {token_contract}")
-
             # Convert amount to the smallest unit of the token (e.g., wei for ERC-20)
             decimals = token_contract.functions.decimals().call()
             smallest_unit_amount = int(Decimal(amount) * (10 ** decimals))
-
-            self.logger.info(f"decimals: {decimals}")
-            self.logger.info(f"smallet_unit_amount: {smallest_unit_amount}")
 
             # Build the transaction
             nonce = self.w3.eth.get_transaction_count(funder_addr)
