@@ -19,6 +19,7 @@ frontend/migrations
 project/settings.py
 
 # ignore truffle except for the contract and test files
+truffle/
 truffle/node_modules
 truffle/migrations
 truffle/truffle-config.js
@@ -28,7 +29,6 @@ truffle/package.json
 # ignore configuration files that need to be set manually
 .env.dev
 webpack.config.js
-api/managers/fixtures/config.json
 
 # django files 
 db.sqlite3
@@ -60,3 +60,7 @@ log/npm.log
 
 # cs files
 cs/session.json
+cs/
+
+# config files
+api/config/config.json

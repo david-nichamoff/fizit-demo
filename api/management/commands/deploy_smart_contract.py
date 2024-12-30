@@ -73,7 +73,11 @@ class Command(BaseCommand):
         with open(contract_file_path, "r") as file:
             contract_source_code = file.read()
 
-        from solcx import compile_standard
+        from solcx import compile_standard, install_solc, set_solc_version
+
+        # Install and set the correct compiler version
+        install_solc("0.8.0")
+        set_solc_version("0.8.0")
 
         # Compile the Solidity source code with optimizer settings
         compiled_contract = compile_standard({
