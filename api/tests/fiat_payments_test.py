@@ -38,7 +38,7 @@ class PayFiatTests(TestCase):
         self.csrf_ops = CsrfOperations(self.headers, self.config)
 
     def test_payments(self):
-        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_fiat_payments')
+        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'fiat_payments_test')
         advance_filename = 'pay_advance.json'
         deposit_filename = 'deposit_params.json'
         fixture_path = os.path.join(fixtures_dir, advance_filename)
@@ -124,7 +124,7 @@ class PayFiatTests(TestCase):
         )
 
     def _test_get_deposits(self, contract_idx, fixture_filename="deposit_params.json"):
-        fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures', "test_fiat_payments", fixture_filename)
+        fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures', "fiat_payments_test", fixture_filename)
 
         with open(fixture_path, 'r') as file:
             data = json.load(file)

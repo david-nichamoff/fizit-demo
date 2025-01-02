@@ -33,7 +33,7 @@ class TestArtifacts(TestCase):
         self.logger = logging.getLogger(__name__)
 
     def test_artifacts(self):
-        contract_fixture = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_artifacts', 'artifact.json')
+        contract_fixture = os.path.join(os.path.dirname(__file__), 'fixtures', 'artifacts_test', 'artifact.json')
         
         with open(contract_fixture, 'r') as file:
             try:

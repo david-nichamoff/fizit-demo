@@ -37,7 +37,7 @@ class ContractTests(TestCase):
         self.csrf_ops = CsrfOperations(self.headers, self.config)
 
     def test_load_contract(self):
-        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_full_contract')
+        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'full_contract_test')
         for filename in os.listdir(fixtures_dir):
             if filename.endswith('.json'):
                 with open(os.path.join(fixtures_dir, filename), 'r') as file:

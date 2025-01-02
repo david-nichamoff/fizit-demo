@@ -2,8 +2,9 @@ import os
 import json
 import time
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal, ROUND_DOWN
+from dateutil.relativedelta import relativedelta 
 
 from django.test import TestCase
 from rest_framework import status
@@ -43,9 +44,8 @@ class ContractTests(TestCase):
         self.delay = 10
         self.retries = 5
 
-    def test_load_contracts(self):
-
-        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_load_contract')
+    def test_load_contract(self):
+        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'load_contract_test')
         for filename in os.listdir(fixtures_dir):
             if filename.endswith('.json'):
                 with open(os.path.join(fixtures_dir, filename), 'r') as file:
@@ -91,7 +91,7 @@ class ContractTests(TestCase):
 
         contract_data_response = response.json()
 
-        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_load_contract')
+        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'load_contract_test')
         fixture_path = os.path.join(fixtures_dir, filename)
         with open(fixture_path, 'r') as file:
             fixture_data = json.load(file)
@@ -183,13 +183,15 @@ class ContractTests(TestCase):
             self.fail(f'Failed to add settlements to contract {contract_idx}. Status code: {response.status_code}\nResponse: {response.text}')
 
     def _manage_transactions(self, contract_idx, contract_data):
+        settle_months = contract_data["extended_data"]["settle_count"]
+
         transactions_data = self.transaction_ops.generate_transactions(
             contract_idx,
             [contract_data["transact_logic"]['var']],
             {contract_data["transact_logic"]['var']: contract_data["extended_data"][contract_data["transact_logic"]['var']]},
             ['ref_no'],
             contract_data["extended_data"]['first_min_dt'],
-            datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            contract_data["extended_data"]['max_txn_dt']
         )
 
         response = self.transaction_ops.post_transactions(contract_idx, transactions_data)

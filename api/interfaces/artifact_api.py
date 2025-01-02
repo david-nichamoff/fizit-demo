@@ -3,10 +3,9 @@ import requests
 import boto3
 import datetime
 
-from datetime import timezone, datetime, time
+from datetime import timezone, datetime
 
 from botocore.exceptions import ClientError
-from eth_utils import to_checksum_address
 
 from api.managers import Web3Manager, ConfigManager
 from api.interfaces import ContractAPI
@@ -33,7 +32,6 @@ class ArtifactAPI:
         self.initialized = True
 
         self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
-        self.checksum_wallet_addr = to_checksum_address(self.wallet_addr)
 
     def from_timestamp(self, ts):
         return None if ts == 0 else datetime.fromtimestamp(ts, tz=timezone.utc)
@@ -111,9 +109,6 @@ class ArtifactAPI:
                     else:
                         content_type = response.headers.get('Content-Type', 'application/octet-stream')
 
-                    # Build the transaction using the contract address and contract_idx
-                    nonce = self.w3_manager.get_nonce(self.checksum_wallet_addr)
-
                     # Build the transaction
                     transaction = self.w3_contract.functions.addArtifact(
                         contract_idx,
@@ -123,10 +118,7 @@ class ArtifactAPI:
                         s3_bucket, 
                         s3_object_key, 
                         version_id
-                    ).build_transaction({
-                        "from": self.checksum_wallet_addr,
-                        "nonce": nonce
-                    })
+                    ).build_transaction()
 
                     tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
@@ -173,14 +165,9 @@ class ArtifactAPI:
                     self.logger.error(f"Error deleting artifact from S3: {str(e)}")
                     raise RuntimeError(f"Error deleting artifact from S3: {str(e)}") from e
 
-            # Now delete the artifacts from the blockchain
-            nonce = self.w3_manager.get_nonce(self.checksum_wallet_addr)
 
             # Build the transaction to delete all artifacts on-chain for the contract
-            transaction = self.w3_contract.functions.deleteArtifacts(contract_idx).build_transaction({
-                "from": self.checksum_wallet_addr,
-                "nonce": nonce
-            })
+            transaction = self.w3_contract.functions.deleteArtifacts(contract_idx).build_transaction()
 
             # Send the transaction
             tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
@@ -212,13 +199,9 @@ class ArtifactAPI:
                 self.logger.info(f"Importing artifact {artifact['doc_title']} to contract {contract_idx}")
 
                 # Build the transaction
-                nonce = self.w3_manager.get_nonce(self.checksum_wallet_addr)
                 transaction = self.w3_contract.functions.importArtifact(
                     contract_idx, artifact_struct
-                ).build_transaction({
-                    "from": self.checksum_wallet_addr,
-                    "nonce": nonce
-                })
+                ).build_transaction()
 
                 # Send the transaction
                 tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")

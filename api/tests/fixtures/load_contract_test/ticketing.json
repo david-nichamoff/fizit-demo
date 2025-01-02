@@ -2,10 +2,11 @@
     "contract" :
     {
         "extended_data"    : {"provider":"engage", "src_code":"MadMax", "dest_code":"BP", 
-                              "settle_count" : 6, 
+                              "settle_count" : 4, 
                               "first_due_dt" : "2024-08-01 00:00:00",
                               "first_min_dt" : "2024-07-01 00:00:00",
                               "first_max_dt" : "2024-08-01 00:00:00",
+                              "max_txn_dt"   : "2024-11-01 00:00:00",
                               "ticket_amt"   : 500.00 },
         "contract_name"    : "Wastewater Hauling Unit Test",
         "contract_type"    : "ticketing",
@@ -25,9 +26,9 @@
     },
     "parties" :
     [
-        {"party_code" : "HaulerCo", "party_type" : "seller"},   
-        {"party_code" : "OilCo", "party_type" : "buyer"},   
-        {"party_code" : "FloatCo", "party_type" : "funder"} 
+        {"party_code": "Supplier_1", "party_type": "seller"},  
+        {"party_code": "Refiner", "party_type" : "buyer"},
+        {"party_code": "FIZIT", "party_type": "funder"}
     ],
     "artifacts": [
         "https://fizit-test-artifacts.s3.amazonaws.com/FIZIT+Executive+Summary.pdf",

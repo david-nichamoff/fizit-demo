@@ -13,7 +13,7 @@ class EncryptionTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         # Load the authorization.json and noauth.json files
-        base_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_encryption')
+        base_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'encryption_test')
         authorization_file = os.path.join(base_dir, 'party.json')
         noauth_file = os.path.join(base_dir, 'noparty.json')
 
@@ -72,64 +72,64 @@ class EncryptionTests(TestCase):
         response = self.transaction_ops.post_transactions(self.noauth_contract_idx, self.noauth_contract_data['transactions'])
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, "FIZIT_MASTER_KEY should succeed adding transactions to noauth contract")
 
-    def test_floatco_key_contract_decryption(self):
-        # Get authorization contract using FloatCo API key
-        self.headers['Authorization'] = f"Api-Key {self.keys['FloatCo']}"
+    def test_supplier_key_contract_decryption(self):
+        # Get authorization contract using Affiliate API key
+        self.headers['Authorization'] = f"Api-Key {self.keys['Affiliate']}"
         response = self.contract_ops.get_contract(self.authorization_contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_200_OK, "FloatCo key should retrieve authorization contract")
+        self.assertEqual(response.status_code, status.HTTP_200_OK, "Affiliate key should retrieve authorization contract")
 
         # Check if extended_data and transact_logic are decrypted
         contract_data = response.json()
         self.assertNotEqual(contract_data['extended_data'], "encrypted data", "extended_data should be decrypted")
         self.assertNotEqual(contract_data['transact_logic'], "encrypted data", "transact_logic should be decrypted")
 
-    def test_floatco_key_contract_noauth(self):
-        # Get noauth contract using FloatCo API key
-        self.headers['Authorization'] = f"Api-Key {self.keys['FloatCo']}"
+    def test_affiliate_key_contract_noauth(self):
+        # Get noauth contract using Affiliate API key
+        self.headers['Authorization'] = f"Api-Key {self.keys['Affiliate']}"
         response = self.contract_ops.get_contract(self.noauth_contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_200_OK, "FloatCo key should retrieve noauth contract")
+        self.assertEqual(response.status_code, status.HTTP_200_OK, "Affiliate key should retrieve noauth contract")
 
         # Check if extended_data and transact_logic are returned as "encrypted data"
         contract_data = response.json()
         self.assertEqual(contract_data['extended_data'], "encrypted data", "extended_data should not be decrypted")
         self.assertEqual(contract_data['transact_logic'], "encrypted data", "transact_logic should not be decrypted")
 
-    def test_floatco_key_settlement_decryption(self):
-        # Get authorization settlements using FloatCo API key
-        self.headers['Authorization'] = f"Api-Key {self.keys['FloatCo']}"
+    def test_affiliate_key_settlement_decryption(self):
+        # Get authorization settlements using Affiliate API key
+        self.headers['Authorization'] = f"Api-Key {self.keys['Affiliate']}"
         response = self.settlement_ops.get_settlements(self.authorization_contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_200_OK, "FloatCo key should retrieve authorization settlements")
+        self.assertEqual(response.status_code, status.HTTP_200_OK, "Affiliate key should retrieve authorization settlements")
 
         # Check if extended_data is decrypted
         settlements_data = response.json()
         self.assertNotEqual(settlements_data[0]['extended_data'], "encrypted data", "extended_data should be decrypted")
 
-    def test_floatco_key_settlement_noauth(self):
-        # Get noauth settlements using FloatCo API key
-        self.headers['Authorization'] = f"Api-Key {self.keys['FloatCo']}"
+    def test_affiliate_key_settlement_noauth(self):
+        # Get noauth settlements using Affiliate API key
+        self.headers['Authorization'] = f"Api-Key {self.keys['Affiliate']}"
         response = self.settlement_ops.get_settlements(self.noauth_contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_200_OK, "FloatCo key should retrieve noauth settlements")
+        self.assertEqual(response.status_code, status.HTTP_200_OK, "Affiliate key should retrieve noauth settlements")
 
         # Check if extended_data is returned as "encrypted data"
         settlements_data = response.json()
         self.assertEqual(settlements_data[0]['extended_data'], "encrypted data", "extended_data should not be decrypted")
 
-    def test_floatco_key_transaction_decryption(self):
-        # Get authorization transactions using FloatCo API key
-        self.headers['Authorization'] = f"Api-Key {self.keys['FloatCo']}"
+    def test_affiliate_key_transaction_decryption(self):
+        # Get authorization transactions using Affiliate API key
+        self.headers['Authorization'] = f"Api-Key {self.keys['Affiliate']}"
         response = self.transaction_ops.get_transactions(self.authorization_contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_200_OK, "FloatCo key should retrieve authorization transactions")
+        self.assertEqual(response.status_code, status.HTTP_200_OK, "Affiliate key should retrieve authorization transactions")
 
         # Check if transact_data and extended_data are decrypted
         transactions_data = response.json()
         self.assertNotEqual(transactions_data[0]['transact_data'], "encrypted data", "transact_data should be decrypted")
         self.assertNotEqual(transactions_data[0]['extended_data'], "encrypted data", "extended_data should be decrypted")
 
-    def test_floatco_key_transaction_noauth(self):
-        # Get noauth transactions using FloatCo API key
-        self.headers['Authorization'] = f"Api-Key {self.keys['FloatCo']}"
+    def test_affiliate_key_transaction_noauth(self):
+        # Get noauth transactions using Affiliate API key
+        self.headers['Authorization'] = f"Api-Key {self.keys['Affiliate']}"
         response = self.transaction_ops.get_transactions(self.noauth_contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_200_OK, "FloatCo key should retrieve noauth transactions")
+        self.assertEqual(response.status_code, status.HTTP_200_OK, "Affiliate key should retrieve noauth transactions")
 
         # Check if transact_data and extended_data are returned as "encrypted data"
         transactions_data = response.json()

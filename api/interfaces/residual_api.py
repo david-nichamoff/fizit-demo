@@ -8,8 +8,6 @@ from api.managers import Web3Manager, ConfigManager
 from api.interfaces import SettlementAPI, ContractAPI, PartyAPI
 from api.adapters.bank import MercuryAdapter, TokenAdapter
 
-from eth_utils import to_checksum_address
-
 class ResidualAPI:
     _instance = None
 
@@ -33,11 +31,11 @@ class ResidualAPI:
             self.mercury_adapter = MercuryAdapter()
             self.token_adapter = TokenAdapter()
 
+            self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
+            self.checksum_wallet_addr = self.w3_manager.get_checksum_address(self.wallet_addr)
+
             self.logger = logging.getLogger(__name__)
             self.initialized = True  # Mark this instance as initialized
-
-            self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
-            self.checksum_wallet_addr = to_checksum_address(self.wallet_addr)
 
     def from_timestamp(self, ts):
         return None if ts == 0 else datetime.datetime.fromtimestamp(ts, tz=timezone.utc)
@@ -116,17 +114,13 @@ class ResidualAPI:
                     raise ValueError(f"Unsupported bank type: {residual["bank"]}")
 
                 # Blockchain transaction for paying residuals
-                nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
                 current_time = int(datetime.datetime.now().timestamp())
                 payment_amt = int(Decimal(residual["residual_calc_amt"]) * 100)
 
                 # Build the blockchain transaction
                 transaction = self.w3_contract.functions.payResidual(
                     contract_idx, residual["settle_idx"], current_time, payment_amt
-                ).build_transaction({
-                    "from": self.checksum_wallet_addr,
-                    "nonce": nonce
-                })
+                ).build_transaction()
 
                 # Send the blockchain transaction
                 tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")

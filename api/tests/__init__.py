@@ -4,3 +4,7 @@ from .data_integrity_test import *
 from .transact_amount_test import *
 from .artifacts_test import *
 from .authorization_test import *
+from .contact_test import *
+from .encryption_test import *
+from .load_full_contract_test import *
+from .token_payments_test import *

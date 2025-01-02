@@ -1,7 +1,6 @@
 import logging
 from decimal import Decimal
 from django.core.management.base import BaseCommand
-from eth_utils import to_checksum_address
 from api.managers import ConfigManager, SecretsManager, Web3Manager
 
 from web3.middleware.proof_of_authority import ExtraDataToPOAMiddleware
@@ -64,8 +63,8 @@ class Command(BaseCommand):
     def _send_native_token(self, from_addr, to_addr, amount, token_name):
         """Send native token (AVAX or FIZIT)."""
         try:
-            checksum_from_addr = to_checksum_address(from_addr)
-            checksum_to_addr = to_checksum_address(to_addr)
+            checksum_from_addr = self.w3_manager.get_checksum_address(from_addr)
+            checksum_to_addr = self.w3_manager.get_checksum_address(to_addr)
             value = self.w3.to_wei(amount, 'ether')
 
             # Build and send transaction
@@ -73,10 +72,10 @@ class Command(BaseCommand):
                 'from': checksum_from_addr,
                 'to': checksum_to_addr,
                 'value': value,
-                'nonce': self.w3.eth.get_transaction_count(checksum_from_addr),
             }
 
             tx_receipt = self.w3_manager.send_signed_transaction(transaction, from_addr, None, self.network)
+
             if tx_receipt["status"] == 1:
                 self.stdout.write(self.style.SUCCESS(f"Successfully sent {amount} {token_name} from {from_addr} to {to_addr}. Transaction hash: {tx_receipt['transactionHash'].hex()}"))
             else:
@@ -97,7 +96,7 @@ class Command(BaseCommand):
 
             token_addr = token_details["value"]
             token_contract = self.w3.eth.contract(
-                address=to_checksum_address(token_addr),
+                address=self.w3_manager.get_checksum_address(token_addr),
                 abi=[
                     {
                         "constant": False,
@@ -129,16 +128,13 @@ class Command(BaseCommand):
             value = int(amount * (10 ** decimals))
 
             # Build transaction
-            checksum_from_addr = to_checksum_address(from_addr)
-            checksum_to_addr = to_checksum_address(to_addr)
+            checksum_from_addr = self.w3_manager.get_checksum_address(from_addr)
+            checksum_to_addr = self.w3_manager.get_checksum_address(to_addr)
 
             transaction = token_contract.functions.transfer(
                 checksum_to_addr, value
             ).build_transaction({
-                'from': checksum_from_addr,
-                'gas': 100000,  # Adjust gas limit if necessary
-                'gasPrice': self.w3.eth.gas_price,
-                'nonce': self.w3.eth.get_transaction_count(checksum_from_addr),
+                'from': checksum_from_addr
             })
 
             # Send transaction

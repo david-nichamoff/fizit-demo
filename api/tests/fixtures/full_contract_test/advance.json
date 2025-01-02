@@ -20,9 +20,9 @@
     },
     "parties" :
     [
-        {"party_code" : "HaulerCo", "party_type" : "seller"},   
-        {"party_code" : "OilCo", "party_type" : "buyer"},   
-        {"party_code" : "FloatCo", "party_type" : "funder"} 
+        {"party_code" : "Supplier_1", "party_type" : "seller"},   
+        {"party_code" : "Refiner", "party_type" : "buyer"},   
+        {"party_code" : "FIZIT", "party_type" : "funder"} 
     ],
     "settlements": [
         {

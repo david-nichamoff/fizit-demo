@@ -19,27 +19,27 @@
         "is_quote": false
     },
     "parties": [
-        {"party_code" : "HaulerCo", "party_type" : "seller"},   
-        {"party_code" : "OilCo", "party_type" : "buyer"},   
-        {"party_code" : "FIZIT", "party_type" : "funder"} 
+        {"party_code": "Supplier_1", "party_type": "seller"},  
+        {"party_code": "Refiner", "party_type" : "buyer"},
+        {"party_code": "FIZIT", "party_type": "funder"}
     ],
     "settlements": [
         {
             "extended_data": {"settlement_id" : "settlement number 1"},
-            "settle_due_dt": "2024-12-01T00:00:00",
-            "transact_min_dt": "2024-11-01T00:00:00",
-            "transact_max_dt": "2024-12-01T00:00:00"
+            "settle_due_dt": "2025-02-01T00:00:00",
+            "transact_min_dt": "2025-01-01T00:00:00",
+            "transact_max_dt": "2025-02-01T00:00:00"
         }
     ],
     "transactions": [
         {
             "extended_data": {"transaction_id" : "transaction number 2"},
-            "transact_dt": "2024-11-03T00:00:00",
+            "transact_dt": "2025-01-03T00:00:00",
             "transact_data": { "invoice_amt" : 0.60}
         },
         {
             "extended_data": {"transaction_id" : "transaction number 1"},
-            "transact_dt": "2024-11-02T00:00:00",
+            "transact_dt": "2025-01-02T00:00:00",
             "transact_data": { "invoice_amt" : 0.60}
         }
     ]

@@ -7,7 +7,6 @@ from decimal import Decimal
 
 from api.managers import Web3Manager, ConfigManager
 from api.interfaces import ContractAPI
-from eth_utils import to_checksum_address
 
 from api.interfaces.encryption_api import get_encryptor, get_decryptor
 from .util_api import is_valid_json
@@ -33,7 +32,7 @@ class SettlementAPI:
         self.initialized = True  # Mark this instance as initialized
 
         self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
-        self.checksum_wallet_addr = to_checksum_address(self.wallet_addr)
+        self.checksum_wallet_addr = self.w3_manager.get_checksum_address(self.wallet_addr)
 
     def from_timestamp(self, ts):
         return None if ts == 0 else datetime.fromtimestamp(ts, tz=timezone.utc)
@@ -114,15 +113,10 @@ class SettlementAPI:
                 # Encrypt sensitive fields before sending to the blockchain
                 encrypted_extended_data = encryptor.encrypt(settlement["extended_data"])
 
-                nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
-
                 # Build the transaction
                 transaction = self.w3_contract.functions.addSettlement(
                     contract_idx, encrypted_extended_data, due_dt, min_dt, max_dt
-                ).build_transaction({
-                    "from": self.checksum_wallet_addr,
-                    "nonce": nonce
-                })
+                ).build_transaction()
 
                 # Send the transaction
                 tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
@@ -138,15 +132,8 @@ class SettlementAPI:
             
     def delete_settlements(self, contract_idx):
         try:
-            nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
-
             # Build the transaction
-            transaction = self.w3_contract.functions.deleteSettlements(contract_idx).build_transaction({
-                "from": self.checksum_wallet_addr,
-                "nonce": nonce
-            })
-
-            # Send the transaction
+            transaction = self.w3_contract.functions.deleteSettlements(contract_idx).build_transaction()
             tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
             if tx_receipt["status"] != 1:
@@ -225,17 +212,11 @@ class SettlementAPI:
                     int(Decimal(settlement["residual_calc_amt"]) * 100),  # residual_calc_amt
                 )
 
-                # Get the current nonce
-                nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
-
                 # Build the transaction to call importSettlement
                 transaction = self.w3_contract.functions.importSettlement(
                     contract_idx,  # The index of the contract
                     settlement_struct  # The settlement struct
-                ).build_transaction({
-                    "from": self.checksum_wallet_addr,
-                    "nonce": nonce
-                })
+                ).build_transaction()
 
                 # Send the transaction
                 tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")

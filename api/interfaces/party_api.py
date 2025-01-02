@@ -2,7 +2,6 @@ import logging
 
 from django.core.exceptions import ObjectDoesNotExist
 from api.managers import Web3Manager, ConfigManager
-from eth_utils import to_checksum_address
 
 class PartyAPI:
     _instance = None
@@ -27,7 +26,7 @@ class PartyAPI:
         self.ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
         self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
-        self.checksum_wallet_addr = to_checksum_address(self.wallet_addr)
+        self.checksum_wallet_addr = self.w3_manager.get_checksum_address(self.wallet_addr)
 
     def get_party_dict(self, party, party_idx, contract_idx):
         """Helper function to create party dict structure."""
@@ -58,15 +57,11 @@ class PartyAPI:
             self.validate_parties(parties)
             for party in parties:
                 party_addr = self.w3.to_checksum_address(self.get_party_address(party["party_code"]))
-                nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
 
                 # Build the transaction
                 transaction = self.w3_contract.functions.addParty(
                     contract_idx, [party["party_code"], party_addr, party["party_type"]]
-                ).build_transaction({
-                    "from": self.checksum_wallet_addr,
-                    "nonce": nonce
-                })
+                ).build_transaction()
 
                 # Send the transaction
                 tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
@@ -93,13 +88,9 @@ class PartyAPI:
     def delete_parties(self, contract_idx):
         """Delete all parties from a given contract."""
         try:
-            nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
 
             # Build the transaction
-            transaction = self.w3_contract.functions.deleteParties(contract_idx).build_transaction({
-                "from": self.checksum_wallet_addr,
-                "nonce": nonce
-            })
+            transaction = self.w3_contract.functions.deleteParties(contract_idx).build_transaction()
 
             # Send the transaction
             tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
@@ -114,13 +105,8 @@ class PartyAPI:
     def delete_party(self, contract_idx, party_idx):
         """Delete a specific party from a given contract."""
         try:
-            nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr, 'pending')
-
             # Build the transaction
-            transaction = self.w3_contract.functions.deleteParty(contract_idx, party_idx).build_transaction({
-                "from": self.checksum_wallet_addr,
-                "nonce": nonce
-            })
+            transaction = self.w3_contract.functions.deleteParty(contract_idx, party_idx).build_transaction()
 
             # Send the transaction
             tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
@@ -163,13 +149,9 @@ class PartyAPI:
                 self.logger.info(f"Importing party {party_code} to contract {contract_idx}")
 
                 # Build the transaction
-                nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
                 transaction = self.w3_contract.functions.importParty(
                     contract_idx, [party_code, party_addr, party_type]
-                ).build_transaction({
-                    "from": self.checksum_wallet_addr,
-                    "nonce": nonce
-                })
+                ).build_transaction()
 
                 # Send the transaction
                 tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")

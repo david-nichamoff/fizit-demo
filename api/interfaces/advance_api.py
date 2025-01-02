@@ -11,8 +11,6 @@ from api.adapters.bank import MercuryAdapter, TokenAdapter
 from api.interfaces.account_api import AccountAPI
 from api.interfaces.recipient_api import RecipientAPI
 
-from eth_utils import to_checksum_address
-
 class AdvanceAPI:
     _instance = None
 
@@ -33,14 +31,15 @@ class AdvanceAPI:
         self.recipient_api = RecipientAPI()
         self.party_api = PartyAPI()
 
+        self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
+        self.checksum_wallet_addr = self.w3_manager.get_checksum_address(self.wallet_addr)
+
         self.mercury_adapter = MercuryAdapter()
         self.token_adapter = TokenAdapter()
 
         self.logger = logging.getLogger(__name__)
         self.initialized = True  # Mark this instance as initialized
 
-        self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
-        self.checksum_wallet_addr = to_checksum_address(self.wallet_addr)
 
     def from_timestamp(self, ts):
         return None if ts == 0 else datetime.datetime.fromtimestamp(ts, tz=timezone.utc)
@@ -133,17 +132,13 @@ class AdvanceAPI:
                     self.logger.error(f"Unsupported bank type {advance['bank']} for contract {contract_idx}")
                     raise ValueError(f"Unsupported bank type: {advance['bank']}")
 
-                nonce = self.w3_manager.get_web3_instance().eth.get_transaction_count(self.checksum_wallet_addr)
                 current_time = int(datetime.datetime.now().timestamp())
                 payment_amt = int(Decimal(advance["advance_amt"]) * 100)
 
-                # Build the transaction
+                # Build the transactione
                 transaction = self.w3_manager.get_web3_contract().functions.payAdvance(
                     contract_idx, advance["transact_idx"], current_time, payment_amt
-                ).build_transaction({
-                    "from": self.checksum_wallet_addr,
-                    "nonce": nonce
-                })
+                ).build_transaction()
 
                 tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 

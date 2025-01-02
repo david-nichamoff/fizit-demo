@@ -1,5 +1,4 @@
 import os
-import logging
 
 from django.core.management.base import BaseCommand
 from django.conf import settings
@@ -36,6 +35,8 @@ class Command(BaseCommand):
         contract_file_path = os.path.join(settings.BASE_DIR, 'api', 'contract', 'delivery.sol')
         abi, bytecode = self.compile_contract(contract_file_path)
 
+        self.stdout.write(f"Bytecode length: {len(bytecode)}")
+
         # Save the ABI to a JSON file
         abi_file_path = os.path.join(settings.BASE_DIR, 'api', 'contract', 'delivery_abi.json')
         with open(abi_file_path, 'w') as abi_file:
@@ -44,29 +45,20 @@ class Command(BaseCommand):
 
         # Deploy the contract using Web3Manager
         try:
-            constructor_args = []  # Default empty list for constructor arguments
-
-            if abi:
-                constructor_abi = next((item for item in abi if item.get("type") == "constructor"), None)
-                logging.info(f"constructor_abi {constructor_abi}")
-
-                if constructor_abi and "inputs" in constructor_abi and constructor_abi["inputs"]:
-                    logging.info(f"Constructor inputs expected: {constructor_abi['inputs']}")
-                    raise ValueError("Constructor arguments are required but not provided.")
-            
-            # Deploy contract with or without constructor arguments
             tx_receipt = web3_manager.send_contract_deployment(
                 bytecode=bytecode,
-                constructor_args=constructor_args,  
                 wallet_addr=wallet_address,
-                contract_idx=None,  
                 network=network,
                 abi=abi
             )
+
+            self.stdout.write(f"tx_receipt: {tx_receipt}")
+
             # Log the deployed contract address
-            logging.info(f"Contract deployed at address: {tx_receipt.contractAddress}")
+            # Output the AES key to stdout for manual handling
+            self.stdout.write(self.style.SUCCESS(f"Contract deployed at address: {tx_receipt.contractAddress}"))
         except Exception as e:
-            logging.exception(f"Failed to deploy the contract: {str(e)}")
+            self.stdout.write(self.style.ERROR(f"Failed to deploy the contract: {str(e)}"))
 
     # Compile the Solidity contract
     def compile_contract(self, contract_file_path):
@@ -80,26 +72,30 @@ class Command(BaseCommand):
         set_solc_version("0.8.0")
 
         # Compile the Solidity source code with optimizer settings
-        compiled_contract = compile_standard({
-            "language": "Solidity",
-            "sources": {
-                "delivery.sol": {
-                    "content": contract_source_code
-                }
-            },
-            "settings": {
-                "optimizer": {
-                    "enabled": True,  # Enable the optimizer
-                    "runs": 200       # Set the optimization runs
+        try:
+            compiled_contract = compile_standard({
+                "language": "Solidity",
+                "sources": {
+                    "delivery.sol": {
+                        "content": contract_source_code
+                    }
                 },
-                "outputSelection": {
-                    "*": {
-                        "*": ["abi", "evm.bytecode.object"]
+                "settings": {
+                    "optimizer": {
+                        "enabled": True,  # Enable the optimizer
+                        "runs": 200       # Set the optimization runs
+                    },
+                    "outputSelection": {
+                        "*": {
+                            "*": ["abi", "evm.bytecode.object"]
+                        }
                     }
                 }
-            }
-        })
-
+            })
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Failed to compile the contract: {str(e)}"))
+            raise
+        
         # Extract the first contract from the compilation result
         contract_name = list(compiled_contract["contracts"]["delivery.sol"].keys())[0]
         contract_data = compiled_contract["contracts"]["delivery.sol"][contract_name]

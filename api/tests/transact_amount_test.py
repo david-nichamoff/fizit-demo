@@ -40,7 +40,7 @@ class TransactionAmountTests(TestCase):
         self.retries = 3
 
     def test_transactions(self):
-        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_transact_amount')
+        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'transact_amount_test')
         for filename in os.listdir(fixtures_dir):
             if filename.endswith('.json'):
                 with open(os.path.join(fixtures_dir, filename), 'r') as file:

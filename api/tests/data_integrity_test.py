@@ -35,7 +35,7 @@ class IntegrityTests(TestCase):
         self.csrf_ops = CsrfOperations(self.headers, self.config)
 
     def test_contract_integrity(self):
-        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_data_integrity', 'contract_errors')
+        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'data_integrity_test', 'contract_errors')
         for filename in os.listdir(fixtures_dir):
             if filename.endswith('.json'):
                 with open(os.path.join(fixtures_dir, filename), 'r') as file:
@@ -55,7 +55,7 @@ class IntegrityTests(TestCase):
                 f"but got {response.status_code}.\nResponse: {response.text}")
 
     def test_party_integrity(self):
-        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_data_integrity', 'party_errors')
+        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'data_integrity_test', 'party_errors')
         for filename in os.listdir(fixtures_dir):
             if filename.endswith('.json'):
                 with open(os.path.join(fixtures_dir, filename), 'r') as file:
@@ -77,7 +77,7 @@ class IntegrityTests(TestCase):
                       f"but got {response.status_code}.\nResponse: {response.text}")
 
     def test_settlement_integrity(self):
-        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_data_integrity', 'settlement_errors')
+        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'data_integrity_test', 'settlement_errors')
         for filename in os.listdir(fixtures_dir):
             if filename.endswith('.json'):
                 with open(os.path.join(fixtures_dir, filename), 'r') as file:
@@ -99,7 +99,7 @@ class IntegrityTests(TestCase):
                       f"but got {response.status_code}.\nResponse: {response.text}")
 
     def test_transaction_integrity(self):
-        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_data_integrity', 'transaction_errors')
+        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'data_integrity_test', 'transaction_errors')
         for filename in os.listdir(fixtures_dir):
             if filename.endswith('.json'):
                 with open(os.path.join(fixtures_dir, filename), 'r') as file:

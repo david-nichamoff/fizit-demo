@@ -2,7 +2,6 @@ import logging
 import datetime
 from decimal import Decimal
 from hexbytes import HexBytes
-from eth_utils import to_checksum_address
 
 from api.managers import Web3Manager, SecretsManager, ConfigManager
 from api.interfaces import PartyAPI
@@ -53,8 +52,7 @@ class TokenAdapter:
                 raise ValueError("Buyer or Funder address not found for the contract.")
 
             # Convert addresses to checksum format
-            buyer_addr = self.w3.to_checksum_address(buyer_addr)
-            funder_addr = self.w3.to_checksum_address(funder_addr)
+            funder_addr = self.w3_manager.get_checksum_address(funder_addr)
 
             # Get token contract details
             token_config = self.config_manager.get_config_value("token_addr")
@@ -64,7 +62,7 @@ class TokenAdapter:
             )
             if not token_entry:
                 raise ValueError(f"Token configuration for {token_symbol} not found.")
-            token_contract_addr = to_checksum_address(token_entry["value"])
+            token_contract_addr = self.w3_manager.get_checksum_address(token_entry["value"])
 
             # Prepare topics for filtering
             transfer_event_signature = f"0x{self.w3.keccak(text='Transfer(address,address,uint256)').hex()}"
@@ -184,8 +182,8 @@ class TokenAdapter:
     def make_payment(self, contract_idx, funder_addr, recipient_addr, token_symbol, amount):
         """Initiate a token payment from the funder wallet to the recipient wallet."""
         try:
-            funder_addr = to_checksum_address(funder_addr)
-            recipient_addr = to_checksum_address(recipient_addr)
+            checksum_funder_addr = self.w3_manager.get_checksum_address(funder_addr)
+            checksum_recipient_addr = self.w3_manager.get_checksum_address(recipient_addr)
 
             # Retrieve token contract address from configuration
             token_config = self.config_manager.get_config_value("token_addr")
@@ -202,7 +200,7 @@ class TokenAdapter:
                 self.logger.error(error_message)
                 return False, error_message
 
-            token_contract_addr = to_checksum_address(token_entry["value"])
+            token_contract_addr = self.w3_manager.get_checksum_address(token_entry["value"])
 
             token_contract = self.w3.eth.contract(
                 address=token_contract_addr, abi=self._get_erc20_abi()
@@ -213,18 +211,14 @@ class TokenAdapter:
             smallest_unit_amount = int(Decimal(amount) * (10 ** decimals))
 
             # Build the transaction
-            nonce = self.w3.eth.get_transaction_count(funder_addr)
             transaction = token_contract.functions.transfer(
-                recipient_addr, smallest_unit_amount
+                checksum_recipient_addr, smallest_unit_amount
             ).build_transaction({
-                'from': funder_addr,
-                'nonce': nonce,
-                'gas': self.config_manager.get_nested_config_value("gas", "limit", default=200000),
-                'gasPrice': self.w3.eth.gas_price,
+                'from': checksum_funder_addr,
             })
 
             # Use Web3Manager to sign and send the transaction
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, funder_addr, contract_idx, "avalanche")
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, funder_addr, contract_idx, network="avalanche")
 
             if tx_receipt["status"] == 1:
                 self.logger.info(f"Token payment successful. TX hash: {tx_receipt['transactionHash'].hex()}")

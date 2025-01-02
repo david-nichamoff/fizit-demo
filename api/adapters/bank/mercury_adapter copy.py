@@ -50,8 +50,7 @@ class MercuryAdapter:
         """Fetch recipients from the Mercury API."""
         try:
             headers = {"accept": "application/json"}
-            url = f"{self.config['mercury_url']}/recipients"
-            response = requests.get(url, auth=(self.keys["mercury_token"], ''), headers=headers)
+            response = requests.get(self.config["mercury_url"] + '/recipients', auth=(self.keys["mercury_token"], ''))
             response.raise_for_status()
             recipient_data = response.json().get('recipients', [])
 

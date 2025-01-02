@@ -9,7 +9,6 @@ from datetime import timezone
 from api.adapters.bank import MercuryAdapter, TokenAdapter
 from api.managers import Web3Manager, ConfigManager
 from api.interfaces import ContractAPI, TransactionAPI
-from eth_utils import to_checksum_address
 
 class DepositAPI:
     _instance = None
@@ -38,7 +37,6 @@ class DepositAPI:
             self.initialized = True  # Mark this instance as initialized
 
             self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
-            self.checksum_wallet_addr = to_checksum_address(self.wallet_addr)
 
     def from_timestamp(self, ts):
         return None if ts == 0 else datetime.datetime.fromtimestamp(ts, tz=timezone.utc)
@@ -90,15 +88,10 @@ class DepositAPI:
                     settle_idx = deposit["settle_idx"]
                     dispute_reason = deposit["dispute_reason"]
 
-                    nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
-
                     # Build the transaction
                     transaction = self.w3_contract.functions.postSettlement(
                         contract_idx, settle_idx, settlement_timestamp, payment_amt, dispute_reason
-                    ).build_transaction({
-                        "from": self.checksum_wallet_addr,
-                        "nonce": nonce
-                    })
+                    ).build_transaction()
 
                     # Send the transaction
                     tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")

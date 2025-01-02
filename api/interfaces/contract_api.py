@@ -2,7 +2,6 @@ import logging
 import json
 from decimal import Decimal
 from web3.exceptions import ContractLogicError, BadFunctionCallOutput
-from eth_utils import to_checksum_address
 
 from api.managers import Web3Manager, ConfigManager
 from api.interfaces.encryption_api import get_encryptor, get_decryptor
@@ -21,14 +20,15 @@ class ContractAPI:
     def __init__(self):
         self.config_manager = ConfigManager()
         self.config = self.config_manager.load_config()
+
         self.w3_manager = Web3Manager()
         self.w3_contract = self.w3_manager.get_web3_contract()
 
+        self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
+        self.checksum_wallet_addr = self.w3_manager.get_checksum_address(self.wallet_addr)
+
         self.logger = logging.getLogger(__name__)
         self.initialized = True 
-
-        self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
-        self.checksum_wallet_addr = to_checksum_address(self.wallet_addr)
 
     def get_contract_count(self):
         try:
@@ -146,12 +146,7 @@ class ContractAPI:
     def update_contract(self, contract_idx, contract_dict):
         try:
             contract = self.build_contract(contract_dict, contract_idx)
-            nonce = self.w3_manager.get_nonce(self.checksum_wallet_addr)
-
-            transaction = self.w3_contract.functions.updateContract(contract_idx, contract).build_transaction({
-                "from": self.checksum_wallet_addr,
-                "nonce": nonce
-            })
+            transaction = self.w3_contract.functions.updateContract(contract_idx, contract).build_transaction()
 
             tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
@@ -167,13 +162,8 @@ class ContractAPI:
             contract_idx = self.get_contract_count()
             self.logger.info(f"Adding contract: {contract_idx}")
             contract = self.build_contract(contract_dict, contract_idx)
-            nonce = self.w3_manager.get_nonce(self.checksum_wallet_addr)
 
-            transaction = self.w3_contract.functions.addContract(contract).build_transaction({
-                "from": self.checksum_wallet_addr,
-                "nonce": nonce
-            })
-
+            transaction = self.w3_contract.functions.addContract(contract).build_transaction()
             tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
             if tx_receipt["status"] == 1:
@@ -188,13 +178,8 @@ class ContractAPI:
     def delete_contract(self, contract_idx):
         try:
             self.logger.info(f"Deleting contract: {contract_idx}")
-            nonce = self.w3_manager.get_nonce(self.checksum_wallet_addr)
 
-            transaction = self.w3_contract.functions.deleteContract(contract_idx).build_transaction({
-                "from": self.checksum_wallet_addr,
-                "nonce": nonce
-            })
-
+            transaction = self.w3_contract.functions.deleteContract(contract_idx).build_transaction()
             tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
             if tx_receipt["status"] != 1:
@@ -209,13 +194,8 @@ class ContractAPI:
             contract_idx = self.get_contract_count()
             self.logger.info(f"Importing contract: {contract_idx}")
             contract = self.build_contract(contract_dict, contract_idx)
-            nonce = self.w3_manager.get_nonce(self.checksum_wallet_addr)
 
-            transaction = self.w3_contract.functions.importContract(contract).build_transaction({
-                "from": self.checksum_wallet_addr,
-                "nonce": nonce
-            })
-
+            transaction = self.w3_contract.functions.importContract(contract).build_transaction()
             tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
             if tx_receipt["status"] == 1:

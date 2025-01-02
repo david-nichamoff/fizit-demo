@@ -8,7 +8,6 @@ from json_logic import jsonLogic
 
 from api.managers import Web3Manager, ConfigManager
 from api.interfaces import ContractAPI
-from eth_utils import to_checksum_address
 
 from api.interfaces.encryption_api import get_encryptor, get_decryptor
 from .util_api import is_valid_json
@@ -31,11 +30,11 @@ class TransactionAPI:
         self.w3_contract = self.w3_manager.get_web3_contract()
         self.contract_api = ContractAPI()
 
+        self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
+        self.checksum_wallet_addr = self.w3_manager.get_checksum_address(self.wallet_addr)
+
         self.logger = logging.getLogger(__name__)
         self.initialized = True  # Mark this instance as initialized
-
-        self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
-        self.checksum_wallet_addr = to_checksum_address(self.wallet_addr)
 
     def from_timestamp(self, ts):
         return None if ts == 0 else datetime.fromtimestamp(ts, tz=timezone.utc)
@@ -114,24 +113,12 @@ class TransactionAPI:
                 else:
                     transact_amt = int(jsonLogic(transact_logic, transact_data) * 100)
 
-                nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
-
                 # Build the transaction
                 transaction = self.w3_contract.functions.addTransaction(
                     contract_idx, encrypted_extended_data, transact_dt, transact_amt, encrypted_transact_data
-                ).build_transaction(
-                    {"from": self.checksum_wallet_addr, "nonce": nonce}
-                )
+                ).build_transaction()
 
-                self.logger.info(f"transaction: {transaction}")
-                
                 tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
-
-                self.logger.info(f"status: {tx_receipt["status"]}")
-                self.logger.info(f"tx hash: {tx_receipt["transactionHash"]}")
-                self.logger.info(f"logs: {tx_receipt["logs"]}")
-                self.logger.info(f"address: {tx_receipt["contractAddress"]}")
-
 
                 if tx_receipt["status"] != 1:
                     raise RuntimeError(f"Failed to add transaction for contract {contract_idx}. Transaction status: {tx_receipt['status']}")
@@ -143,15 +130,9 @@ class TransactionAPI:
 
     def delete_transactions(self, contract_idx):
         try:
-            nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
             self.logger.info(f"Initiating delete for contract {contract_idx} from {self.wallet_addr}")
             
-            # Estimate the gas required for the transaction
-            transaction = self.w3_contract.functions.deleteTransactions(contract_idx).build_transaction({
-                "from": self.checksum_wallet_addr,
-                "nonce": nonce
-            })
-            
+            transaction = self.w3_contract.functions.deleteTransactions(contract_idx).build_transaction()
             tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
             if tx_receipt["status"] != 1:
@@ -203,17 +184,11 @@ class TransactionAPI:
                     int(Decimal(transaction["advance_pay_amt"]) * 100),  # advance_pay_amt
                 )
 
-                # Get the current nonce
-                nonce = self.w3.eth.get_transaction_count(self.checksum_wallet_addr)
-
                 # Build the transaction to call importTransaction
                 transaction_tx = self.w3_contract.functions.importTransaction(
                     contract_idx,  # The index of the contract
                     transaction_struct  # The transaction struct
-                ).build_transaction({
-                    "from": self.checksum_wallet_addr,
-                    "nonce": nonce
-                })
+                ).build_transaction()
 
                 # Send the transaction
                 tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
