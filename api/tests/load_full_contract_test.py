@@ -98,7 +98,7 @@ class ContractTests(TestCase):
             self.fail(f'Failed to add transactions to contract {contract_idx}. Status code: {response.status_code}\nResponse: {response.text}')
 
     def _load_artifacts(self, contract_idx, artifact_urls):
-        csrf_token = self.csrf_ops._get_csrf_token()
+        csrf_token = self.csrf_ops.get_csrf_token()
         response = self.artifact_ops.add_artifacts(contract_idx, artifact_urls, csrf_token)
         if response.status_code == status.HTTP_201_CREATED:
             print(f'Successfully added artifacts to contract {contract_idx}')

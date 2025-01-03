@@ -2,13 +2,14 @@ import requests
 import logging
 import json
 
+from datetime import datetime
+
 from django.contrib import messages
-from api.managers import ConfigManager, SecretsManager
-from api.operations import BankOperations, ContractOperations
-from frontend.forms import AdvanceForm
 from django.shortcuts import render, redirect
 
-from datetime import datetime
+from api.managers import ConfigManager, SecretsManager
+from api.operations import CsrfOperations, BankOperations, ContractOperations
+from frontend.forms import AdvanceForm
 
 logger = logging.getLogger(__name__)
 
@@ -26,14 +27,12 @@ def initialize_backend_services():
 
 # Fetch total contract count and fetch each contract one by one
 def fetch_all_contracts(headers, config):
-    base_url = config["url"]
-    logger.info(f"base_url: {base_url}")
-    operations = ContractOperations(headers, config)
+
+    contract_ops = ContractOperations(headers, config)
 
     # Get the total contract count
-    count_url = f"{base_url}/api/contracts/count/"
     try:
-        count_response = requests.get(count_url, headers=headers)
+        count_response = contract_ops.get_count()
     except requests.RequestException as e:
         logger.error(f"Failed to fetch contract count: {e}")
         return []
@@ -44,7 +43,7 @@ def fetch_all_contracts(headers, config):
     contracts = []
     for contract_idx in range(0, contract_count):
         try:
-            contract_response = operations.get_contract(contract_idx)
+            contract_response = contract_ops.get_contract(contract_idx)
             contract_response.raise_for_status()
             contract = contract_response.json()
             contracts.append(contract)
@@ -54,14 +53,12 @@ def fetch_all_contracts(headers, config):
     return contracts
 
 def fetch_all_advances(headers, config):
-    base_url = config["url"]
-    logger.info(f"base_url: {base_url}")
-    operations = BankOperations(headers, config)
+    bank_ops = BankOperations(headers, config)
+    contract_ops = ContractOperations(headers, config)
 
     # Get the total contract count
-    count_url = f"{base_url}/api/contracts/count/"
     try:
-        count_response = requests.get(count_url, headers=headers)
+        count_response = contract_ops.get_count()
     except requests.RequestException as e:
         logger.error(f"Failed to fetch contract count: {e}")
         return []
@@ -73,16 +70,20 @@ def fetch_all_advances(headers, config):
     for contract_idx in range(0, contract_count):
         
         try:
-            advance_response = operations.get_advances(contract_idx)
+            advance_response = bank_ops.get_advances(contract_idx)
             advance_response.raise_for_status()
             advances.extend(advance_response.json())
 
         except requests.RequestException as e:
-            logger.warning(f"Failed to fetch contract {contract_idx}: {e}")
+            logger.warning(f"Failed to fetch advances for contract {contract_idx}: {e}")
 
     return advances
 
 def handle_post_request(request, headers, config):
+
+    bank_ops = BankOperations(headers, config)
+    csrf_ops = CsrfOperations(headers, config)
+
     try:
         # Retrieve selected advances from the form
         contract_idx = request.POST.get("contract_idx")
@@ -98,17 +99,14 @@ def handle_post_request(request, headers, config):
             messages.error(request, "No valid advances found for posting.")
             return redirect(request.path)
 
-        base_url = config["url"]
+        csrf_token = csrf_ops.get_csrf_token()
+        add_advance_response = bank_ops.add_advances(contract_idx, advances_to_post, csrf_token)
 
-        # Call the backend API to post the advances
-        post_url = f"{base_url}/api/contracts/{contract_idx}/advances/"
-        response = requests.post(post_url, headers=headers, json=advances_to_post)
-
-        if response.status_code == 201:
+        if add_advance_response.status_code == 201:
             messages.success(request, "Advances posted successfully.")
         else:
-            logger.error(f"Failed to post advances: {response.json()}")
-            messages.error(request, f"Failed to post advances: {response.json().get('error', 'Unknown error')}")
+            logger.error(f"Failed to post advances: {add_advance_response.json()}")
+            messages.error(request, f"Failed to post advances: {add_advance_response.json().get('error', 'Unknown error')}")
 
     except Exception as e:
         logger.exception(f"Unexpected error while posting advances: {e}")

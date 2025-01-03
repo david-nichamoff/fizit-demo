@@ -66,7 +66,7 @@ class TestArtifacts(TestCase):
                 self.fail(f"Missing key in JSON fixture: {contract_fixture}, Error: {str(e)}")
 
     def _test_add_artifacts(self, contract_idx, artifact_urls):
-        csrf_token = self.csrf_ops._get_csrf_token()
+        csrf_token = self.csrf_ops.get_csrf_token()
         
         # Call the add_artifacts method
         self.logger.info(f"Calling add_artifacts with contract {contract_idx} and urls {artifact_urls}")
@@ -95,7 +95,7 @@ class TestArtifacts(TestCase):
         self.logger.info(f"Successfully confirmed artifacts for contract {contract_idx}")
 
     def _test_delete_artifacts(self, contract_idx):
-        csrf_token = self.csrf_ops._get_csrf_token()
+        csrf_token = self.csrf_ops.get_csrf_token()
 
         # Delete the artifacts
         response = self.artifact_ops.delete_artifacts(contract_idx, csrf_token)

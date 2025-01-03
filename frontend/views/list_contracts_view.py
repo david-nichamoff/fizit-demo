@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from api.managers import ConfigManager, SecretsManager
+from api.operations import ContractOperations
 import logging
 import requests
 
@@ -21,9 +22,24 @@ def list_contracts_view(request, extra_context=None):
             "Content-Type": "application/json",
         }
 
-        # Fetch all contracts
-        base_url = config["url"]
-        contracts = _fetch_data(f"{base_url}/api/contracts/", headers)
+        contract_ops = ContractOperations(headers, config)
+
+        try:
+            count_response = contract_ops.get_count()
+            count_response.raise_for_status()
+            contract_count = count_response.json()['contract_count']
+        except requests.RequestException as e:
+            logger.error(f"Failed to fetch contract count: {e}")
+            return []
+
+        contracts = []
+        for contract_idx in range(contract_count):
+            try:
+                response = contract_ops.get_contract(contract_idx)
+                response.raise_for_status()
+                contracts.append(response.json())
+            except requests.RequestException as e:
+                logger.warning(f"Failed to fetch contract {contract_idx}: {e}")
 
         # Handle sorting
         ordering = request.GET.get("ordering", "contract_idx")  # Default to 'contract_idx'
@@ -64,12 +80,3 @@ def list_contracts_view(request, extra_context=None):
             {"error": f"An error occurred: {str(e)}"},
             status=500,
         )
-
-
-def _fetch_data(url, headers):
-    """
-    Helper function to fetch data from an API endpoint.
-    """
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-    return response.json()

@@ -6,7 +6,7 @@ class CsrfOperations:
         self.headers = headers
         self.config = config
 
-    def _get_csrf_token(self):
+    def get_csrf_token(self):
         response = requests.get(f"{self.config['url']}/api/get-csrf-token/", headers=self.headers)
         if response.status_code == status.HTTP_200_OK:
             return response.cookies['csrftoken']

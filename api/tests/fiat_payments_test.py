@@ -100,7 +100,7 @@ class PayFiatTests(TestCase):
         print(f"Advances loaded for contract: {contract_idx}")
 
         # Now, call the payment_ops.add_advancess function with the advances
-        csrf_token = self.csrf_ops._get_csrf_token()
+        csrf_token = self.csrf_ops.get_csrf_token()
         add_advance_response = self.payment_ops.add_advances(contract_idx, advances, csrf_token)
         self.assertEqual(
             add_advance_response.status_code, 
@@ -150,7 +150,7 @@ class PayFiatTests(TestCase):
                 deposit['deposit_dt'] == expected_result['deposit_dt']):
 
                 # Now, call the payment_ops.add_deposits function with the deposits 
-                csrf_token = self.csrf_ops._get_csrf_token()
+                csrf_token = self.csrf_ops.get_csrf_token()
                 add_deposit_response = self.payment_ops.add_deposits(contract_idx, [expected_result], csrf_token)
                 self.assertEqual(
                     add_deposit_response.status_code, 
@@ -180,7 +180,7 @@ class PayFiatTests(TestCase):
         print(f"Residuals loaded for contract: {contract_idx}")
 
         # Now, call the payment_ops.add_residuals function with the residuals
-        csrf_token = self.csrf_ops._get_csrf_token()
+        csrf_token = self.csrf_ops.get_csrf_token()
         add_residuals_response = self.payment_ops.add_residuals(contract_idx, residuals, csrf_token)
         self.assertEqual(
             add_residuals_response.status_code,

@@ -5,6 +5,13 @@ class ContractOperations:
         self.headers = headers
         self.config = config
 
+    def get_count(self):
+        response = requests.get(
+            f"{self.config['url']}/api/contracts/count/",
+            headers=self.headers
+        )
+        return response
+
     def load_contract(self, contract_data):
         response = requests.post(
             f"{self.config['url']}/api/contracts/",

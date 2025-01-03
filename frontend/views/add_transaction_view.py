@@ -26,14 +26,11 @@ def initialize_backend_services():
 
 # Fetch total contract count and fetch each contract one by one
 def fetch_all_contracts(headers, config):
-    base_url = config["url"]
-    logger.info(f"base_url: {base_url}")
-    operations = ContractOperations(headers, config)
 
-    # Get the total contract count
-    count_url = f"{base_url}/api/contracts/count/"
+    contract_ops = ContractOperations(headers, config)
+
     try:
-        count_response = requests.get(count_url, headers=headers)
+        count_response = contract_ops.get_count()
     except requests.RequestException as e:
         logger.error(f"Failed to fetch contract count: {e}")
         return []
@@ -45,7 +42,7 @@ def fetch_all_contracts(headers, config):
     contracts = []
     for contract_idx in range(0, contract_count):
         try:
-            contract_response = operations.get_contract(contract_idx)
+            contract_response = contract_ops.get_contract(contract_idx)
             contract_response.raise_for_status()
             contract = contract_response.json()
 
@@ -101,9 +98,8 @@ def handle_post_request(request, headers, config):
             "transact_dt": transact_dt,
             "transact_data": transact_data,
         }]
-        transaction_operations = TransactionOperations(headers, config)
-
-        response = transaction_operations.post_transactions(contract_idx, transaction_data)
+        transaction_ops = TransactionOperations(headers, config)
+        response = transaction_ops.post_transactions(contract_idx, transaction_data)
 
         # Check for response status
         if response.status_code == 200 or response.status_code == 201:
@@ -111,7 +107,6 @@ def handle_post_request(request, headers, config):
             return redirect(request.path)
         else:
             # Log the error details from the response
-            error_details = response.json()
             logger.error(f"Failed to add transaction: {response.json()}")
             messages.error(request, f"Failed to add transaction: {response.json()}")
             return redirect(request.path)

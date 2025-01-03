@@ -143,7 +143,7 @@ class ContractTests(TestCase):
 
         party_idx = unit_test_party['party_idx']
 
-        csrf_token = self.csrf_ops._get_csrf_token()
+        csrf_token = self.csrf_ops.get_csrf_token()
         delete_response = self.party_ops.delete_party(contract_idx, party_idx, csrf_token, self.retries, self.delay)
 
         if delete_response.status_code != status.HTTP_204_NO_CONTENT:
@@ -210,7 +210,7 @@ class ContractTests(TestCase):
             self.fail(f'Failed to patch contract {contract_idx}. Status code: {response.status_code}\nResponse: {response.text}')
 
         # Delete the transactions
-        csrf_token = self.csrf_ops._get_csrf_token()
+        csrf_token = self.csrf_ops.get_csrf_token()
         response = self.transaction_ops.delete_transactions(contract_idx, csrf_token)
         if response.status_code == status.HTTP_204_NO_CONTENT:
             print(f'Successfully deleted transactions for contract {contract_idx}')
@@ -218,7 +218,7 @@ class ContractTests(TestCase):
             self.fail(f'Failed to delete transactions for contract {contract_idx}. Status code: {response.status_code}\nResponse: {response.text}')
 
         # Delete the settlements
-        csrf_token = self.csrf_ops._get_csrf_token()
+        csrf_token = self.csrf_ops.get_csrf_token()
         response = self.settlement_ops.delete_settlements(contract_idx, csrf_token)
         if response.status_code == status.HTTP_204_NO_CONTENT:
             print(f'Successfully deleted settlements for contract {contract_idx}')
@@ -226,7 +226,7 @@ class ContractTests(TestCase):
             self.fail(f'Failed to delete settlements for contract {contract_idx}. Status code: {response.status_code}\nResponse: {response.text}')
 
         # Delete the settlements
-        csrf_token = self.csrf_ops._get_csrf_token()
+        csrf_token = self.csrf_ops.get_csrf_token()
         response = self.party_ops.delete_parties(contract_idx, csrf_token)
         if response.status_code == status.HTTP_204_NO_CONTENT:
             print(f'Successfully deleted parties for contract {contract_idx}')

@@ -1,10 +1,12 @@
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from api.managers import ConfigManager, SecretsManager
-from api.operations import ContractOperations
-from frontend.forms import ContractForm
 import logging
 import requests
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+
+from api.managers import ConfigManager, LibraryManager, SecretsManager
+from api.operations import ContractOperations, BankOperations
+from frontend.forms import ContractForm
 
 logger = logging.getLogger(__name__)
 
@@ -33,39 +35,37 @@ def generate_instruction_data(method, token_symbol=None, account_id=None, recipi
 
 # Helper function to fetch accounts and recipients
 def fetch_bank_data(headers, config):
-    accounts_url = f"{config.get('url', '')}/api/accounts/?bank=mercury"
-    recipients_url = f"{config.get('url', '')}/api/recipients/?bank=mercury"
-    accounts = fetch_and_process_bank_data(accounts_url, headers, 'account_id', 'account_name')
-    recipients = fetch_and_process_bank_data(recipients_url, headers, 'recipient_id', 'recipient_name')
+
+    bank_ops = BankOperations(headers, config)
+    accounts_response = bank_ops.get_accounts(bank='mercury')
+    recipients_response = bank_ops.get_recipients(bank='mercury')
+
+    accounts = process_bank_data(accounts_response.json(), 'account_id', 'account_name')
+    recipients = process_bank_data(recipients_response.json(), 'recipient_id', 'recipient_name')
+
     return accounts, recipients
 
 # Centralized API fetch logic
-def fetch_and_process_bank_data(api_url, headers, item_id_key, item_name_key):
+def process_bank_data(items, item_id_key, item_name_key):
     try:
-        response = requests.get(api_url, headers=headers)
-        response.raise_for_status()
-        items = response.json()
         return [
             {'id': item[item_id_key], 'name': item[item_name_key]}
             for item in items if item_id_key in item and item_name_key in item
         ]
     except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to fetch data from {api_url}: {e}")
+        logger.error(f"Failed to process data: {e}")
         return []
 
 # Fetch templates for contract types and transaction logic
 def fetch_contract_templates(headers, config):
-    base_url = config.get("url", "")
-    templates_url = f"{base_url}/api/library/"
+
+    library_manager = LibraryManager()
     contract_types = config.get("contract_type", [])
     all_templates = []
 
     for contract_type in contract_types:
         try:
-            response = requests.get(f"{templates_url}?contract_type={contract_type}", headers=headers)
-            response.raise_for_status()
-            data = response.json()
-            templates = data.get("templates", [])
+            templates = library_manager.get_logics_by_contract_type(contract_type)
             all_templates.extend({
                 'contract_type': contract_type,
                 'logics': template.get('transact_logic'),
@@ -78,7 +78,6 @@ def fetch_contract_templates(headers, config):
 # Main view
 def add_contract_view(request, extra_context=None):
     headers, config = initialize_backend_services()
-    base_url = config.get("url", "")
 
     # Fetch accounts, recipients, and templates
     accounts, recipients = fetch_bank_data(headers, config)
@@ -88,15 +87,11 @@ def add_contract_view(request, extra_context=None):
     account_choices = [(account['id'], account['name']) for account in accounts]
     recipient_choices = [(recipient['id'], recipient['name']) for recipient in recipients]
 
-    logger.info(f"request method: {request.method}")
-
     # Initialize form for POST or GET
     if request.method == 'POST':
         contract_form = ContractForm(request.POST)
     else:
         contract_form = ContractForm()
-
-    logger.info(f"contract form errors: {contract_form.errors}")
 
     # Set dynamic choices explicitly
     contract_form.fields['funding_account'].choices = account_choices
@@ -104,7 +99,7 @@ def add_contract_view(request, extra_context=None):
     contract_form.fields['funding_recipient'].choices = recipient_choices
 
     if request.method == 'POST' and contract_form.is_valid():
-        return handle_post_request(request, headers, config, base_url, contract_form)
+        return handle_post_request(request, headers, config, contract_form)
 
     # Prepare context for rendering
     context = {
@@ -118,7 +113,7 @@ def add_contract_view(request, extra_context=None):
     return render(request, 'admin/add_contract.html', context)
 
 # Handle POST request
-def handle_post_request(request, headers, config, base_url, contract_form):
+def handle_post_request(request, headers, config, contract_form):
     logger.info(f"Contract form errors:  {contract_form.errors}")
 
     contract_data = contract_form.cleaned_data

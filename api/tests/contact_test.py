@@ -59,7 +59,7 @@ class ContactTests(TestCase):
         print("Contact found in the list.")
 
         # Step 3: Delete the contact
-        csrf_token = self.csrf_ops._get_csrf_token()
+        csrf_token = self.csrf_ops.get_csrf_token()
         response = self.contact_ops.delete_contact(contact_idx, csrf_token)
         if response.status_code != status.HTTP_204_NO_CONTENT:
             self.fail(f"Failed to delete contact. Status code: {response.status_code}\nResponse: {response.text}")

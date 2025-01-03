@@ -57,12 +57,7 @@ class LibraryManager:
         if self._library_cache is None:
             self.load_library()
 
-        for entry in self._library_cache:
-            if entry.get("contract_type") == contract_type:
-                return entry.get("logics", [])
-
-        logger.warning(f"No logics found for contract type: {contract_type}")
-        return []
+        return self._library_cache[contract_type]
 
     def add_logic(self, contract_type, transact_logic, description):
         """

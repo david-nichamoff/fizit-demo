@@ -1,9 +1,12 @@
 import logging
+import requests
+
 from django.contrib import messages
 from django.shortcuts import render, redirect
+
 from api.managers import ConfigManager, SecretsManager
+from api.operations import BankOperations, CsrfOperations, SettlementOperations
 from frontend.forms import PostDepositForm
-import requests
 
 logger = logging.getLogger(__name__)
 
@@ -33,37 +36,41 @@ def handle_post_deposit(form, headers, config, request):
     logger.info(f"Posting deposit for Contract IDX: {contract_idx}")
 
     # Prepare payload
-    data_to_post = {
+    deposit_to_post = {
         "deposit_dt": deposit_dt,
         "deposit_amt": deposit_amt,
         "settle_idx": settle_idx,
         "dispute_reason": dispute_reason,
     }
 
-    base_url = config["url"]
-    post_url = f"{base_url}/api/contracts/{contract_idx}/deposits/"
-    response = requests.post(post_url, headers=headers, json=data_to_post)
+    bank_ops = BankOperations(headers, config)
+    csrf_ops = CsrfOperations(headers, config)
 
-    if response.status_code == 201:
+    csrf_token = csrf_ops.get_csrf_token()
+
+    deposit_response = bank_ops.add_deposits(contract_idx, deposit_to_post, csrf_token)
+
+    if deposit_response.status_code == 201:
         messages.success(request, "Deposit posted successfully.")
         return True
     else:
-        logger.error(f"Failed to post deposit: {response.json()}")
-        messages.error(request, f"Failed to post deposit: {response.json().get('error', 'Unknown error')}")
+        logger.error(f"Failed to post deposit: {deposit_response.json()}")
+        messages.error(request, f"Failed to post deposit: {deposit_response.json().get('error', 'Unknown error')}")
         return False
 
 def fetch_settlements(headers, config, contract_idx):
     """
     Fetches settlements for the given contract index from the backend API.
     """
-    base_url = config["url"]
-    settlement_url = f"{base_url}/api/contracts/{contract_idx}/settlements/"
+
+    settlement_ops = SettlementOperations(headers, config)
+
     try:
-        response = requests.get(settlement_url, headers=headers)
-        if response.status_code == 200:
-            return response.json()  # Return settlements as a list
+        settlement_response = settlement_ops.get_settlements(contract_idx)
+        if settlement_response.status_code == 200:
+            return settlement_response.json()  # Return settlements as a list
         else:
-            logger.error(f"Failed to fetch settlements: {response.json()}")
+            logger.error(f"Failed to fetch settlements: {settlement_response.json()}")
             return []
     except Exception as e:
         logger.error(f"Exception while fetching settlements: {e}")

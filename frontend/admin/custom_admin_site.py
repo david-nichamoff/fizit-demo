@@ -124,11 +124,7 @@ class CustomAdminSite(AdminSite):
 
         return context
 
-
     def index(self, request, extra_context=None):
-        """
-        Custom index view to display the FIZIT logo.
-        """
         context = {
             **self.each_context(request),
             'title': self.index_title,

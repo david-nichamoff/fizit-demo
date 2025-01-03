@@ -14,6 +14,10 @@
             {
                 "transact_logic": { ">": [{ "var": "delivery_time" }, { "var": "expected_time" }] },
                 "description": "Standard mud delivery contract"
+            },
+            {
+                "transact_logic": { "*": [{ "var": "barrels" }, 0.10]},
+                "description": "Crude purchase"
             }
         ]
     },

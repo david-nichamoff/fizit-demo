@@ -23,12 +23,10 @@ def initialize_backend_services():
 
 # Helper function to fetch all contracts
 def fetch_all_contracts(headers, config):
-    base_url = config["url"]
-    operations = ContractOperations(headers, config)
+    contract_ops = ContractOperations(headers, config)
 
-    count_url = f"{base_url}/api/contracts/count/"
     try:
-        count_response = requests.get(count_url, headers=headers)
+        count_response = contract_ops.get_count()
         count_response.raise_for_status()
         contract_count = count_response.json()['contract_count']
     except requests.RequestException as e:
@@ -38,7 +36,7 @@ def fetch_all_contracts(headers, config):
     contracts = []
     for contract_idx in range(contract_count):
         try:
-            response = operations.get_contract(contract_idx)
+            response = contract_ops.get_contract(contract_idx)
             response.raise_for_status()
             contracts.append(response.json())
         except requests.RequestException as e:

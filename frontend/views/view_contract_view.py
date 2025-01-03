@@ -1,15 +1,19 @@
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from django import forms
-from api.managers import ConfigManager, SecretsManager
-from api.interfaces import ArtifactAPI
-from frontend.forms import ContractForm, PartyForm, SettlementForm, ArtifactForm
-from django.utils.safestring import mark_safe
-from datetime import datetime
-
 import json
 import logging
 import requests
+
+from datetime import datetime
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django import forms
+
+from frontend.forms import ContractForm, PartyForm, SettlementForm, ArtifactForm
+
+from api.managers import ConfigManager, SecretsManager
+from api.operations import ContractOperations, SettlementOperations, TransactionOperations
+from api.operations import CsrfOperations, PartyOperations, ArtifactOperations
+from api.interfaces import ArtifactAPI
 
 logger = logging.getLogger(__name__)
 
@@ -40,39 +44,39 @@ def view_contract_view(request, extra_context=None):
 # Handle POST requests for different forms
 def handle_post_request(request, contract_idx, headers, config):
     form_type = request.POST.get("form_type")
-    base_url = config["url"]
+
+    logger.info(f"form type: {form_type}")
 
     form_handlers = {
         "contract": _update_contract,
         "parties": _update_parties,
         "settlements": _update_settlements,
         "artifacts": _update_artifacts,
-        "artifact_urls": _add_artifact_urls
     }
 
     handler = form_handlers.get(form_type)
     if handler:
-        return handler(request, contract_idx, headers, base_url)
+        return handler(request, contract_idx, headers, config)
     
     messages.error(request, "Invalid form type. Please correct the form and try again.")
     return redirect(request.path)
 
 # Prepare context for rendering the view
 def prepare_view_context(contract_idx, headers, config, extra_context=None):
-    base_url = config["url"]
 
-    # Fetch related data
-    contract = _fetch_data(f"{base_url}/api/contracts/{contract_idx}/", headers)
+    contract_ops = ContractOperations(headers, config)
+    contract = contract_ops.get_contract(contract_idx).json()
+
     settlements = fetch_settlements(contract_idx, headers, config)
     parties = fetch_parties(contract_idx, headers, config)
     transactions = fetch_transactions(contract_idx, headers, config)
     artifacts = fetch_artifacts(contract_idx, headers, config)
 
-    logger.info(f"artifacts: {artifacts}")
-
     # Generate presigned URLs for artifacts
-    artifact_api = ArtifactAPI()  # Assuming you have access to ArtifactAPI
+    artifact_api = ArtifactAPI()  
+
     for artifact in artifacts:
+        logger.info(f"artifact: {artifact}")
         try:
             artifact['presigned_url'] = artifact_api.generate_presigned_url(
                 s3_bucket=artifact['s3_bucket'],
@@ -98,7 +102,6 @@ def prepare_view_context(contract_idx, headers, config, extra_context=None):
     for field_name in fields_to_hide:
         if field_name in contract_form.fields:
             contract_form.fields[field_name].widget = forms.HiddenInput()
-
 
     # reset these fields that are hidden in the add_contract form
     contract_form.fields['funding_instr'].widget = forms.Textarea(attrs={
@@ -140,13 +143,14 @@ def prepare_view_context(contract_idx, headers, config, extra_context=None):
     return context
 
 # Update contract
-def _update_contract(request, contract_idx, headers, base_url):
+def _update_contract(request, contract_idx, headers, config):
     contract_form = ContractForm(request.POST)
     if contract_form.is_valid():
         payload = contract_form.cleaned_data
-        url = f"{base_url}/api/contracts/{contract_idx}/"
+        contract_ops = ContractOperations(headers, config)
+
         try:
-            response = requests.patch(url, json=payload, headers=headers)
+            response = contract_ops.patch_contract(contract_idx, payload)
             response.raise_for_status()
             messages.success(request, "Contract updated successfully.")
         except requests.exceptions.RequestException as e:
@@ -158,19 +162,15 @@ def _update_contract(request, contract_idx, headers, base_url):
     return redirect(f"/admin/view-contract/?contract_idx={contract_idx}")
 
 # Update parties
-def _update_parties(request, contract_idx, headers, base_url):
+def _update_parties(request, contract_idx, headers, config):
     party_form = PartyForm(request.POST)
 
     if party_form.is_valid():
-
-        # payload must be a list
         payload = [party_form.cleaned_data]
+        party_ops = PartyOperations(headers, config)
 
-        logger.info(f"payload: {payload}")
-
-        url = f"{base_url}/api/contracts/{contract_idx}/parties/"
         try:
-            response = requests.post(url, json=payload, headers=headers)
+            response = party_ops.add_parties(contract_idx, payload)
             response.raise_for_status()
             messages.success(request, "Party added successfully.")
         except requests.exceptions.RequestException as e:
@@ -182,19 +182,17 @@ def _update_parties(request, contract_idx, headers, base_url):
     return redirect(f"/admin/view-contract/?contract_idx={contract_idx}")
 
 # Update settlements
-def _update_settlements(request, contract_idx, headers, base_url):
+def _update_settlements(request, contract_idx, headers, config):
     settlement_form = SettlementForm(request.POST)
 
     if settlement_form.is_valid():
         payload = settlement_form.cleaned_data
+        settlement_ops = SettlementOperations(headers, config)
 
         # Convert datetime fields to ISO 8601 format
         for field in ["settle_due_dt", "transact_min_dt", "transact_max_dt"]:
             if field in payload and isinstance(payload[field], datetime):
                 payload[field] = payload[field].isoformat()
-
-        # Construct the API URL
-        url = f"{base_url}/api/contracts/{contract_idx}/settlements/"
 
         # Add default fields
         payload.update({
@@ -203,7 +201,7 @@ def _update_settlements(request, contract_idx, headers, base_url):
 
         try:
             # Send the POST request to the API
-            response = requests.post(url, json=[payload], headers=headers)
+            response = settlement_ops.post_settlements(contract_idx, [payload])
             response.raise_for_status()
             
             # Success message
@@ -220,51 +218,20 @@ def _update_settlements(request, contract_idx, headers, base_url):
     return redirect(f"/admin/view-contract/?contract_idx={contract_idx}")
 
 # Update artifacts
-def _update_artifacts(request, contract_idx, headers, base_url):
-    artifact_form = ArtifactForm(request.POST)
+def _update_artifacts(request, contract_idx, headers, config):
 
-    if artifact_form.is_valid():
-        payload = artifact_form.cleaned_data
-        url = f"{base_url}/api/contracts/{contract_idx}/artifacts/"
-
-        try:
-            response = requests.post(url, json=payload, headers=headers)
-            response.raise_for_status()
-            messages.success(request, "Artifact added successfully.")
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to update artifacts: {e}")
-            messages.error(request, "Failed to update artifacts.")
-    else:
-        messages.error(request, f"Invalid artifact data: {artifact_form.errors}")
-
-    return redirect(f"/admin/view-contract/?contract_idx={contract_idx}")
-
-# Fetch related data
-def fetch_parties(contract_idx, headers, config):
-    return _fetch_related_data(contract_idx, "parties", headers, config)
-
-def fetch_settlements(contract_idx, headers, config):
-    return _fetch_related_data(contract_idx, "settlements", headers, config)
-
-def fetch_transactions(contract_idx, headers, config):
-    return _fetch_related_data(contract_idx, "transactions", headers, config)
-
-def fetch_artifacts(contract_idx, headers, config):
-    return _fetch_related_data(contract_idx, "artifacts", headers, config)
-
-def _add_artifact_urls(request, contract_idx, headers, base_url):
+    csrf_ops = CsrfOperations(headers, config)
     artifact_urls = request.POST.getlist("artifact_urls")
 
     if not artifact_urls:
         messages.error(request, "No artifact URLs provided.")
         return redirect(f"/admin/view-contract/?contract_idx={contract_idx}")
 
-    url = f"{base_url}/api/contracts/{contract_idx}/artifacts/"
-
-    payload = {"artifact_urls": artifact_urls}
+    artifact_ops = ArtifactOperations(headers, config)
 
     try:
-        response = requests.post(url, json=payload, headers=headers)
+        csrf_token = csrf_ops.get_csrf_token()
+        response = artifact_ops.add_artifacts(contract_idx, artifact_urls, csrf_token)
         response.raise_for_status()
         messages.success(request, "Artifacts uploaded successfully.")
     except requests.exceptions.RequestException as e:
@@ -273,16 +240,20 @@ def _add_artifact_urls(request, contract_idx, headers, base_url):
 
     return redirect(f"/admin/view-contract/?contract_idx={contract_idx}")
 
-def _fetch_related_data(contract_idx, endpoint, headers, config):
-    base_url = config["url"]
-    return _fetch_data(f"{base_url}/api/contracts/{contract_idx}/{endpoint}/", headers)
+# Fetch related data
+def fetch_parties(contract_idx, headers, config):
+    party_ops = PartyOperations(headers, config)
+    return party_ops.get_parties(contract_idx).json()
 
-def _fetch_data(url, headers):
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error fetching data from {url}: {e}")
-        return {}
+def fetch_settlements(contract_idx, headers, config):
+    settlement_ops = SettlementOperations(headers, config)
+    return settlement_ops.get_settlements(contract_idx).json()
+
+def fetch_transactions(contract_idx, headers, config):
+    transaction_ops = TransactionOperations(headers, config)
+    return transaction_ops.get_transactions(contract_idx).json()
+
+def fetch_artifacts(contract_idx, headers, config):
+    artifact_ops = ArtifactOperations(headers, config)
+    return artifact_ops.get_artifacts(contract_idx).json()
 

@@ -1,21 +1,20 @@
 import os
-import json
-from datetime import datetime
+
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from api.managers import SecretsManager, ConfigManager, Web3Manager
-from api.models import Contract
 
 class Command(BaseCommand):
     help = 'Deploy a smart contract to the blockchain'
 
     def handle(self, *args, **kwargs):
-        # Initialize managers
+        # Initialize Web3Manager
         web3_manager = Web3Manager()
+
+        # Load secrets and config
         secrets_manager = SecretsManager()
         config_manager = ConfigManager()
 
-        # Load secrets and config
         secrets = secrets_manager.load_keys()
         config = config_manager.load_config()
 
@@ -32,13 +31,6 @@ class Command(BaseCommand):
         if not wallet_address:
             raise ValueError(f"Wallet address for key '{wallet_key}' not found in configuration.")
 
-        # Save the current contract address in a temporary variable
-        current_contract_addr = config.get("contract_addr")
-        if not current_contract_addr:
-            raise ValueError("Current contract address not found in configuration.")
-
-        self.stdout.write(f"Current contract address: {current_contract_addr}")
-
         # Compile the contract
         contract_file_path = os.path.join(settings.BASE_DIR, 'api', 'contract', 'delivery.sol')
         abi, bytecode = self.compile_contract(contract_file_path)
@@ -48,6 +40,7 @@ class Command(BaseCommand):
         # Save the ABI to a JSON file
         abi_file_path = os.path.join(settings.BASE_DIR, 'api', 'contract', 'delivery_abi.json')
         with open(abi_file_path, 'w') as abi_file:
+            import json
             json.dump(abi, abi_file)
 
         # Deploy the contract using Web3Manager
@@ -59,37 +52,14 @@ class Command(BaseCommand):
                 abi=abi
             )
 
-            new_contract_addr = tx_receipt.contractAddress
-            self.stdout.write(f"New contract deployed at address: {new_contract_addr}")
+            self.stdout.write(f"tx_receipt: {tx_receipt}")
 
-            # Update smart contract history
-            self.update_smart_contract_history(current_contract_addr, new_contract_addr)
-
-            # Update config.json with the new contract address
-            config_manager.update_config_value("contract_addr", new_contract_addr)
-
-            self.stdout.write(self.style.SUCCESS("Config updated with new contract address."))
+            # Log the deployed contract address
+            # Output the AES key to stdout for manual handling
+            self.stdout.write(self.style.SUCCESS(f"Contract deployed at address: {tx_receipt.contractAddress}"))
+            self.stdout.write(self.style.SUCCESS(f"Reminder: Update Config"))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"Failed to deploy the contract: {str(e)}"))
-
-    def update_smart_contract_history(self, current_contract_addr, new_contract_addr):
-        """Update smart contract history in the database."""
-        # Set expiry date for the current contract
-        try:
-            current_contract = Contract.objects.get(contract_addr=current_contract_addr)
-            current_contract.expiry_dt = datetime.utcnow()
-            current_contract.save()
-            self.stdout.write(f"Updated expiry date for contract: {current_contract_addr}")
-        except Contract.DoesNotExist:
-            self.stdout.write(self.style.WARNING(f"Current contract {current_contract_addr} not found in history."))
-
-        # Create a new entry for the new contract
-        new_contract = Contract(
-            contract_addr=new_contract_addr,
-            created_dt=datetime.utcnow()
-        )
-        new_contract.save()
-        self.stdout.write(f"Created new smart contract entry for: {new_contract_addr}")
 
     # Compile the Solidity contract
     def compile_contract(self, contract_file_path):

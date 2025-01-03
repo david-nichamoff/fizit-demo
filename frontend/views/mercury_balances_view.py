@@ -1,7 +1,10 @@
-from django.shortcuts import render
-from api.managers import ConfigManager, SecretsManager
 import logging
 import requests
+
+from django.shortcuts import render
+
+from api.managers import ConfigManager, SecretsManager
+from api.operations import BankOperations
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +21,11 @@ def mercury_balances_view(request, extra_context=None):
         config = config_manager.load_config()
         keys = secrets_manager.load_keys()
 
+        headers = {
+            'Authorization': f"Api-Key {keys['FIZIT_MASTER_KEY']}",
+            'Content-Type': 'application/json',
+        }
+
         # Fetch the API key from secrets
         api_key = keys.get("FIZIT_MASTER_KEY")
         if not api_key:
@@ -29,22 +37,8 @@ def mercury_balances_view(request, extra_context=None):
                 status=500,
             )
 
-        # Construct the API endpoint
-        base_url = config.get("url")
-        if not base_url:
-            logger.error("Base URL not found in configuration.")
-            return render(
-                request,
-                "admin/mercury_balances.html",
-                {"error": "Base URL not configured."},
-                status=500,
-            )
-        accounts_url = f"{base_url}/api/accounts/?bank=mercury"
-
-        # Make the API call to fetch accounts
-        headers = {"Authorization": f"Api-Key {api_key}"}
-        logger.info(f"Fetching accounts from {accounts_url}")
-        response = requests.get(accounts_url, headers=headers)
+        bank_ops = BankOperations(headers, config) 
+        response = bank_ops.get_accounts("mercury")
 
         if response.status_code != 200:
             logger.error(f"API request failed with status {response.status_code}")
