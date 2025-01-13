@@ -46,7 +46,7 @@ class EngageAPI:
             return tickets
         except requests.exceptions.RequestException as e:
             error_message = f"Error fetching tickets: {e}"
-            self.logger.error(error_message)
+            self.log_error(logger, error_message)
             raise RuntimeError(error_message) from e
 
     def get_invoices(self, contract, engage_src, engage_dest, start_date, end_date):
@@ -63,7 +63,7 @@ class EngageAPI:
             response = requests.get(url, headers=headers)
             response.raise_for_status()
             invoice_list = response.json().get("data", [])
-            self.logger.info(f"Fetched {len(invoice_list)} invoices.")
+            self.log_info(logger, f"Fetched {len(invoice_list)} invoices.")
 
             for invoice in invoice_list:
                 invoice_data = {
@@ -76,7 +76,7 @@ class EngageAPI:
             return invoices
         except requests.exceptions.RequestException as e:
             error_message = f"Error fetching invoices: {e}"
-            self.logger.error(error_message)
+            self.log_error(logger, error_message)
             raise RuntimeError(error_message) from e
 
     def add_invoice(self, invoice_data):

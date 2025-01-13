@@ -1,40 +1,49 @@
 import requests
 
 class ArtifactOperations:
-    def __init__(self, headers, config):
+    def __init__(self, headers, config, csrf_token=None):
         self.headers = headers
         self.config = config
+        self.csrf_token = csrf_token
+
+    def _add_csrf_token(self, headers):
+        """Add CSRF token to headers if available."""
+        if self.csrf_token:
+            headers['X-CSRFToken'] = self.csrf_token
+        return headers
+
+    def _process_response(self, response):
+        """
+        Process the HTTP response:
+        - Return parsed JSON data or None.
+        """
+        return response.json() if response.content else None
 
     def get_artifacts(self, contract_idx):
-        """Retrieve a list of artifacts associated with a contract."""
+        """Retrieve all artifacts associated with a contract."""
         response = requests.get(
             f"{self.config['url']}/api/contracts/{contract_idx}/artifacts/",
             headers=self.headers
         )
-        return response
+        return self._process_response(response)
 
-    def add_artifacts(self, contract_idx, artifact_urls, csrf_token):
-        """Add artifacts to a contract."""
-        headers_with_csrf = self.headers.copy()
-        headers_with_csrf['X-CSRFToken'] = csrf_token
-
-        # Send the request to add artifacts. The artifact_urls should contain the URL(s) of the artifact(s).
+    def post_artifacts(self, contract_idx, artifact_urls):
+        """Add artifacts to a contract using their URLs."""
+        headers_with_csrf = self._add_csrf_token(self.headers.copy())
         response = requests.post(
             f"{self.config['url']}/api/contracts/{contract_idx}/artifacts/",
             headers=headers_with_csrf,
             json={"artifact_urls": artifact_urls},
-            cookies={'csrftoken': csrf_token}
+            cookies={'csrftoken': self.csrf_token}
         )
-        return response
+        return self._process_response(response)
 
-    def delete_artifacts(self, contract_idx, csrf_token):
+    def delete_artifacts(self, contract_idx):
         """Delete all artifacts associated with a contract."""
-        headers_with_csrf = self.headers.copy()
-        headers_with_csrf['X-CSRFToken'] = csrf_token
-
+        headers_with_csrf = self._add_csrf_token(self.headers.copy())
         response = requests.delete(
             f"{self.config['url']}/api/contracts/{contract_idx}/artifacts/",
             headers=headers_with_csrf,
-            cookies={'csrftoken': csrf_token}
+            cookies={'csrftoken': self.csrf_token}
         )
-        return response
+        return self._process_response(response)

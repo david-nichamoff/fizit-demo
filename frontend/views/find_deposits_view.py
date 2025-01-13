@@ -1,11 +1,15 @@
 import logging
+import requests
+
+from datetime import datetime, timedelta
+
 from django.contrib import messages
 from api.managers import ConfigManager, SecretsManager
 from api.operations import BankOperations, ContractOperations
 from frontend.forms import FindDepositsForm
 from django.shortcuts import render, redirect
-from datetime import datetime, timedelta
-import requests
+
+from api.utilities.logging import log_info, log_warning, log_error
 
 logger = logging.getLogger(__name__)
 
@@ -26,21 +30,24 @@ def fetch_all_contracts(headers, config):
     contract_ops = ContractOperations(headers, config)
 
     try:
-        count_response = contract_ops.get_count()
-        count_response.raise_for_status()
-        contract_count = count_response.json()['contract_count']
-    except requests.RequestException as e:
-        logger.error(f"Failed to fetch contract count: {e}")
+        contract_response = contract_ops.get_count()
+
+        if "error" in contract_response:
+            raise Exception
+        else:
+            contract_count = contract_response["count"]
+
+    except Exception as e:
+        log_error(logger, f"Failed to fetch contract count: {e}")
         return []
 
     contracts = []
     for contract_idx in range(contract_count):
         try:
-            response = contract_ops.get_contract(contract_idx)
-            response.raise_for_status()
-            contracts.append(response.json())
-        except requests.RequestException as e:
-            logger.warning(f"Failed to fetch contract {contract_idx}: {e}")
+            contract = contract_ops.get_contract(contract_idx)
+            contracts.append(contract)
+        except Exception as e:
+            log_warning(logger, f"Failed to fetch contract {contract_idx}: {e}")
 
     return contracts
 
@@ -49,14 +56,10 @@ def fetch_deposits(headers, config, contract_idx, start_date, end_date):
     operations = BankOperations(headers, config)
 
     try:
-        response = operations.get_deposits(contract_idx, start_date, end_date)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            logger.error(f"Failed to fetch deposits for contract {contract_idx}: {response.status_code}")
-            return []
+        deposits = operations.get_deposits(contract_idx, start_date, end_date)
+        return deposits
     except Exception as e:
-        logger.error(f"Failed to fetch deposits for contract {contract_idx}: {e}")
+        log_error(logger, f"Failed to fetch deposits for contract {contract_idx}: {e}")
         return []
 
 def handle_find_deposits(request, headers, config, contracts):
@@ -73,6 +76,8 @@ def handle_find_deposits(request, headers, config, contracts):
         # Fetch deposits
         deposits = fetch_deposits(headers, config, contract_idx, start_date, end_date)
         selected_contract_idx = contract_idx
+
+        log_info(logger, f"Found deposits: {deposits} for selected contract {selected_contract_idx}")
 
         # Store in session
         request.session['deposits'] = deposits

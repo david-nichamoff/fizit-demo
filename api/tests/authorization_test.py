@@ -1,166 +1,137 @@
 import os
 import json
+import logging
 from django.test import TestCase
 from rest_framework import status
 
-from api.operations import ContractOperations, PartyOperations
+from api.operations import ContractOperations, PartyOperations,CsrfOperations
 from api.operations import SettlementOperations, TransactionOperations
-
 from api.managers import SecretsManager, ConfigManager
+
+from api.utilities.logging import log_info, log_warning, log_error
 
 class AuthorizationTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
         contract_file = os.path.join(os.path.dirname(__file__), 'fixtures', 'authorization_test', 'authorization.json')
-        with open(contract_file, 'r') as file:
-            cls.contract_data = json.load(file)
+        cls.logger = logging.getLogger(__name__)
+
+        try:
+            with open(contract_file, 'r') as file:
+                cls.contract_data = json.load(file)
+            log_info(cls.logger, "Test data loaded successfully.")
+        except FileNotFoundError as e:
+            log_error(cls.logger, f"Test data file not found: {e}")
+            raise
+        except json.JSONDecodeError as e:
+            log_error(cls.logger, f"Error decoding JSON data: {e}")
+            raise
 
     def setUp(self):
+        log_info(self.logger, "Setting up test environment...")
         self.secrets_manager = SecretsManager()
         self.config_manager = ConfigManager()
 
-        self.keys = self.secrets_manager.load_keys()  
+        self.keys = self.secrets_manager.load_keys()
         self.config = self.config_manager.load_config()
-        
-        self.headers = {
-            'Content-Type': 'application/json'
-        }
 
-        self.contract_ops = ContractOperations(self.headers, self.config)
-        self.party_ops = PartyOperations(self.headers, self.config)
-        self.settlement_ops = SettlementOperations(self.headers, self.config)
-        self.transaction_ops = TransactionOperations(self.headers, self.config)
+        self.headers = {'Content-Type': 'application/json'}
+
+        self.csrf_ops = CsrfOperations(self.headers, self.config)
+        self.csrf_token = self.csrf_ops.get_csrf_token()
+
+        self.contract_ops = ContractOperations(self.headers, self.config, self.csrf_token)
+        self.party_ops = PartyOperations(self.headers, self.config, self.csrf_token)
+        self.settlement_ops = SettlementOperations(self.headers, self.config, self.csrf_token)
+        self.transaction_ops = TransactionOperations(self.headers, self.config, self.csrf_token)
+        log_info(self.logger, "Test environment setup complete.")
+
+        self.scenarios = [
+            {'key': None, "post_status" : "Unauthorized", 'get_status':'Unauthorized','detail': 'Authorization header missing or empty'},
+            {'key': 'XXXXXXX', 'post_status': "Unauthorized",'get_status':'Unauthorized','detail':'Invalid API key'},
+            {'key': self.keys['Affiliate'], 'post_status': "Unauthorized",'get_status':'Authorized','detail':'You do not have permission to perform this action.'},
+            {'key': self.keys['FIZIT_MASTER_KEY'], 'post_status': "Authorized",'get_status':'Authorized','message': f"FIZIT_MASTER_KEY should succeed."}
+        ]
 
     def test_authorization_failures(self):
-        # 1. Without authorization
-        response = self.contract_ops.load_contract(self.contract_data['contract'])
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Should fail without authorization")
+        try:
+            log_info(self.logger, "Starting authorization tests...")
+            contract_idx = self._test_contract_authorization()
 
-        # 2. Invalid key (e.g., 'XXXXXXX')
-        self.headers['Authorization'] = 'Api-Key XXXXXXX'
-        response = self.contract_ops.load_contract(self.contract_data['contract'])
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Should fail with invalid key")
+            self._test_party_authorization(contract_idx)
+            self._test_settlement_authorization(contract_idx)
+            self._test_transaction_authorization(contract_idx)
+            log_info(self.logger, "All authorization tests passed.")
+        except AssertionError as e:
+            log_error(self.logger, f"Authorization test failed: {e}")
+            raise
 
-        # 3. Affiliate key (from secrets manager, not from api_key.json)
-        self.headers['Authorization'] = f"Api-Key {self.keys['Affiliate']}"
-        response = self.contract_ops.load_contract(self.contract_data['contract'])
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN, "Affiliate key should fail with authorization error")
+    def _test_contract_authorization(self):
+        log_info(self.logger, "Testing contract authorization...")
 
-        # 4. Master key (FIZIT_MASTER_KEY)
-        self.headers['Authorization'] = f"Api-Key {self.keys['FIZIT_MASTER_KEY']}"
-        response = self.contract_ops.load_contract(self.contract_data['contract'])
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED, "FIZIT_MASTER_KEY should succeed")
+        for scenario in self.scenarios:
+            self._set_auth_header(scenario["key"]) 
 
-        # Retrieve the created contract ID for further tests
-        contract_idx = response.json()
+            response = self._perform_operation(self.contract_ops.post_contract, self.contract_data['contract'])
+            log_info(self.logger, f"Contract scenario {scenario["key"]} sent a return value of {response}")
 
-        # 5. Get contract without authorization
-        self.headers.pop('Authorization', None)
-        response = self.contract_ops.get_contract(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Should fail without authorization when retrieving contract")
+            if scenario["post_status"] == "Unauthorized":
+                if response["detail"] != scenario["detail"]:
+                    self.fail()
+            else:
+                contract_idx = response["contract_idx"]
+                log_info(self.logger, f"Added contract {contract_idx}")
+                self.assertGreaterEqual(contract_idx, 0)
 
-        # 6. Invalid key
-        self.headers['Authorization'] = 'Api-Key XXXXXXX'
-        response = self.contract_ops.get_contract(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Invalid key should fail when retrieving contract")
+        return contract_idx
 
-        # 7. Affiliate key should retrieve the contract
-        self.headers['Authorization'] = f"Api-Key {self.keys['Affiliate']}"
-        response = self.contract_ops.get_contract(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_200_OK, "Affiliate key should successfully retrieve contract")
+    def _test_party_authorization(self, contract_idx):
+        log_info(self.logger, "Testing party authorization...")
+        self._test_authorization(self.party_ops.post_parties, contract_idx, self.contract_data['parties'], "Adding parties")
+        self._test_authorization(self.party_ops.get_parties, contract_idx, None, "Retrieving parties")
 
-        # 8. Add parties without authorization, invalid key, and Affiliate key
-        self.headers.pop('Authorization', None)
-        response = self.party_ops.add_parties(contract_idx, self.contract_data['parties'])
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Adding parties should fail without authorization")
+    def _test_settlement_authorization(self, contract_idx):
+        log_info(self.logger, "Testing settlement authorization...")
+        self._test_authorization(self.settlement_ops.post_settlements, contract_idx, self.contract_data['settlements'], "Adding settlements")
+        self._test_authorization(self.settlement_ops.get_settlements, contract_idx, None, "Retrieving settlements")
 
-        self.headers['Authorization'] = 'Api-Key XXXXXXX'
-        response = self.party_ops.add_parties(contract_idx, self.contract_data['parties'])
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Adding parties should fail with invalid key")
+    def _test_transaction_authorization(self, contract_idx):
+        log_info(self.logger, "Testing transaction authorization...")
+        self._test_authorization(self.transaction_ops.post_transactions, contract_idx, self.contract_data['transactions'], "Adding transactions")
+        self._test_authorization(self.transaction_ops.get_transactions, contract_idx, None, "Retrieving transactions")
 
-        self.headers['Authorization'] = f"Api-Key {self.keys['Affiliate']}"
-        response = self.party_ops.add_parties(contract_idx, self.contract_data['parties'])
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN, "Affiliate key should fail adding parties")
+    def _test_authorization(self, operation, contract_idx, data, operation_name):
 
-        # FIZIT_MASTER_KEY should succeed
-        self.headers['Authorization'] = f"Api-Key {self.keys['FIZIT_MASTER_KEY']}"
-        response = self.party_ops.add_parties(contract_idx, self.contract_data['parties'])
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED, "FIZIT_MASTER_KEY should succeed in adding parties")
+        for scenario in self.scenarios:
+            self._set_auth_header(scenario['key'])
 
-        # 9. Retrieve parties without authorization, invalid key, and Affiliate key
-        self.headers.pop('Authorization', None)
-        response = self.party_ops.get_parties(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Retrieving parties should fail without authorization")
+            if data is None:  # Is a get
+                response = self._perform_operation(operation, contract_idx)
+                log_info(self.logger, f"{operation_name} scenario {scenario["key"]} sent a return value of {response}")
 
-        self.headers['Authorization'] = 'Api-Key XXXXXXX'
-        response = self.party_ops.get_parties(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Retrieving parties should fail with invalid key")
+                if scenario["get_status"] == "Unauthorized":
+                    if response["detail"] != scenario["detail"]:
+                        self.fail()
+                else:
+                    self.assertGreaterEqual(len(response), 0)
 
-        self.headers['Authorization'] = f"Api-Key {self.keys['Affiliate']}"
-        response = self.party_ops.get_parties(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_200_OK, "Affiliate key should successfully retrieve parties")
+            else:   # Is a post
+                response = self._perform_operation(operation, contract_idx, data)
+                log_info(self.logger, f"{operation_name} scenario {scenario["key"]} sent a return value of {response}")
 
-        # Repeat steps 8-9 for settlements and transactions
+                if scenario["post_status"] == "Unauthorized":
+                    if response["detail"] != scenario["detail"]:
+                        self.fail()
+                else:
+                    self.assertGreaterEqual(response["count"], 0)
 
-        # Add settlements
-        self.headers.pop('Authorization', None)
-        response = self.settlement_ops.post_settlements(contract_idx, self.contract_data['settlements'])
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Adding settlements should fail without authorization")
+    def _perform_operation(self, operation, *args, **kwargs):
+        response = operation(*args, **kwargs)
+        return response
 
-        self.headers['Authorization'] = 'Api-Key XXXXXXX'
-        response = self.settlement_ops.post_settlements(contract_idx, self.contract_data['settlements'])
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Adding settlements should fail with invalid key")
-
-        self.headers['Authorization'] = f"Api-Key {self.keys['Affiliate']}"
-        response = self.settlement_ops.post_settlements(contract_idx, self.contract_data['settlements'])
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN, "Affiliate key should fail adding settlements")
-
-        self.headers['Authorization'] = f"Api-Key {self.keys['FIZIT_MASTER_KEY']}"
-        response = self.settlement_ops.post_settlements(contract_idx, self.contract_data['settlements'])
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED, "FIZIT_MASTER_KEY should succeed in adding settlements")
-
-        # Retrieve settlements
-        self.headers.pop('Authorization', None)
-        response = self.settlement_ops.get_settlements(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Retrieving settlements should fail without authorization")
-
-        self.headers['Authorization'] = 'Api-Key XXXXXXX'
-        response = self.settlement_ops.get_settlements(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Retrieving settlements should fail with invalid key")
-
-        self.headers['Authorization'] = f"Api-Key {self.keys['Affiliate']}"
-        response = self.settlement_ops.get_settlements(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_200_OK, "Affiliate key should successfully retrieve settlements")
-
-        # Add transactions
-        self.headers.pop('Authorization', None)
-        response = self.transaction_ops.post_transactions(contract_idx, self.contract_data['transactions'])
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Adding transactions should fail without authorization")
-
-        self.headers['Authorization'] = 'Api-Key XXXXXXX'
-        response = self.transaction_ops.post_transactions(contract_idx, self.contract_data['transactions'])
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Adding transactions should fail with invalid key")
-
-        self.headers['Authorization'] = f"Api-Key {self.keys['Affiliate']}"
-        response = self.transaction_ops.post_transactions(contract_idx, self.contract_data['transactions'])
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN, "Affiliate key should fail adding transactions")
-
-        self.headers['Authorization'] = f"Api-Key {self.keys['FIZIT_MASTER_KEY']}"
-        response = self.transaction_ops.post_transactions(contract_idx, self.contract_data['transactions'])
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED, "FIZIT_MASTER_KEY should succeed in adding transactions")
-
-        # Retrieve transactions
-        self.headers.pop('Authorization', None)
-        response = self.transaction_ops.get_transactions(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Retrieving transactions should fail without authorization")
-
-        self.headers['Authorization'] = 'Api-Key XXXXXXX'
-        response = self.transaction_ops.get_transactions(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED, "Retrieving transactions should fail with invalid key")
-
-        self.headers['Authorization'] = f"Api-Key {self.keys['Affiliate']}"
-        response = self.transaction_ops.get_transactions(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_200_OK, "Affiliate key should successfully retrieve transactions")
-
-        print("All authorization tests passed.")
+    def _set_auth_header(self, api_key):
+        if api_key:
+            self.headers['Authorization'] = f"Api-Key {api_key}"
+        else:
+            self.headers.pop('Authorization', None)

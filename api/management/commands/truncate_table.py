@@ -2,6 +2,8 @@ import logging
 from django.core.management.base import BaseCommand
 from django.db import connection
 
+from api.utilities.logging import log_info, log_error, log_warning
+
 logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
@@ -39,5 +41,5 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f"Successfully truncated table: {table_name}"))
 
         except Exception as e:
-            logger.error(f"Error truncating table {table_name}: {e}")
+            log_error(logger, f"Error truncating table {table_name}: {e}")
             self.stderr.write(self.style.ERROR(f"Error truncating table {table_name}: {e}"))

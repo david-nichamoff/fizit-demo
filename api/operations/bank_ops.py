@@ -1,82 +1,97 @@
 import requests
 
 class BankOperations:
-    def __init__(self, headers, config):
+    def __init__(self, headers, config, csrf_token=None):
         self.headers = headers
         self.config = config
+        self.csrf_token = csrf_token
+
+    def _add_csrf_token(self, headers):
+        """Add CSRF token to headers if available."""
+        if self.csrf_token:
+            headers['X-CSRFToken'] = self.csrf_token
+        return headers
+
+    def _process_response(self, response):
+        """
+        Process the HTTP response:
+        - Raise exception for non-2xx status codes.
+        - Return parsed JSON data or None.
+        """
+        return response.json() if response.content else None
 
     def get_accounts(self, bank):
+        """Retrieve bank accounts."""
         response = requests.get(
             f"{self.config['url']}/api/accounts/",
             headers=self.headers,
             params={"bank": bank}
         )
-        return response
+        return self._process_response(response)
 
     def get_recipients(self, bank):
+        """Retrieve recipients for a specific bank."""
         response = requests.get(
             f"{self.config['url']}/api/recipients/",
             headers=self.headers,
             params={"bank": bank}
         )
-        return response
+        return self._process_response(response)
 
     def get_advances(self, contract_idx):
+        """Retrieve advances for a contract."""
         response = requests.get(
             f"{self.config['url']}/api/contracts/{contract_idx}/advances/",
             headers=self.headers
         )
-        return response
+        return self._process_response(response)
 
-    def add_advances(self, contract_idx, advances, csrf_token):
-        headers_with_csrf = self.headers.copy()
-        headers_with_csrf['X-CSRFToken'] = csrf_token 
-
+    def post_advances(self, contract_idx, advances):
+        """Add advances for a contract."""
+        headers_with_csrf = self._add_csrf_token(self.headers.copy())
         response = requests.post(
-            f"{self.config['url']}/api/contracts/{contract_idx}/advances/", 
+            f"{self.config['url']}/api/contracts/{contract_idx}/advances/",
             headers=headers_with_csrf,
             json=advances,
-            cookies={'csrftoken': csrf_token} 
+            cookies={'csrftoken': self.csrf_token}
         )
-        
-        return response
-    
+        return self._process_response(response)
+
     def get_deposits(self, contract_idx, start_date, end_date):
+        """Retrieve deposits for a contract within a date range."""
         response = requests.get(
             f"{self.config['url']}/api/contracts/{contract_idx}/deposits/",
             headers=self.headers,
             params={"start_date": start_date, "end_date": end_date}
         )
-        return response
+        return self._process_response(response)
 
-    def add_deposits(self, contract_idx, deposits, csrf_token, retries=3, delay=5):
-        headers_with_csrf = self.headers.copy()
-        headers_with_csrf['X-CSRFToken'] = csrf_token 
-
+    def post_deposit(self, contract_idx, deposit):
+        """Add deposits to a contract."""
+        headers_with_csrf = self._add_csrf_token(self.headers.copy())
         response = requests.post(
-            f"{self.config['url']}/api/contracts/{contract_idx}/deposits/", 
+            f"{self.config['url']}/api/contracts/{contract_idx}/deposits/",
             headers=headers_with_csrf,
-            json=deposits,
-            cookies={'csrftoken': csrf_token} 
+            json=deposit,
+            cookies={'csrftoken': self.csrf_token}
         )
-        
-        return response
+        return self._process_response(response)
 
     def get_residuals(self, contract_idx):
+        """Retrieve residuals for a contract."""
         response = requests.get(
             f"{self.config['url']}/api/contracts/{contract_idx}/residuals/",
             headers=self.headers
         )
-        return response
+        return self._process_response(response)
 
-    def add_residuals(self, contract_idx, residuals, csrf_token, retries=3, delay=5):
-        headers_with_csrf = self.headers.copy()
-        headers_with_csrf['X-CSRFToken'] = csrf_token 
-
+    def post_residuals(self, contract_idx, residuals):
+        """Add residuals for a contract."""
+        headers_with_csrf = self._add_csrf_token(self.headers.copy())
         response = requests.post(
-            f"{self.config['url']}/api/contracts/{contract_idx}/residuals/", 
+            f"{self.config['url']}/api/contracts/{contract_idx}/residuals/",
             headers=headers_with_csrf,
             json=residuals,
-            cookies={'csrftoken': csrf_token} 
+            cookies={'csrftoken': self.csrf_token}
         )
-        return response
+        return self._process_response(response)

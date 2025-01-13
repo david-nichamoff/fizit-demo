@@ -1,166 +1,186 @@
 import logging
-import json
 
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError, PermissionDenied
 from rest_framework import viewsets, status
 from drf_spectacular.utils import extend_schema
-from web3.exceptions import ContractLogicError, BadFunctionCallOutput
 
 from api.serializers.contract_serializer import ContractSerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-
 from api.interfaces import ContractAPI, PartyAPI
 
-class ContractViewSet(viewsets.ViewSet):
+from api.mixins.shared import ValidationMixin
+from api.mixins.views import PermissionMixin
+
+from api.utilities.logging import log_info, log_error, log_warning
+from api.utilities.validation import is_valid_integer
+
+class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
+    """
+    A ViewSet for managing contract-related operations.
+    """
     authentication_classes = [AWSSecretsAPIKeyAuthentication]
     permission_classes = [HasCustomAPIKey]
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
+        super().__init__(*args, **kwargs)
         self.contract_api = ContractAPI()
         self.party_api = PartyAPI()
-
-        self.authenticator = AWSSecretsAPIKeyAuthentication()
-
         self.logger = logging.getLogger(__name__)
-        self.initialized = True  # Mark this instance as initialized
-
-    @extend_schema(
-        tags=["Contracts"],
-        responses={status.HTTP_200_OK: ContractSerializer(many=True)},
-        summary="List Contracts",
-        description="Retrieve a list of contracts"
-    )
-    def list(self, request):
-        try:
-            contracts = self.contract_api.get_contracts()
-            serializer = ContractSerializer(contracts, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except ContractLogicError as e:
-            self.logger.error(f"Contract logic error occurred: {e}")
-            return Response({"detail": "Contract logic error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except BadFunctionCallOutput as e:
-            self.logger.error(f"Error in contract function call output: {e}")
-            return Response({"detail": "Error in contract function call output"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except json.JSONDecodeError as e:
-            self.logger.error(f"Invalid JSON format in contract data: {e}")
-            return Response({"detail": "Invalid JSON format in contract data"}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            self.logger.error(f"An unexpected error occurred: {e}")
-            return Response({"detail": "An unexpected error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @extend_schema(
         tags=["Contracts"],
         request=ContractSerializer,
         responses={status.HTTP_201_CREATED: int},
         summary="Create Contract",
-        description="Create a new contract"
+        description="Create a new contract."
     )
-    def add(self, request):
-        auth_info = request.auth
-        api_key = auth_info.get("api_key")
-
-        self.logger.info(f"Adding new contract")
-        
-        if not auth_info.get('is_master_key', False): 
-            raise PermissionDenied("You do not have permission to perform this action.")
-        
-        serializer = ContractSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
-                contract_idx = self.contract_api.add_contract(serializer.validated_data)
-                return Response(contract_idx, status=status.HTTP_201_CREATED)
-            except Exception as e:
-                self.logger.error(f"Error creating contract: {e}")
-                return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @extend_schema(
-        operation_id="retrieve contract",
-        tags=["Contracts"],
-        responses={status.HTTP_200_OK: ContractSerializer(many=False)},
-        summary="Get Contract",
-        description="Retrieve a contract"
-    )
-    def get(self, request, contract_idx=None):
-        auth_info = request.auth
-        api_key = auth_info.get("api_key")
+    def create(self, request):
+        log_info(self.logger, "Attempting to create a new contract.")
+        self._validate_master_key(request.auth)
 
         try:
-            parties = self.party_api.get_parties(contract_idx)
-            contract = self.contract_api.get_contract(contract_idx, api_key, parties)
-            serializer = ContractSerializer(contract, many=False)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            validated_data = self._validate_request_data(ContractSerializer, request.data)
+            response = self.contract_api.add_contract(validated_data)
+
+            if response["status"] == status.HTTP_201_CREATED:
+                return Response(response["data"], status=status.HTTP_201_CREATED)
+            else:
+                return Response({"error" : response["message"]}, response["status"])
+
+        except PermissionDenied as pd:
+            log_warning(self.logger, f"Permission denied: {pd}")
+            return Response({"error": str(pd)}, status=status.HTTP_403_FORBIDDEN)
+        except ValidationError as e:
+            log_error(self.logger, f"Validation error: {str(e)}")
+            return Response({"error": f"Validation error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            self.logger.error(f"Error retrieving contract {contract_idx}: {e}")
-            return Response({"detail": str(e)}, status=status.HTTP_404_NOT_FOUND)
+            log_error(self.logger, f"Unexpected error: {str(e)}")
+            return Response({"error": f"Unexpected error {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @extend_schema(
+        tags=["Contracts"],
+        responses={status.HTTP_200_OK: ContractSerializer(many=False)},
+        summary="Retrieve Contract",
+        description="Retrieve details of a specific contract."
+    )
+    def retrieve(self, request, contract_idx=None):
+        log_info(self.logger, f"Fetching contract with ID {contract_idx}.")
+
+        try:
+            # Validate contract_idx
+            if not is_valid_integer(contract_idx):
+                raise ValidationError("Contract_idx must be an integer")
+
+            parties = self.party_api.get_parties(contract_idx)
+            response = self.contract_api.get_contract(contract_idx, request.auth.get("api_key"), parties["data"])
+
+            if response["status"] == status.HTTP_200_OK:
+                return Response(response["data"], status=status.HTTP_200_OK)
+            else:
+                return Response({"error" : response["message"]}, response["status"])
+
+        except ValidationError as e:
+            log_error(self.logger, f"Validation error: {str(e)}")
+            return Response({"error": f"Validation error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            log_error(self.logger, f"Unexpected error: {str(e)}")
+            return Response({"error": f"Unexpected error {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @extend_schema(
         tags=["Contracts"],
         request=ContractSerializer,
         responses={status.HTTP_200_OK: int},
         summary="Update Contract",
-        description="Partial update of an existing contract"
+        description="Update specific fields of an existing contract."
     )
-    def patch(self, request, contract_idx=None):
-        auth_info = request.auth  
-        api_key = auth_info.get("api_key")
-        
-        if not auth_info.get('is_master_key', False): 
-            raise PermissionDenied("You do not have permission to perform this action.")
+    def update(self, request, contract_idx=None):
+        log_info(self.logger, f"Updating contract with ID {contract_idx}.")
+        self._validate_master_key(request.auth)
 
         try:
+            # Validate contract_idx
+            if not is_valid_integer(contract_idx):
+                raise ValidationError("Contract_idx must be an integer")
+
             parties = self.party_api.get_parties(contract_idx)
-            contract_dict = self.contract_api.get_contract(contract_idx, api_key, parties)
+            response = self.contract_api.get_contract(contract_idx, request.auth.get("api_key"), parties["data"])
+
+            if response["status"] != status.HTTP_200_OK:
+                return Response({"error" : response["message"]}, response["status"])
+
+            contract = response["data"]
             serializer = ContractSerializer(data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
+
             for key, value in serializer.validated_data.items():
-                contract_dict[key] = value
-            response = self.contract_api.update_contract(contract_idx, contract_dict)
-            return Response(response, status=status.HTTP_200_OK)
-        except ValidationError as ve:
-            self.logger.error(f"Validation error when updating contract {contract_idx}: {ve}")
-            return Response(ve.detail, status=status.HTTP_400_BAD_REQUEST)
+                contract[key] = value
+
+            log_info(self.logger, f"Update contract with data {contract}")
+            response = self.contract_api.update_contract(contract_idx, contract)
+
+            if response["status"] == status.HTTP_200_OK:
+                return Response(response["data"], status=status.HTTP_200_OK)
+            else:
+                return Response({"error" : response["message"]}, response["status"])
+
+        except PermissionDenied as pd:
+            log_warning(self.logger, f"Permission denied for contract {contract_idx}: {pd}")
+            return Response({"error": str(pd)}, status=status.HTTP_403_FORBIDDEN)
+        except ValidationError as e:
+            log_error(self.logger, f"Validation error: {str(e)}")
+            return Response({"error": f"Validation error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            self.logger.error(f"Error updating contract {contract_idx}: {e}")
-            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            log_error(self.logger, f"Unexpected error: {str(e)}")
+            return Response({"error": f"Unexpected error {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @extend_schema(
         tags=["Contracts"],
         responses={status.HTTP_204_NO_CONTENT: None},
         summary="Delete Contract",
-        description="Delete an existing contract"
+        description="Delete a specific contract."
     )
-    def delete(self, request, contract_idx=None):
-        auth_info = request.auth  
-        
-        if not auth_info.get('is_master_key', False): 
-            raise PermissionDenied("You do not have permission to perform this action.")
+    def destroy(self, request, contract_idx=None):
+        log_info(self.logger, f"Deleting contract with ID {contract_idx}.")
+        self._validate_master_key(request.auth)
 
         try:
-            self.contract_api.delete_contract(contract_idx)
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except ValidationError as ve:
-            self.logger.error(f"Validation error when deleting contract {contract_idx}: {ve}")
-            return Response(ve.detail, status=status.HTTP_400_BAD_REQUEST)
+            # Validate contract_idx
+            if not is_valid_integer(contract_idx):
+                raise ValidationError("Contract_idx must be an integer")
+
+            response = self.contract_api.delete_contract(contract_idx)
+
+            if response["status"] == status.HTTP_204_NO_CONTENT:
+                return Response(response["data"], status=status.HTTP_204_NO_CONTENT)
+            else:
+                return Response({"error" : response["message"]}, response["status"])
+
+        except ValidationError as e:
+            log_error(self.logger, f"Validation error: {str(e)}")
+            return Response({"error": f"Validation error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            self.logger.error(f"Error deleting contract {contract_idx}: {e}")
-            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            log_error(self.logger, f"Unexpected error: {str(e)}")
+            return Response({"error": f"Unexpected error {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @extend_schema(
         tags=["Contracts"],
-        summary="Get Contract Count",
-        description="Retrieve the count of contracts",
+        summary="Contract Count",
+        description="Retrieve the total number of contracts.",
         responses={status.HTTP_200_OK: int}
     )
-    def get_contract_count(self, request):
+    def count(self, request):
+        log_info(self.logger, "Fetching contract count.")
         try:
-            count = self.contract_api.get_contract_count()
-            return Response({"contract_count": count}, status=status.HTTP_200_OK)
+            response = self.contract_api.get_contract_count()
+
+            if response["status"] == status.HTTP_200_OK:
+                return Response(response["data"], status=status.HTTP_200_OK)
+            else:
+                return Response({"error" : response["message"]}, response["status"])
+
         except Exception as e:
-            self.logger.error(f"Error retrieving contract count: {e}")
-            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            log_error(self.logger, f"Error retrieving contract count: {e}")
+            return Response({"error": f"Unexpected error {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

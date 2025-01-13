@@ -19,14 +19,16 @@ class ResidualForm(BaseResidualForm):
     contract_idx = forms.ChoiceField(
         required=True,
         choices=[],
-        widget=forms.Select(attrs={'class': 'contract-select', 'id':'id_contract_idx'}),
-        label="Contract name:",
-        help_text="Select the contract for payment"
+        widget=forms.Select(attrs={'class': 'contract-select', 'id': 'id_contract_idx'}),
+        label="Contract Name:",
+        help_text="Select contract for payment"
     )
 
     def __init__(self, *args, **kwargs):
-        contracts = kwargs.pop('contracts', [])
+        contracts = kwargs.pop("contracts", [])
         super().__init__(*args, **kwargs)
 
         # Dynamically populate contract choices
-        self.fields['contract_idx'].choices = [(contract['contract_idx'], contract['contract_name']) for contract in contracts]
+        self.fields['contract_idx'].choices = [
+            (contract['contract_idx'], contract['contract_name']) for contract in contracts
+        ]

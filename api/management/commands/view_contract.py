@@ -1,7 +1,10 @@
 import logging
 import requests
+
 from django.core.management.base import BaseCommand
 from api.managers import ConfigManager, SecretsManager
+
+from api.utilities.logging import  log_error, log_info, log_warning
 
 class Command(BaseCommand):
     help = 'Retrieve and display formatted contract details, settlements, parties, transactions, and artifacts for a specific contract_idx'
@@ -18,7 +21,7 @@ class Command(BaseCommand):
         self._initialize()
 
         try:
-            self.logger.info(f"Fetching formatted data for contract {contract_idx}")
+            log_info(self.logger, f"Fetching formatted data for contract {contract_idx}")
             contract_data = self.get_contract(contract_idx)
             settlements = self.get_settlements(contract_idx)
             parties = self.get_parties(contract_idx)
@@ -34,7 +37,7 @@ class Command(BaseCommand):
 
         except Exception as e:
             self.stderr.write(self.style.ERROR(f"Error retrieving data: {str(e)}"))
-            self.logger.error(f"Error retrieving data for contract {contract_idx}: {str(e)}")
+            log_error(self.logger, f"Error retrieving data for contract {contract_idx}: {str(e)}")
 
     def _initialize(self):
         """Initialize ConfigManager, SecretsManager, and request headers."""

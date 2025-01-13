@@ -1,8 +1,13 @@
+import logging
+import requests
+
 from django.shortcuts import render
 from api.managers import ConfigManager, SecretsManager
 from api.operations import ContractOperations
-import logging
-import requests
+from rest_framework import status
+from django.contrib import messages
+
+from api.utilities.logging import log_info, log_warning, log_error
 
 logger = logging.getLogger(__name__)
 
@@ -25,21 +30,22 @@ def list_contracts_view(request, extra_context=None):
         contract_ops = ContractOperations(headers, config)
 
         try:
-            count_response = contract_ops.get_count()
-            count_response.raise_for_status()
-            contract_count = count_response.json()['contract_count']
-        except requests.RequestException as e:
-            logger.error(f"Failed to fetch contract count: {e}")
-            return []
+            response = contract_ops.get_count()
+            contract_count = response.get("count")
+        except Exception as e:
+            error_message = f"Failed to fetch count of contracts"
+            log_error(logger, f"{error_message}: {e}")
+            messages.error(request, f"{error_message}")
 
         contracts = []
         for contract_idx in range(contract_count):
             try:
                 response = contract_ops.get_contract(contract_idx)
-                response.raise_for_status()
-                contracts.append(response.json())
-            except requests.RequestException as e:
-                logger.warning(f"Failed to fetch contract {contract_idx}: {e}")
+                contracts.append(response)
+            except Exception as e:
+                error_message = f"Failed to fetch contract {contract_idx}"
+                log_error(logger, f"{error_message}: {e}")
+                messages.error(request, f"{error_message}")
 
         # Handle sorting
         ordering = request.GET.get("ordering", "contract_idx")  # Default to 'contract_idx'
@@ -70,13 +76,10 @@ def list_contracts_view(request, extra_context=None):
         if extra_context:
             context.update(extra_context)
 
+        log_info(logger, f"Context for list_contracts.html: {context}")
         return render(request, "admin/list_contracts.html", context)
 
     except Exception as e:
-        logger.error(f"Error in list_contracts_view: {e}")
-        return render(
-            request,
-            "admin/list_contracts.html",
-            {"error": f"An error occurred: {str(e)}"},
-            status=500,
-        )
+        error_message = f"Error in list_contract_view"
+        log_error(logger, f"{error_message}: {e}")
+        return render(request, "admin/list_contract.html", error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)

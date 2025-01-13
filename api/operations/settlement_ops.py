@@ -1,58 +1,41 @@
 import requests
-import random
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
 
 class SettlementOperations:
-    def __init__(self, headers, config):
+    def __init__(self, headers, config, csrf_token=None):
         self.headers = headers
         self.config = config
+        self.csrf_token = csrf_token
+        self.base_url = f"{self.config['url']}/api/contracts/"
 
-    def generate_settlements(self, settle_count, first_due_dt, first_min_dt, first_max_dt):
-        settlements = []
-        settle_due_dt = datetime.strptime(first_due_dt, "%Y-%m-%d %H:%M:%S")
-        transact_min_dt = datetime.strptime(first_min_dt, "%Y-%m-%d %H:%M:%S")
-        transact_max_dt = datetime.strptime(first_max_dt, "%Y-%m-%d %H:%M:%S")
+    def _add_csrf_token(self):
+        """Add CSRF token to headers if required."""
+        if not self.csrf_token:
+            raise ValueError("CSRF token is required for this operation.")
+        headers_with_csrf = self.headers.copy()
+        headers_with_csrf["X-CSRFToken"] = self.csrf_token
+        return headers_with_csrf
 
-        for _ in range(settle_count):
-            settlement = {
-                "settle_due_dt": settle_due_dt.strftime("%Y-%m-%d"),
-                "transact_min_dt": transact_min_dt.strftime("%Y-%m-%d"),
-                "transact_max_dt": transact_max_dt.strftime("%Y-%m-%d"),
-                "extended_data": {
-                    "ref_no": random.randint(1000, 9999)
-                }
-            }
-            settlements.append(settlement)
-            settle_due_dt += relativedelta(months=1)
-            transact_min_dt += relativedelta(months=1)
-            transact_max_dt += relativedelta(months=1)
-
-        return settlements
+    def _process_response(self, response):
+        """
+        Process the HTTP response:
+        - Raise an exception for non-2xx status codes.
+        - Return parsed JSON data or None for empty responses.
+        """
+        return response.json() if response.content else None
 
     def post_settlements(self, contract_idx, settlements):
-        response = requests.post(
-            f"{self.config['url']}/api/contracts/{contract_idx}/settlements/",
-            json=settlements,
-            headers=self.headers
-        )
-        return response
+        url = f"{self.base_url}{contract_idx}/settlements/"
+        headers_with_csrf = self._add_csrf_token()
+        response = requests.post(url, json=settlements, headers=headers_with_csrf)
+        return self._process_response(response)
 
     def get_settlements(self, contract_idx):
-        response = requests.get(
-            f"{self.config['url']}/api/contracts/{contract_idx}/settlements/",
-            headers=self.headers
-        )
-        return response
+        url = f"{self.base_url}{contract_idx}/settlements/"
+        response = requests.get(url, headers=self.headers)
+        return self._process_response(response)
 
-    def delete_settlements(self, contract_idx, csrf_token):
-        headers_with_csrf = self.headers.copy()
-        headers_with_csrf['X-CSRFToken'] = csrf_token
-
-        response = requests.delete(
-            f"{self.config['url']}/api/contracts/{contract_idx}/settlements/",
-            headers=headers_with_csrf,
-            cookies={'csrftoken': csrf_token} 
-        )
-
-        return response
+    def delete_settlements(self, contract_idx):
+        url = f"{self.base_url}{contract_idx}/settlements/"
+        headers_with_csrf = self._add_csrf_token()
+        response = requests.delete(url, headers=headers_with_csrf, cookies={"csrftoken": self.csrf_token})
+        return self._process_response(response)

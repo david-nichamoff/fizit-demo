@@ -8,6 +8,8 @@ from api.managers import ConfigManager, LibraryManager, SecretsManager
 from api.operations import ContractOperations, BankOperations
 from frontend.forms import ContractForm
 
+from api.utilities.logging import log_info, log_warning, log_error
+
 logger = logging.getLogger(__name__)
 
 # Helper function to initialize headers and configuration
@@ -40,8 +42,8 @@ def fetch_bank_data(headers, config):
     accounts_response = bank_ops.get_accounts(bank='mercury')
     recipients_response = bank_ops.get_recipients(bank='mercury')
 
-    accounts = process_bank_data(accounts_response.json(), 'account_id', 'account_name')
-    recipients = process_bank_data(recipients_response.json(), 'recipient_id', 'recipient_name')
+    accounts = process_bank_data(accounts_response, 'account_id', 'account_name')
+    recipients = process_bank_data(recipients_response, 'recipient_id', 'recipient_name')
 
     return accounts, recipients
 
@@ -53,7 +55,7 @@ def process_bank_data(items, item_id_key, item_name_key):
             for item in items if item_id_key in item and item_name_key in item
         ]
     except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to process data: {e}")
+        log_error(logger, f"Failed to process data: {e}")
         return []
 
 # Fetch templates for contract types and transaction logic
@@ -72,7 +74,7 @@ def fetch_contract_templates(headers, config):
                 'description': template.get('description', 'No description available'),
             } for template in templates)
         except requests.exceptions.RequestException as e:
-            logger.error(f"Error fetching templates for {contract_type}: {e}")
+            log_error(logger, f"Error fetching templates for {contract_type}: {e}")
     return all_templates
 
 # Main view
@@ -114,11 +116,11 @@ def add_contract_view(request, extra_context=None):
 
 # Handle POST request
 def handle_post_request(request, headers, config, contract_form):
-    logger.info(f"Contract form errors:  {contract_form.errors}")
+    log_info(logger, f"Contract form errors:  {contract_form.errors}")
 
     contract_data = contract_form.cleaned_data
 
-    logger.info(f"contract_data: {contract_data}")
+    log_info(logger, f"contract_data: {contract_data}")
 
     # Generate funding and deposit instructions
     contract_data["funding_instr"] = generate_instruction_data(
@@ -145,13 +147,17 @@ def handle_post_request(request, headers, config, contract_form):
 
     # Submit contract data
     try:
-        response = ContractOperations(headers, config).load_contract(contract_data)
-        response.raise_for_status()
-        contract_idx = response.json()
+        contract = ContractOperations(headers, config).post_contract(contract_data)
+
+        if "error" in contract:
+            raise Exception
+        else:
+            contract_idx = contract["contract_idx"]
+
         messages.success(request, f"Contract {contract_idx} added successfully!")
         return redirect(f"/admin/view-contract/?contract_idx={contract_idx}")
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Contract submission failed: {e}")
+    except Exception as e:
+        log_error(logger, f"Contract submission failed: {e}")
         messages.error(request, "Failed to add contract. Please try again.")
 
     return redirect(request.path)

@@ -1,14 +1,18 @@
 import datetime
-from decimal import Decimal
 import logging
+from decimal import Decimal
 
-from datetime import timezone
+from rest_framework import status
+from rest_framework.exceptions import ValidationError
 
 from api.managers import Web3Manager, ConfigManager
 from api.interfaces import SettlementAPI, ContractAPI, PartyAPI
 from api.adapters.bank import MercuryAdapter, TokenAdapter
 
-class ResidualAPI:
+from api.mixins import ValidationMixin, AdapterMixin, InterfaceResponseMixin
+from api.utilities.logging import  log_error, log_info, log_warning
+
+class ResidualAPI(ValidationMixin, AdapterMixin, InterfaceResponseMixin):
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -18,11 +22,11 @@ class ResidualAPI:
         return cls._instance
 
     def __init__(self):
-        if not hasattr(self, 'initialized'):  # Ensure init runs only once
+        """Initialize ResidualAPI with necessary dependencies."""
+        if not hasattr(self, "initialized"):
             self.config_manager = ConfigManager()
             self.config = self.config_manager.load_config()
             self.w3_manager = Web3Manager()
-            self.w3 = self.w3_manager.get_web3_instance()
             self.w3_contract = self.w3_manager.get_web3_contract()
             self.settlement_api = SettlementAPI()
             self.contract_api = ContractAPI()
@@ -32,105 +36,144 @@ class ResidualAPI:
             self.token_adapter = TokenAdapter()
 
             self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
-            self.checksum_wallet_addr = self.w3_manager.get_checksum_address(self.wallet_addr)
-
             self.logger = logging.getLogger(__name__)
-            self.initialized = True  # Mark this instance as initialized
-
-    def from_timestamp(self, ts):
-        return None if ts == 0 else datetime.datetime.fromtimestamp(ts, tz=timezone.utc)
+            self.initialized = True
 
     def get_residuals(self, contract_idx):
-        """Retrieve the residuals for a given contract."""
+        """Retrieve residuals for a given contract."""
         try:
+            self._validate_contract_idx(contract_idx, self.contract_api)
+
             residuals = []
-            settlements = self.settlement_api.get_settlements(contract_idx)
-            contract = self.contract_api.get_contract(contract_idx)
-            parties = self.party_api.get_parties(contract_idx)
+
+            response = self.settlement_api.get_settlements(contract_idx)
+            if response["status"] == status.HTTP_200_OK:
+                settlements = response["data"]
+                log_info(self.logger, f"Checking settlements for residuals: {settlements}")
+
+            response = self.party_api.get_parties(contract_idx)
+            if response["status"] == status.HTTP_200_OK:
+                parties = response["data"]
+                log_info(self.logger, f"Checking parties for residuals: {parties}")
+
+            response = self.contract_api.get_contract(contract_idx)
+            if response["status"] == status.HTTP_200_OK:
+                contract = response["data"]
+                log_info(self.logger, f"Contract for residuals: {contract}")
+
+            seller_addr, funder_addr = self._get_party_addresses(parties)
 
             for settle in settlements:
-                if settle["residual_pay_amt"] == "0.00" and Decimal(settle["residual_calc_amt"]) > Decimal(0.00):
+                if Decimal(settle["residual_calc_amt"]) > Decimal(0.00) and settle["residual_pay_amt"] == "0.00":
+                    residual = self._build_residual_dict(contract, settle, seller_addr, funder_addr)
+                    residuals.append(residual)
 
-                    for party in parties:
-                        if party.get("party_type") == "seller":
-                            recipient_addr = party.get("party_addr")
-                        elif party.get("party_type") == "funder":
-                            funder_addr = party.get("party_addr") 
+            success_message = f"Retrieved {len(residuals)} residuals for contract {contract_idx}"
+            return self._format_success(residuals, success_message, status.HTTP_200_OK)
 
-                    # Core fields that must exist
-                    residual_dict = {
-                        "contract_idx": contract["contract_idx"],
-                        "settle_idx": settle["settle_idx"],
-                        "bank": contract["funding_instr"]["bank"],
-                        "recipient_addr":  recipient_addr,
-                        "funder_addr": funder_addr,
-                        "residual_calc_amt": settle["residual_calc_amt"]
-                    }
-
-                    # Conditionally add optional fields
-                    if contract["funding_instr"].get("account_id"):
-                        residual_dict["account_id"] = contract["funding_instr"]["account_id"]
-                    
-                    if contract["funding_instr"].get("recipient_id"):
-                        residual_dict["recipient_id"] = contract["funding_instr"]["recipient_id"]
-
-                    if contract["funding_instr"].get("token_symbol"):
-                        residual_dict["token_symbol"] = contract["funding_instr"]["token_symbol"]
-
-                    residuals.append(residual_dict)
-
-            return residuals
-
+        except ValidationError as e:
+            error_message = f"Validation erorr retrieving residuals for contract {contract_idx}: {str(e)}"
+            return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            self.logger.error(f"Error retrieving residuals for contract {contract_idx}: {str(e)}")
-            raise RuntimeError(f"Failed to retrieve residuals for contract {contract_idx}") from e
+            error_message = f"Error retrieving residuals for contract {contract_idx}: {str(e)}"
+            return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def add_residuals(self, contract_idx, residuals):
+        """Add residual payments for a contract."""
+        try:
+            self._validate_contract_idx(contract_idx, self.contract_api)
 
-        for residual in residuals:
-            try:
-                if residual["bank"] == "mercury":
-                    # Use the MercuryAdapter to make the payment
-                    success, error_message = self.mercury_adapter.make_payment(
-                        residual["account_id"], residual["recipient_id"], residual["residual_calc_amt"]
-                    )
-                    if not success:
-                        self.logger.error(f"Payment failed for contract {contract_idx}, settlement {residual['settle_idx']}: {error_message}")
-                        raise ValueError(f"Payment failed: {error_message}")
-                    
-                elif residual["bank"] == "token":
-                    # Use the TokenAdapter to make the payment
-                    self.logger.info(f"residual: {residual}")
-                    success, error_message = self.token_adapter.make_payment(
-                        residual["contract_idx"], residual["funder_addr"], residual["recipient_addr"], residual["token_symbol"], residual["residual_calc_amt"]
-                    )
-                    if not success:
-                        self.logger.error(f"Token transfer failed for contract {contract_idx}, settlement {residual['settle_idx']}: {error_message}")
-                        raise ValueError(f"Token transfer failed: {error_message}")
+            processed_count = 0
+            for residual in residuals:
+                self._process_residual_payment(residual, contract_idx)
+                self._post_residual_on_blockchain(residual, contract_idx)
+                processed_count += 1
 
-                else:
-                    # Unsupported bank type
-                    self.logger.error(f"Unsupported bank type {residual["bank"]} for contract {contract_idx}")
-                    raise ValueError(f"Unsupported bank type: {residual["bank"]}")
+            success_message = f"Successfully added {processed_count} residuals for contract {contract_idx}"
+            return self._format_success({"count" : processed_count}, success_message, status.HTTP_201_CREATED)
 
-                # Blockchain transaction for paying residuals
-                current_time = int(datetime.datetime.now().timestamp())
-                payment_amt = int(Decimal(residual["residual_calc_amt"]) * 100)
+        except ValidationError as e:
+            error_message = f"Validaton error processing residuals for contract {contract_idx}: {str(e)}"
+            return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            error_message = f"Error processing residuals for contract {contract_idx}: {str(e)}"
+            return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-                # Build the blockchain transaction
-                transaction = self.w3_contract.functions.payResidual(
-                    contract_idx, residual["settle_idx"], current_time, payment_amt
-                ).build_transaction()
+    def _get_party_addresses(self, parties):
+        """Retrieve the addresses of the seller and funder."""
+        try:
+            seller_addr = next((party["party_addr"] for party in parties if party["party_type"] == "seller"), None)
+            funder_addr = next((party["party_addr"] for party in parties if party["party_type"] == "funder"), None)
+            return seller_addr, funder_addr
 
-                # Send the blockchain transaction
-                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
+        except Exception as e:
+            error_message = f"Error retrieving party addresses: {str(e)}"
+            log_error(self.logger, error_message)
+            raise RuntimeError(error_message) from e
 
-                if tx_receipt["status"] != 1:
-                    self.logger.error(f"Blockchain transaction failed for contract {contract_idx}, settlement {residual['settle_idx']}.")
-                    raise RuntimeError("Transaction failed on the blockchain.")
+    def _build_residual_dict(self, contract, settle, recipient_addr, funder_addr):
+        """Build a residual dictionary for a settlement."""
+        try:
+            residual_dict = {
+                "contract_idx": contract["contract_idx"],
+                "settle_idx": settle["settle_idx"],
+                "bank": contract["funding_instr"]["bank"],
+                "recipient_addr": recipient_addr,
+                "funder_addr": funder_addr,
+                "residual_calc_amt": settle["residual_calc_amt"],
+            }
 
-            except AttributeError as e:
-                self.logger.error(f"Error processing residual {residual['settle_idx']} for contract {contract_idx}: {str(e)}")
-                raise RuntimeError(f"Failed to process residual {residual['settle_idx']} for contract {contract_idx}") from e
+            optional_fields = ["account_id", "recipient_id", "token_symbol"]
+            for field in optional_fields:
+                if field in contract["funding_instr"]:
+                    residual_dict[field] = contract["funding_instr"][field]
 
-        return True
+            return residual_dict
+
+        except Exception as e:
+            error_message = f"Error building residual dictionary: {str(e)}"
+            log_error(self.logger, error_message)
+            raise RuntimeError(error_message) from e
+
+    def _process_residual_payment(self, residual, contract_idx):
+        """Process the residual payment through the appropriate bank adapter."""
+        try:
+            adapter = self._get_bank_adapter(residual["bank"])
+
+            if residual["bank"] == "mercury":
+                adapter.make_payment(
+                    residual["account_id"], residual["recipient_id"], residual["residual_calc_amt"]
+                )
+            elif residual["bank"] == "token":
+                adapter.make_payment(
+                    residual["contract_idx"], residual["funder_addr"], residual["recipient_addr"],
+                    residual["token_symbol"], residual["residual_calc_amt"]
+                )
+
+        except ValidationError as e:
+            error_message = f"Validation error processing payment: {str(e)}"
+            log_error(self.logger, error_message)
+            raise ValidationError(error_message) from e
+        except Exception as e:
+            error_message = f"Error processing residual payment: {str(e)}"
+            log_error(self.logger, error_message)
+            raise RuntimeError(error_message) from e
+
+    def _post_residual_on_blockchain(self, residual, contract_idx):
+        """Post the residual payment to the blockchain."""
+        try:
+            current_time = int(datetime.datetime.now().timestamp())
+            payment_amt = int(Decimal(residual["residual_calc_amt"]) * 100)
+
+            transaction = self.w3_contract.functions.payResidual(
+                contract_idx, residual["settle_idx"], current_time, payment_amt
+            ).build_transaction()
+
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
+            if tx_receipt["status"] != 1:
+                raise RuntimeError
+
+        except Exception as e:
+            error_message = f"Blockchain transaction_failed"
+            log_error(self.logger, error_message)
+            raise RuntimeError(error_message) from e

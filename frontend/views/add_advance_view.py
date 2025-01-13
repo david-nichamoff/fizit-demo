@@ -11,6 +11,8 @@ from api.managers import ConfigManager, SecretsManager
 from api.operations import CsrfOperations, BankOperations, ContractOperations
 from frontend.forms import AdvanceForm
 
+from api.utilities.logging import log_info, log_warning, log_error
+
 logger = logging.getLogger(__name__)
 
 # Helper function to initialize headers and configuration
@@ -33,22 +35,20 @@ def fetch_all_contracts(headers, config):
     # Get the total contract count
     try:
         count_response = contract_ops.get_count()
-    except requests.RequestException as e:
-        logger.error(f"Failed to fetch contract count: {e}")
+    except Exception as e:
+        log_error(logger, f"Failed to fetch contract count: {e}")
         return []
 
-    contract_count = count_response.json()['contract_count']
+    contract_count = count_response['count']
 
     # Fetch contracts one by one
     contracts = []
     for contract_idx in range(0, contract_count):
         try:
-            contract_response = contract_ops.get_contract(contract_idx)
-            contract_response.raise_for_status()
-            contract = contract_response.json()
+            contract = contract_ops.get_contract(contract_idx)
             contracts.append(contract)
-        except requests.RequestException as e:
-            logger.warning(f"Failed to fetch contract {contract_idx}: {e}")
+        except Exception as e:
+            log_error(logger, f"Failed to fetch contract {contract_idx}: {e}")
 
     return contracts
 
@@ -60,29 +60,30 @@ def fetch_all_advances(headers, config):
     try:
         count_response = contract_ops.get_count()
     except requests.RequestException as e:
-        logger.error(f"Failed to fetch contract count: {e}")
+        log_error(logger, f"Failed to fetch contract count: {e}")
         return []
 
-    contract_count = count_response.json()['contract_count']
+    contract_count = count_response['count']
 
     # Fetch advances one by one
     advances = []
     for contract_idx in range(0, contract_count):
         
         try:
-            advance_response = bank_ops.get_advances(contract_idx)
-            advance_response.raise_for_status()
-            advances.extend(advance_response.json())
+            advance = bank_ops.get_advances(contract_idx)
+            advances.extend(advance)
 
         except requests.RequestException as e:
-            logger.warning(f"Failed to fetch advances for contract {contract_idx}: {e}")
+            log_warning(logger, f"Failed to fetch advances for contract {contract_idx}: {e}")
 
     return advances
 
 def handle_post_request(request, headers, config):
 
-    bank_ops = BankOperations(headers, config)
     csrf_ops = CsrfOperations(headers, config)
+    csrf_token = csrf_ops.get_csrf_token()
+
+    bank_ops = BankOperations(headers, config, csrf_token)
 
     try:
         # Retrieve selected advances from the form
@@ -99,13 +100,12 @@ def handle_post_request(request, headers, config):
             messages.error(request, "No valid advances found for posting.")
             return redirect(request.path)
 
-        csrf_token = csrf_ops.get_csrf_token()
-        add_advance_response = bank_ops.add_advances(contract_idx, advances_to_post, csrf_token)
+        add_advance_response = bank_ops.post_advances(contract_idx, advances_to_post)
 
-        if add_advance_response.status_code == 201:
+        if "error" not in add_advance_response:
             messages.success(request, "Advances posted successfully.")
         else:
-            logger.error(f"Failed to post advances: {add_advance_response.json()}")
+            log_error(logger, f"Failed to post advances: {add_advance_response.json()}")
             messages.error(request, f"Failed to post advances: {add_advance_response.json().get('error', 'Unknown error')}")
 
     except Exception as e:

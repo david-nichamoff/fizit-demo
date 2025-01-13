@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib.auth.models import User, Group
 from django.contrib.admin import AdminSite
 from django.template.response import TemplateResponse
@@ -9,10 +11,9 @@ from frontend.views import erc20_balances_view, avax_balances_view, fizit_balanc
 from frontend.views import view_contract_view, list_contracts_view, add_contract_view
 from frontend.views import add_transaction_view, add_advance_view, add_residual_view
 from frontend.views import find_deposits_view, post_deposit_view
-
 from frontend.views import EventAdmin, ContactAdmin, ContractAdmin
 
-import logging
+from api.utilities.logging import log_info, log_warning, log_error
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ class CustomAdminSite(AdminSite):
     def has_permission(self, request):
         if request.user.is_active and request.user.is_staff:
             return True
-        logger.warning("Permission denied")
+        log_warning(logger, "Permission denied")
         return False
 
     def get_urls(self):
@@ -144,4 +145,4 @@ try:
     custom_admin_site.register(User, UserAdmin)
     custom_admin_site.register(Group, GroupAdmin)
 except Exception as e:
-    logger.error(f"Failed to register models: {e}")
+    log_error(logger, f"Failed to register models: {e}")

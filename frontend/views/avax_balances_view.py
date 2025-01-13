@@ -1,7 +1,10 @@
+import logging
+
 from django.shortcuts import render
 from api.managers import ConfigManager, Web3Manager
 from eth_utils import to_checksum_address
-import logging
+
+from api.utilities.logging import log_info, log_warning, log_error
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +15,7 @@ def avax_balances_view(request, extra_context=None):
     Custom view to view AVAX native token balances.
     """
     try:
-        logger.info("AVAX Balances view accessed")
+        log_info(logger, "AVAX Balances view accessed")
         
         # Initialize Config and Web3 managers
         config_manager = ConfigManager()
@@ -29,7 +32,7 @@ def avax_balances_view(request, extra_context=None):
         }
 
         if not balances["wallets"] and not balances["parties"]:
-            logger.warning("No balances found for wallets or parties.")
+            log_warning(logger, "No balances found for wallets or parties.")
             context = {"balances": {}, "error": "No balances found."}
         else:
             context = {"balances": balances}
@@ -42,7 +45,7 @@ def avax_balances_view(request, extra_context=None):
         return render(request, "admin/avax_balances.html", context)
 
     except Exception as e:
-        logger.error(f"Error in avax_balances_view: {e}")
+        log_error(logger, f"Error in avax_balances_view: {e}")
         return render(
             request,
             "admin/avax_balances.html",
@@ -56,30 +59,30 @@ def _get_avax_balances(config_manager, key, label, w3, logger):
     results = []
 
     if not addresses:
-        logger.warning(f"No addresses found for key '{key}'.")
+        log_warning(logger, f"No addresses found for key '{key}'.")
         return results
 
     for item in addresses:
         item_label = item.get("key", "Unknown")
         item_addr = item.get("value")
-        logger.info(f"Processing {label} - Label: {item_label}, Address: {item_addr}")
+        log_info(logger, f"Processing {label} - Label: {item_label}, Address: {item_addr}")
 
         if not item_addr or item_addr.lower() == ZERO_ADDRESS:
-            logger.warning(f"Skipping invalid or zero address for {item_label}.")
+            log_warning(logger, f"Skipping invalid or zero address for {item_label}.")
             continue
 
         try:
             checksum_item_addr = to_checksum_address(item_addr)
-            logger.info(f"Checksum address: {checksum_item_addr}")
+            log_info(logger, f"Checksum address: {checksum_item_addr}")
 
             # Fetch AVAX native token balance
             balance_wei = w3.eth.get_balance(checksum_item_addr)
             readable_balance = w3.from_wei(balance_wei, 'ether')
-            logger.info(f"AVAX Balance for {item_label} ({checksum_item_addr}): {readable_balance}")
+            log_info(logger, f"AVAX Balance for {item_label} ({checksum_item_addr}): {readable_balance}")
 
             results.append({"label": item_label, "address": checksum_item_addr, "balance": readable_balance})
         except Exception as e:
-            logger.error(f"Error checking AVAX balance for {item_label} ({item_addr}): {e}")
+            log_error(logger, f"Error checking AVAX balance for {item_label} ({item_addr}): {e}")
             results.append({"label": item_label, "address": item_addr, "balance": "Error"})
 
     return results

@@ -1,9 +1,14 @@
 import logging
-
 from api.managers import Web3Manager, ConfigManager
 from api.adapters.bank import MercuryAdapter
 
-class RecipientAPI:
+from rest_framework import status
+from rest_framework.exceptions import ValidationError
+
+from api.mixins import ValidationMixin, AdapterMixin, InterfaceResponseMixin
+from api.utilities.logging import  log_error, log_info, log_warning
+
+class RecipientAPI(ValidationMixin, AdapterMixin, InterfaceResponseMixin):
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -14,26 +19,26 @@ class RecipientAPI:
 
     def __init__(self):
         """Initialize the RecipientAPI class with configurations and logger."""
-        self.config_manager = ConfigManager()
-        self.config = self.config_manager.load_config()
-        self.w3_manager = Web3Manager()
-        
-        self.mercury_adapter = MercuryAdapter()
+        if not hasattr(self, "initialized"):
+            self.config_manager = ConfigManager()
+            self.config = self.config_manager.load_config()
+            self.w3_manager = Web3Manager()
+            self.mercury_adapter = MercuryAdapter()
 
-        self.logger = logging.getLogger(__name__)
-        self.initialized = True  # Mark this instance as initialized
+            self.logger = logging.getLogger(__name__)
+            self.initialized = True  # Mark this instance as initialized
 
     def get_recipients(self, bank):
-        """Get recipients based on the bank type."""
-        if bank == "mercury":
-            return self.mercury_adapter.get_recipients()
-        elif bank == "token":
-            return []
-        else:
-            error_message = f"Unsupported bank: {bank}"
-            self.logger.error(error_message)
-            raise ValueError(error_message)
+        try:
+            adapter = self._get_bank_adapter(bank)
+            recipients = adapter.get_recipients()
 
-# Usage example:
-# recipient_api = RecipientAPI()
-# recipients = recipient_api.get_recipients("mercury")
+            success_message = f"Successfully retrieved {len(recipients)} recipients for bank {bank}"
+            return self._format_success(recipients, success_message, status.HTTP_200_OK)
+
+        except ValidationError as e:
+            error_message = f"Validation error retrieving recipients for bank {bank} : {str(e)}"
+            return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            error_message = f"Error retrieving recipients for bank '{bank}': {str(e)}"
+            return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)

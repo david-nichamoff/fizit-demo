@@ -3,6 +3,8 @@ from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from .managers.secrets_manager import SecretsManager  
 
+from api.utilities.logging import  log_error, log_info, log_warning
+
 # Configure logger
 logger = logging.getLogger(__name__)
 
@@ -17,12 +19,12 @@ class AWSSecretsAPIKeyAuthentication(BaseAuthentication):
         api_key = request.META.get('HTTP_AUTHORIZATION')
 
         if not api_key:
-            logger.warning("Authorization header missing or empty.")
+            log_warning(logger, "Authorization header missing or empty.")
             raise AuthenticationFailed('Authorization header missing or empty')
 
         # Ensure API key has the correct prefix and remove it
         if not api_key.startswith("Api-Key "):
-            logger.warning("Authorization header does not start with 'Api-Key '. Header: %s", api_key)
+            log_warning(logger, "Authorization header does not start with 'Api-Key '. Header: %s")
             raise AuthenticationFailed('Authorization header must start with "Api-Key "')
 
         api_key = api_key.replace("Api-Key ", "", 1)
@@ -32,7 +34,7 @@ class AWSSecretsAPIKeyAuthentication(BaseAuthentication):
             secrets_manager = SecretsManager()
             valid_keys = secrets_manager.load_keys()  # Expecting valid_keys to be a dictionary
         except Exception as e:
-            logger.error("Error loading keys from SecretsManager: %s", str(e))
+            log_error(logger, "Error loading keys from SecretsManager: %s", str(e))
             raise AuthenticationFailed('Error loading API keys.')
 
         # Check for the FIZIT_MASTER_KEY in the loaded keys
@@ -43,11 +45,11 @@ class AWSSecretsAPIKeyAuthentication(BaseAuthentication):
 
         # Check if the provided API key matches any of the loaded keys
         if api_key in valid_keys.values():
-            logger.info("Successfully authenticated using API key.")
+            log_info(logger, "Successfully authenticated using API key.")
             return (None, {'api_key': api_key, 'is_master_key': False})
 
         # Log and raise an error if the API key doesn't match
-        logger.warning("Invalid API key provided: %s", api_key)
+        log_warning(logger, "Invalid API key provided: %s")
         raise AuthenticationFailed('Invalid API key')
 
     def authenticate_header(self, request):

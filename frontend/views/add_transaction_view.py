@@ -1,14 +1,17 @@
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from api.managers import ConfigManager, SecretsManager
-from api.operations import TransactionOperations, ContractOperations
-from frontend.forms import TransactionForm
-
-from datetime import datetime
 
 import json
 import requests
 import logging
+
+from datetime import datetime
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from api.managers import ConfigManager, SecretsManager
+from api.operations import TransactionOperations, ContractOperations, CsrfOperations
+from frontend.forms import TransactionForm
+
+from api.utilities.logging import log_info, log_warning, log_error
 
 logger = logging.getLogger(__name__)
 
@@ -22,38 +25,49 @@ def initialize_backend_services():
         'Content-Type': 'application/json',
     }
     config = config_manager.load_config()
-    return headers, config
+
+    csrf_ops = CsrfOperations(headers, config)
+    csrf_token = csrf_ops.get_csrf_token()
+
+    return headers, config, csrf_token
 
 # Fetch total contract count and fetch each contract one by one
-def fetch_all_contracts(headers, config):
+def fetch_all_contracts(request, headers, config):
 
     contract_ops = ContractOperations(headers, config)
 
     try:
-        count_response = contract_ops.get_count()
-    except requests.RequestException as e:
-        logger.error(f"Failed to fetch contract count: {e}")
-        return []
+        response = contract_ops.get_count()
+    except Exception as e:
+        error_message = f"Failed to get contract count"
+        log_error(logger, f"{error_message}: {e}")
+        messages.error(request, f"{error_message}")
 
-    contract_count = count_response.json()['contract_count']
-    logger.info(f"contract_count: {contract_count}")
+    contract_count = response.get("count")
+    log_info(logger, f"contract_count: {contract_count}")
 
     # Fetch contracts one by one
     contracts = []
     for contract_idx in range(0, contract_count):
         try:
-            contract_response = contract_ops.get_contract(contract_idx)
-            contract_response.raise_for_status()
-            contract = contract_response.json()
+            contract = contract_ops.get_contract(contract_idx)
 
             # Extract and process transact_logic
             transact_logic = contract.get("transact_logic", {})
+            log_info(logger, f"Transact Logic: {transact_logic}")
+
             variables = extract_transaction_variables(transact_logic)
+            log_info(logger, f"Variables: {variables}")
+
             contract["pre_transact_data"] = {var: 0 for var in variables}
+            log_info(logger, f"Contract: {contract}")
 
             contracts.append(contract)
-        except requests.RequestException as e:
-            logger.warning(f"Failed to fetch contract {contract_idx}: {e}")
+
+        except Exception as e:
+            error_message = f"Failed to fech contract {contract_idx}"
+            log_warning(logger, f"{error_message}")
+            messages.warning(request, f"{error_message}")
 
     return contracts
 
@@ -74,7 +88,7 @@ def extract_transaction_variables(logic):
     return variables
 
 # Handle POST request
-def handle_post_request(request, headers, config):
+def handle_post_request(request, headers, config, csrf_token):
     contract_idx = request.POST.get("contract_idx")
     transact_dt = request.POST.get("transact_dt")
     transact_data_raw = request.POST.get("transact_data")
@@ -86,9 +100,10 @@ def handle_post_request(request, headers, config):
     try:
         # Parse transact_data from JSON
         transact_data = json.loads(transact_data_raw)
-    except json.JSONDecodeError as e:
-        logger.error(f"Invalid JSON in transact_data: {e}")
-        messages.error(request, "Invalid JSON in Transaction Data. Please correct it and try again.")
+    except Exception as e:
+        error_message = f"Invalid JSON in Transaction Data.  Please correct it and try again"
+        log_error(logger, f"{error_message}: {e}")
+        messages.error(request, f"{error_message}")
         return redirect(request.path)
 
     try:
@@ -98,34 +113,32 @@ def handle_post_request(request, headers, config):
             "transact_dt": transact_dt,
             "transact_data": transact_data,
         }]
-        transaction_ops = TransactionOperations(headers, config)
+        transaction_ops = TransactionOperations(headers, config, csrf_token)
         response = transaction_ops.post_transactions(contract_idx, transaction_data)
 
         # Check for response status
-        if response.status_code == 200 or response.status_code == 201:
+        if response["count"] > 0:
             messages.success(request, "Transaction added successfully.")
             return redirect(request.path)
         else:
-            # Log the error details from the response
-            logger.error(f"Failed to add transaction: {response.json()}")
-            messages.error(request, f"Failed to add transaction: {response.json()}")
-            return redirect(request.path)
+            raise Exception 
 
-    except requests.RequestException as e:
-        logger.error(f"Failed to add transaction: {e}")
-        messages.error(request, "Failed to add transaction due to a network error.")
+    except Exception as e:
+        error_message = f"Failed to add transaction"
+        log_error(logger, f"{error_message}: {e}")
+        messages.error(request, f"{error_message}: {e}")
         return redirect(request.path)
 
 # Main view
 def add_transaction_view(request, extra_context=None):
-    headers, config = initialize_backend_services()
+    headers, config, csrf_token = initialize_backend_services()
 
     if request.method == 'POST':
         # Delegate to the POST handler
-        return handle_post_request(request, headers, config)
+        return handle_post_request(request, headers, config, csrf_token)
 
     # Fetch all contracts with prepopulated transact_data
-    raw_contracts = fetch_all_contracts(headers, config)
+    raw_contracts = fetch_all_contracts(request, headers, config)
 
     contracts = [
         {
@@ -139,6 +152,7 @@ def add_transaction_view(request, extra_context=None):
     ]
 
     # Initialize the form with contract data
+    log_info(logger, f"Calling transaction form with data {contracts}")
     transaction_form = TransactionForm(contracts=contracts)
 
     context = {

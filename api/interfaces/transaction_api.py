@@ -1,207 +1,226 @@
-import datetime
 import logging
 import json
 
-from datetime import timezone, datetime, time
 from decimal import Decimal
+from datetime import datetime
 from json_logic import jsonLogic
+
+from rest_framework import status
+from rest_framework.exceptions import ValidationError
 
 from api.managers import Web3Manager, ConfigManager
 from api.interfaces import ContractAPI
-
 from api.interfaces.encryption_api import get_encryptor, get_decryptor
-from .util_api import is_valid_json
 
-class TransactionAPI:
+from api.mixins import ValidationMixin, AdapterMixin, InterfaceResponseMixin
+from api.utilities.logging import  log_error, log_info, log_warning
+from api.utilities.formatting import from_timestamp
+from api.utilities.validation import is_valid_json
+
+class TransactionAPI(ValidationMixin, InterfaceResponseMixin):
     _instance = None
 
     def __new__(cls, *args, **kwargs):
-        """Ensure that the class is a singleton."""
+        """Ensure the class is a singleton."""
         if not cls._instance:
             cls._instance = super(TransactionAPI, cls).__new__(cls, *args, **kwargs)
         return cls._instance
 
     def __init__(self):
-        """Initialize TransactionsAPI with Web3 and configuration settings."""
-        self.config_manager = ConfigManager()
-        self.config = self.config_manager.load_config()
-        self.w3_manager = Web3Manager()
-        self.w3 = self.w3_manager.get_web3_instance()
-        self.w3_contract = self.w3_manager.get_web3_contract()
-        self.contract_api = ContractAPI()
+        """Initialize TransactionAPI with Web3 and configuration settings."""
+        if not hasattr(self, "initialized"):
+            self.config_manager = ConfigManager()
+            self.config = self.config_manager.load_config()
+            self.w3_manager = Web3Manager()
+            self.w3 = self.w3_manager.get_web3_instance()
+            self.w3_contract = self.w3_manager.get_web3_contract()
+            self.contract_api = ContractAPI()
 
-        self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
-        self.checksum_wallet_addr = self.w3_manager.get_checksum_address(self.wallet_addr)
+            self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
+            self.checksum_wallet_addr = self.w3_manager.get_checksum_address(self.wallet_addr)
 
-        self.logger = logging.getLogger(__name__)
-        self.initialized = True  # Mark this instance as initialized
-
-    def from_timestamp(self, ts):
-        return None if ts == 0 else datetime.fromtimestamp(ts, tz=timezone.utc)
-
-    def get_transact_dict(self, transact, transact_idx, contract, api_key, parties):
-        decryptor = get_decryptor(api_key, parties)
-
-        try:
-             # Initialize encryption API 
-            decrypted_extended_data = decryptor.decrypt(transact[0])
-            decrypted_transact_data = decryptor.decrypt(transact[5])
-
-            transact_dict = {
-                "extended_data": decrypted_extended_data,
-                "transact_dt": self.from_timestamp(transact[1]),
-                "transact_amt": f'{Decimal(transact[2]) / 100:.2f}',
-                "service_fee_amt": f'{Decimal(transact[3]) / 100:.2f}',
-                "advance_amt": f'{Decimal(transact[4]) / 100:.2f}',
-                "transact_data": decrypted_transact_data,
-                "advance_pay_dt": self.from_timestamp(transact[6]),
-                "advance_pay_amt": f'{Decimal(transact[7]) / 100:.2f}',
-                "advance_tx_hash": transact[8],
-                "contract_idx": contract['contract_idx'],
-                "funding_instr": contract['funding_instr'],
-                "transact_idx": transact_idx
-            }
-
-            self.logger.debug("Transaction amount (String): %s", transact_dict["transact_amt"])
-            self.logger.debug("Transaction amount type: %s", type(transact_dict["transact_amt"]))
-
-            return transact_dict
-        except (json.JSONDecodeError, KeyError, IndexError) as e:
-            self.logger.error(f"Error creating transaction dictionary: {str(e)}")
-            raise ValueError(f"Invalid transaction data: {str(e)}")
+            self.logger = logging.getLogger(__name__)
+            self.initialized = True
 
     def get_transactions(self, contract_idx, api_key=None, parties=[], transact_min_dt=None, transact_max_dt=None):
+        """Retrieve transactions for a contract within a date range."""
         try:
-            transactions = []
-            contract = self.contract_api.get_contract(contract_idx, api_key, parties)
+            self._validate_contract_idx(contract_idx, self.contract_api)
 
-            transacts = self.w3_contract.functions.getTransactions(contract['contract_idx']).call()
-            for transact in transacts:
-                transact_dict = self.get_transact_dict(transact, len(transactions), contract, api_key, parties)
-                transact_dt = transact_dict['transact_dt']
+            contract = self.contract_api.get_contract(contract_idx, api_key, parties).get("data")
+            log_info(self.logger, f"Retrieving contracts for contract {contract_idx} with data {contract}")
+            raw_transactions = self.w3_contract.functions.getTransactions(contract_idx).call()
+            log_info(self.logger, f"Retrieved raw transaction data {raw_transactions}")
 
-                if transact_min_dt and transact_dt < transact_min_dt:
-                    continue  # Skip transactions before the minimum date
-                if transact_max_dt and transact_dt >= transact_max_dt:
-                    continue  # Skip transactions after the maximum date
+            transactions = [
+                self._parse_transaction(t, idx, contract, api_key, parties)
+                for idx, t in enumerate(raw_transactions)
+                if self._filter_transaction(t, transact_min_dt, transact_max_dt)
+            ]
 
-                transactions.append(transact_dict)
+            success_message = f"Successfully retrieved transactions for contract {contract_idx}"
+            data = sorted(transactions, key=lambda t: t["transact_dt"], reverse=True)
+            return self._format_success(data, success_message, status.HTTP_200_OK)
 
-            sorted_transactions = sorted(transactions, key=lambda d: d['transact_dt'], reverse=True)
-            return sorted_transactions
+        except ValidationError as e:
+            error_message = f"Validation error for {contract_idx}: {str(e)}"
+            return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            self.logger.error(f"Error retrieving transactions for contract {contract_idx}: {str(e)}")
-            raise RuntimeError(f"Failed to retrieve transactions for contract {contract_idx}") from e
+            error_message = f"Error retrieving transactions for contract {contract_idx}: {e}"
+            return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def _filter_transaction(self, transaction, transact_min_dt=None, transact_max_dt=None):
+        try:
+            # Assuming the transaction contains a timestamp at index 1
+            transaction_date = datetime.utcfromtimestamp(transaction[1])
+
+            # Normalize `transact_min_dt` and `transact_max_dt` to naive UTC
+            if transact_min_dt:
+                transact_min_dt = transact_min_dt.replace(tzinfo=None)
+            if transact_max_dt:
+                transact_max_dt = transact_max_dt.replace(tzinfo=None)
+
+            # Check if the transaction falls within the range
+            if transact_min_dt and transaction_date < transact_min_dt:
+                return False
+            if transact_max_dt and transaction_date >= transact_max_dt:
+                return False
+
+            return True
+
+        except Exception as e:
+            log_error(self.logger, f"Error filtering transaction: {transaction}, error: {e}")
+            return False
 
     def add_transactions(self, contract_idx, transact_logic, transactions, api_key):
-        self.validate_transactions(transactions)
-
-        encryptor = get_encryptor()
-
+        """Add transactions to the blockchain for a given contract."""
         try:
-            for transaction in transactions:
-                # Encrypt sensitive fields before sending to the blockchain
-                encrypted_extended_data = encryptor.encrypt(transaction["extended_data"])
-                encrypted_transact_data = encryptor.encrypt(transaction["transact_data"])
+            self._validate_contract_idx(contract_idx, self.contract_api)
 
-                transact_dt = int(transaction["transact_dt"].timestamp())
-                transact_data = transaction["transact_data"]
-
-                # Check if 'adj' is in transact_data for adjustment
-                if "adj" in transaction["transact_data"]:
-                    transact_amt = int(Decimal(transaction["transact_data"]["adj"]) * 100)
-                else:
-                    transact_amt = int(jsonLogic(transact_logic, transact_data) * 100)
-
-                # Build the transaction
-                transaction = self.w3_contract.functions.addTransaction(
-                    contract_idx, encrypted_extended_data, transact_dt, transact_amt, encrypted_transact_data
-                ).build_transaction()
-
-                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
-
-                if tx_receipt["status"] != 1:
-                    raise RuntimeError(f"Failed to add transaction for contract {contract_idx}. Transaction status: {tx_receipt['status']}")
-
-            return True
-        except Exception as e:
-            self.logger.error(f"Error adding transactions for contract {contract_idx}: {str(e)}")
-            raise RuntimeError(f"Failed to add transactions for contract {contract_idx}") from e
-
-    def delete_transactions(self, contract_idx):
-        try:
-            self.logger.info(f"Initiating delete for contract {contract_idx} from {self.wallet_addr}")
-            
-            transaction = self.w3_contract.functions.deleteTransactions(contract_idx).build_transaction()
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
-
-            if tx_receipt["status"] != 1:
-                raise RuntimeError(f"Failed to delete transactions for contract {contract_idx}. Transaction status: {tx_receipt['status']}")
-            
-            return True
-
-        except Exception as e:
-            self.logger.error(f"Error deleting transactions for contract {contract_idx}: {str(e)}")
-            raise RuntimeError(f"Failed to delete transactions for contract {contract_idx}") from e
-
-    def validate_transactions(self, transactions):
-        try:
-            for transaction in transactions:
-                # Validate extended_data as valid JSON
-                if not is_valid_json(transaction.get("extended_data", "")):
-                    raise ValueError(f"Invalid JSON for 'extended_data': {transaction['extended_data']}")
-
-                # Validate transact_data as valid JSON
-                if not is_valid_json(transaction.get("transact_data", "")):
-                    raise ValueError(f"Invalid JSON for 'transact_data': {transaction['transact_data']}")
-        except ValueError as e:
-            self.logger.error(f"Transaction validation error: {str(e)}")
-            raise
-
-    def import_transactions(self, contract_idx, transactions):
-
-        try:
+            self._validate_transactions(transactions)
             encryptor = get_encryptor()
 
             for transaction in transactions:
-                # Convert datetime fields from string to datetime object, then to Unix timestamps
-                transact_dt = int(datetime.fromisoformat(transaction["transact_dt"]).timestamp())
-                advance_pay_dt = int(datetime.fromisoformat(transaction["advance_pay_dt"]).timestamp()) if transaction["advance_pay_dt"] else 0
+                encrypted_data = self._encrypt_transaction_data(transaction, encryptor)
+                transact_amt = self._calculate_transaction_amount(transaction, transact_logic)
 
-                # Encrypt sensitive fields before sending to the blockchain
-                encrypted_extended_data = encryptor.encrypt(transaction["extended_data"])
-                encrypted_transact_data = encryptor.encrypt(transaction["transact_data"])
-
-                # Prepare the Transaction struct as required by the Solidity contract
-                transaction_struct = (
-                    encrypted_extended_data,  # extended_data
-                    transact_dt,  # transact_dt
-                    int(Decimal(transaction["transact_amt"]) * 100),  # transact_amt
-                    int(Decimal(transaction["service_fee_amt"]) * 100),  # service_fee_amt
-                    int(Decimal(transaction["advance_amt"]) * 100),  # advance_amt
-                    encrypted_transact_data,  # transact_data
-                    advance_pay_dt,  # advance_pay_dt
-                    int(Decimal(transaction["advance_pay_amt"]) * 100),  # advance_pay_amt
-                )
-
-                # Build the transaction to call importTransaction
-                transaction_tx = self.w3_contract.functions.importTransaction(
-                    contract_idx,  # The index of the contract
-                    transaction_struct  # The transaction struct
+                tx = self.w3_contract.functions.addTransaction(
+                    contract_idx,
+                    encrypted_data["extended_data"],
+                    int(transaction["transact_dt"].timestamp()),
+                    transact_amt,
+                    encrypted_data["transact_data"]
                 ).build_transaction()
 
-                # Send the transaction
-                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
+                self._send_transaction(tx, contract_idx, "addTransaction")
 
-                if tx_receipt["status"] != 1:
-                    raise RuntimeError(f"Blockchain transaction failed for contract {contract_idx} transaction.")
+            success_message = f"Successfully added transactions for contract {contract_idx}"
+            return self._format_success({"count": len(transactions)}, success_message, status.HTTP_201_CREATED)
 
-            return True
+        except ValidationError as e:
+            error_message = f"Validation error adding transactions for {contract_idx}: {str(e)}"
+            return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            error_message = f"Error adding transactions for contract {contract_idx}: {e}"
+            return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def delete_transactions(self, contract_idx):
+        """Delete all transactions for a contract from the blockchain."""
+        try:
+            self._validate_contract_idx(contract_idx, self.contract_api)
+
+            tx = self.w3_contract.functions.deleteTransactions(contract_idx).build_transaction()
+            self._send_transaction(tx, contract_idx, "deleteTransactions")
+
+            success_message = f"Successfully deleted transactions for contract {contract_idx}"
+            return self._format_success({ "contract_idx":contract_idx}, success_message, status.HTTP_204_NO_CONTENT)
+
+        except ValidationError as e:
+            error_message = f"Validation error for {contract_idx}: {str(e)}"
+            return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            error_message = f"Error deleting transactions for contract {contract_idx}: {e}"
+            return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def _parse_transaction(self, transact, idx, contract, api_key, parties):
+        """Parse a raw transaction from the blockchain into a dictionary."""
+        decryptor = get_decryptor(api_key, parties)
+        try:
+            return {
+                "extended_data": decryptor.decrypt(transact[0]),
+                "transact_dt": from_timestamp(transact[1]),
+                "transact_amt": f"{Decimal(transact[2]) / 100:.2f}",
+                "service_fee_amt": f"{Decimal(transact[3]) / 100:.2f}",
+                "advance_amt": f"{Decimal(transact[4]) / 100:.2f}",
+                "transact_data": decryptor.decrypt(transact[5]),
+                "advance_pay_dt": from_timestamp(transact[6]),
+                "advance_pay_amt": f"{Decimal(transact[7]) / 100:.2f}",
+                "advance_tx_hash": transact[8],
+                "contract_idx": contract["contract_idx"],
+                "funding_instr": contract["funding_instr"],
+                "transact_idx": idx,
+            }
 
         except Exception as e:
-            self.logger.error(f"Error importing transactions for contract {contract_idx}: {str(e)}")
-            raise RuntimeError(f"Failed to import transactions for contract {contract_idx}") from e
+            error_message = f"Error parsing transaction {idx}: {e}"
+            log_error(self.logger, error_message)
+            raise RuntimeError(error_message) from e
 
-    # Usage Example:
-    # transactions_api = TransactionsAPI()
-    # transactions_api.get_transactions(contract_idx=123)
+    def _validate_transactions(self, transactions):
+        """Validate transactions to ensure required fields are correct."""
+        try:
+            for transaction in transactions:
+                self._validate_json_field(transaction, "extended_data")
+                self._validate_json_field(transaction, "transact_data")
+
+        except ValidationError as e:
+            error_message = f"Transaction validation error: {e}"
+            log_error(self.logger, error_message) 
+            raise ValidationError(error_message) from e
+
+    def _validate_json_field(self, transaction, field):
+        """Validate a JSON field in a transaction."""
+        if not is_valid_json(transaction.get(field, "")):
+            raise ValidationError(f"Invalid JSON for '{field}': {transaction.get(field)}")
+
+    def _encrypt_transaction_data(self, transaction, encryptor):
+        """Encrypt sensitive transaction data."""
+
+        try:
+            return {
+                "extended_data": encryptor.encrypt(transaction["extended_data"]),
+                "transact_data": encryptor.encrypt(transaction["transact_data"]),
+            }
+        except Exception as e:
+            error_message = "Error decryting data"
+            log_error(self.logger, error_message)
+            raise RuntimeError(error_message) from e
+
+    def _calculate_transaction_amount(self, transaction, transact_logic):
+        """Calculate the transaction amount using transaction logic."""
+        try:
+            if "adj" in transaction["transact_data"]:
+                return int(Decimal(transaction["transact_data"]["adj"]) * 100)
+
+            return int(jsonLogic(transact_logic, transaction["transact_data"]) * 100)
+
+        except Exception as e:
+            error_message = f"Error calculating transaction amount with logic {transact_logic}"
+            log_error(self.logger, error_message)
+            raise RuntimeError(error_message) from e
+
+    def _send_transaction(self, tx, contract_idx, operation):
+        """Send a signed transaction to the blockchain."""
+        try:
+            tx_receipt = self.w3_manager.send_signed_transaction(tx, self.wallet_addr, contract_idx, "fizit")
+
+            if tx_receipt["status"] != 1:
+                error_message = f"Blockchain {operation} failed for contract {contract_idx}" 
+                log_error(self.logger, error_message)
+                raise RuntimeError(error_message) from e
+
+        except Exception as e:
+            error_message = f"Error sending transaction: {e}"
+            extra={"operation": "_send_transaction", "contract_idx": contract_idx}
+            log_error(self.logger, error_message)
+            raise RuntimeError(error_message) from e

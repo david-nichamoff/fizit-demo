@@ -13,7 +13,7 @@ class FindDepositsForm(DepositForm):
 
     start_date = forms.DateTimeField(
         required=True,
-        widget=forms.DateTimeInput(attrs={'class': 'datetime-input', 'id': 'id_start_date'}),
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'datetime-input', 'id': 'id_start_date'}),
         initial=datetime.now(timezone.utc) - timedelta(days=5),
         label="Start Date:",
         help_text="Filter deposits starting from this date"
@@ -21,7 +21,7 @@ class FindDepositsForm(DepositForm):
 
     end_date = forms.DateTimeField(
         required=True,
-        widget=forms.DateTimeInput(attrs={'class': 'datetime-input', 'id': 'id_end_date'}),
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local','class': 'datetime-input', 'id': 'id_end_date'}),
         initial=datetime.now(timezone.utc),
         label="End Date:",
         help_text="Filter deposits up to this date"

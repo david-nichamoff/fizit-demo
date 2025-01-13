@@ -1,137 +1,139 @@
 import requests
 import uuid
 import logging
-
 from api.managers import SecretsManager, ConfigManager
 
-class MercuryAdapter:
+from rest_framework.exceptions import ValidationError
+
+from api.mixins.interfaces import InterfaceResponseMixin
+from api.utilities.logging import log_error, log_info, log_warning
+
+class MercuryAdapter(InterfaceResponseMixin):
     _instance = None
 
     def __new__(cls, *args, **kwargs):
-        """Ensure that only one instance of MercuryAdapter is created (Singleton pattern)."""
+        """Singleton instance for MercuryAdapter."""
         if cls._instance is None:
             cls._instance = super(MercuryAdapter, cls).__new__(cls, *args, **kwargs)
         return cls._instance
 
     def __init__(self):
         if not hasattr(self, 'initialized'):
-            """Initialize the MercuryAPI class with keys and config."""
             self.secrets_manager = SecretsManager()
             self.keys = self.secrets_manager.load_keys()
             self.config_manager = ConfigManager()
             self.config = self.config_manager.load_config()
-
+            self.initialized = True
             self.logger = logging.getLogger(__name__)
-            self.initialized = True  # Prevent reinitialization
+
+    def _build_headers(self):
+        """Helper to build request headers."""
+        return {"accept": "application/json",
+                }
+
+    def _build_url(self, endpoint):
+        """Helper to construct full API URL."""
+        base_url = self.config.get("mercury_url", "")
+        return f"{base_url}/{endpoint}"
+
+    def _send_request(self, method, url, **kwargs):
+        """Helper to send an API request."""
+        try:
+            log_info(self.logger, f"Sending {method.upper()} request to {url} with {kwargs}")
+
+            response = requests.request(method, url, auth=(self.keys["mercury_token"], ''), **kwargs)
+            response.raise_for_status()
+            return response.json()
+
+        except Exception as e:
+            error_message = f"Request failed: {e}"
+            log_error(self.logger,  error_message)
+            raise RuntimeError(error_message) from e
 
     def get_accounts(self):
         """Fetch accounts from the Mercury API."""
+        url = self._build_url('accounts')
         try:
-            response = requests.get(self.config["mercury_url"] + '/accounts', auth=(self.keys["mercury_token"], ''))
-            response.raise_for_status()
-            account_data = response.json().get('accounts', [])
-
-            accounts = []
-            for account in account_data:
-                accounts.append({
+            data = self._send_request('get', url)
+            accounts = data.get('accounts', [])
+            return [
+                {
                     'bank': 'mercury',
                     'account_id': account['id'],
-                    'account_name': account['name'], 
+                    'account_name': account['name'],
                     'available_balance': account['availableBalance']
-                })
-
-            return accounts
-        except requests.exceptions.RequestException as e:
+                } for account in accounts
+            ]
+        except Exception as e:
             error_message = f"Error fetching accounts: {e}"
-            self.logger.error(error_message)
+            log_warning(self.logger, error_message)
             raise RuntimeError(error_message) from e
 
     def get_recipients(self):
         """Fetch recipients from the Mercury API."""
+        url = self._build_url('recipients')
         try:
-            headers = {"accept": "application/json"}
-            url = f"{self.config['mercury_url']}/recipients"
-            response = requests.get(url, auth=(self.keys["mercury_token"], ''), headers=headers)
-            response.raise_for_status()
-            recipient_data = response.json().get('recipients', [])
-
-            recipients = []
-            for recipient in recipient_data:
-                recipients.append({
+            data = self._send_request('get', url, headers=self._build_headers())
+            recipients = data.get('recipients', [])
+            return [
+                {
                     'bank': 'mercury',
                     'recipient_id': recipient['id'],
                     'recipient_name': recipient['name']
-                })
+                } for recipient in recipients
+            ]
 
-            return recipients
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             error_message = f"Error fetching recipients: {e}"
-            self.logger.error(error_message)
+            log_error(self.logger,  error_message)
             raise RuntimeError(error_message) from e
 
     def get_deposits(self, start_date, end_date, contract):
-        """Fetch deposit transactions for a specific account within a date range."""
-        deposits = []
-        
+        """Fetch deposits for a specific account within a date range."""
+        account_id = contract.get("deposit_instr", {}).get("account_id")
+
+        if not account_id:
+            raise ValidationError("Missing deposit_instr.account_id in contract.")
+
+        url = self._build_url(f"account/{account_id}/transactions")
+        params = {"start": start_date.strftime('%Y-%m-%d'), "end": end_date.strftime('%Y-%m-%d')}
         try:
-            # Ensure deposit_instr and account_id exist and are not null
-            if "deposit_instr" not in contract or not contract["deposit_instr"].get("account_id"):
-                raise ValueError("The contract's deposit_instr.account_id is missing or null.")
-            
-            account_id = contract["deposit_instr"]["account_id"]
-            url = f"{self.config['mercury_url']}/account/{account_id}/transactions"
-            payload = {"start": start_date.strftime('%Y-%m-%d'), "end": end_date.strftime('%Y-%m-%d')}
-            headers = {"accept": "application/json"}
-
-            response = requests.get(url, auth=(self.keys['mercury_token'], ''), headers=headers, params=payload)
-            response.raise_for_status()
-            deposit_data = response.json().get('transactions', [])
-
-            for deposit in deposit_data:
-                if deposit['amount'] > 0:  # filter out expenses
-                    deposits.append({
-                        'bank': 'mercury', 
-                        'account_id': account_id, 
-                        'deposit_id': deposit['id'], 
-                        'counterparty': deposit['counterpartyName'], 
-                        'deposit_amt': deposit['amount'], 
-                        'deposit_dt': deposit['createdAt']
-                    })
-
-            return deposits
-        except ValueError as e:
-            self.logger.error(f"Validation Error: {e}")
-            raise RuntimeError(f"Validation Error: {e}")
-        except requests.exceptions.RequestException as e:
+            data = self._send_request('get', url, headers=self._build_headers(), params=params)
+            transactions = data.get('transactions', [])
+            return [
+                {
+                    'bank': 'mercury',
+                    'account_id': account_id,
+                    'deposit_id': txn['id'],
+                    'counterparty': txn['counterpartyName'],
+                    'deposit_amt': txn['amount'],
+                    'deposit_dt': txn['createdAt']
+                } for txn in transactions if txn['amount'] > 0  # Filter out expenses
+            ]
+        except ValidationError as e:
+            error_message = f"Validation error getting deposits: {e}"
+            log_error(self.logger, error_message)
+            raise ValidationError(error_message) from e
+        except Exception as e:
             error_message = f"Error fetching deposits: {e}"
-            self.logger.error(error_message)
+            log_error(self.logger,  error_message)
             raise RuntimeError(error_message) from e
 
     def make_payment(self, account_id, recipient_id, amount):
+
         """Initiate a payment to a recipient."""
-        idem = str(uuid.uuid1())
-        url = f"{self.config['mercury_url']}/account/{account_id}/request-send-money"
+        url = self._build_url(f"account/{account_id}/request-send-money")
         payload = {
-            "recipientId": str(recipient_id), 
+            "recipientId": str(recipient_id),
             "amount": float(amount),
             "paymentMethod": "ach",
-            "idempotencyKey": idem
+            "idempotencyKey": str(uuid.uuid1())
         }
-
         try:
             response = requests.post(url, auth=(self.keys["mercury_token"], ''), json=payload)
-            response.raise_for_status()
-            return True, None
-        except requests.exceptions.RequestException as e:
-            error_message = f"Error making payment: {e}"
-            self.logger.error(error_message)
-            return False, error_message
-        except requests.exceptions.HTTPError as e:
-            status_code = e.response.status_code
-            error_message = e.response.json().get('message') if e.response.headers.get('Content-Type') == 'application/json' else str(e)
-            self.logger.error(f"HTTP Error {status_code}: {error_message}")
-            return False, f"HTTP Error {status_code}: {error_message}"
+            log_info(self.logger,  f"Payment successful: {response}")
+
         except Exception as e:
-            error_message = f"Unexpected Error: {e}"
-            self.logger.error(error_message)
-            return False, error_message
+            error_message = f"Error making payment: {e}"
+            log_error(self.logger, error_message)
+            raise RuntimeError(error_message) from e

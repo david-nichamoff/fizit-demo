@@ -19,7 +19,7 @@ class BasePartyForm(forms.Form):
     def _populate_dynamic_fields(self):
         """Dynamically populate fields based on configuration."""
         if not self.config:
-            logger.error("Failed to load configuration.")
+            log_error(logger, "Failed to load configuration.")
             return
 
         dynamic_field_choices = {

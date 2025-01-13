@@ -1,134 +1,177 @@
 import logging
 from dateutil import parser as date_parser
-from datetime import datetime
 from datetime import timezone
-
 from rest_framework.response import Response
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework import viewsets, status
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from api.serializers.transaction_serializer import TransactionSerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-
 from api.interfaces import TransactionAPI, ContractAPI, PartyAPI
 
-class TransactionViewSet(viewsets.ViewSet):
+from api.mixins.shared import ValidationMixin
+from api.mixins.views import PermissionMixin
+
+from api.utilities.logging import log_error, log_info, log_warning
+from api.utilities.validation import is_valid_integer
+
+class TransactionViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
+    """
+    A ViewSet for managing transactions associated with a contract.
+    """
     authentication_classes = [AWSSecretsAPIKeyAuthentication]
     permission_classes = [HasCustomAPIKey]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
+        self.logger = logging.getLogger(__name__)
         self.party_api = PartyAPI()
         self.transaction_api = TransactionAPI()
         self.contract_api = ContractAPI()
-        self.authenticator = AWSSecretsAPIKeyAuthentication()
-
-        self.logger = logging.getLogger(__name__)
-        self.initialized = True  # Mark this instance as initialized
-
-        from datetime import datetime
 
     @extend_schema(
         tags=["Transactions"],
         parameters=[
-            OpenApiParameter(name='transact_min_dt', description='Minimum transaction date for filtering (ISO 8601 format)', required=False, type=str),
-            OpenApiParameter(name='transact_max_dt', description='Maximum transaction date for filtering (ISO 8601 format)', required=False, type=str),
+            OpenApiParameter(name='transact_min_dt', description='Minimum transaction date for filtering (ISO 8601 format) (inclusive)', required=False, type=str),
+            OpenApiParameter(name='transact_max_dt', description='Maximum transaction date for filtering (ISO 8601 format) (exclusive)', required=False, type=str),
         ],
         responses={status.HTTP_200_OK: TransactionSerializer(many=True)},
         summary="List Transactions",
-        description="Retrieve a list of transactions associated with a contract"
+        description="Retrieve a list of transactions associated with a contract.",
     )
     def list(self, request, contract_idx=None):
-        auth_info = request.auth
-        api_key = auth_info.get("api_key")
+        """
+        Retrieve a list of transactions for a given contract.
+        """
+        log_info(self.logger, f"Fetching transactions for contract {contract_idx}.")
 
-        self.logger.info(f"Fetching transactions for contract {contract_idx}")
-        transact_min_dt_str = request.query_params.get('transact_min_dt')
-        transact_max_dt_str = request.query_params.get('transact_max_dt')
-        transact_min_dt, transact_max_dt = None, None
-        
-        if transact_min_dt_str:
-            try:
-                transact_min_dt = date_parser.isoparse(transact_min_dt_str).astimezone(timezone.utc)
-            except ValueError:
-                self.logger.warning("Invalid transact_min_dt format")
-                return Response({"error": "Invalid format for transact_min_dt. Expected ISO 8601 format."}, status=status.HTTP_400_BAD_REQUEST)
-        
-        if transact_max_dt_str:
-            try:
-                transact_max_dt = date_parser.isoparse(transact_max_dt_str).astimezone(timezone.utc)
-            except ValueError:
-                self.logger.warning("Invalid transact_max_dt format")
-                return Response({"error": "Invalid format for transact_max_dt. Expected ISO 8601 format."}, status=status.HTTP_400_BAD_REQUEST)
-        
         try:
-            parties = self.party_api.get_parties(int(contract_idx))
-            self.logger.info(f"Fetching transactions from {transact_min_dt} to {transact_max_dt}")
-            transactions = self.transaction_api.get_transactions(
-                int(contract_idx), 
-                api_key,
+            # Validate contract_idx
+            if not is_valid_integer(contract_idx):
+                raise ValidationError("Contract_idx must be an integer")
+
+            # Parse optional date filters
+            transact_min_dt = self.parse_optional_date(request.query_params.get('transact_min_dt'))
+            transact_max_dt = self.parse_optional_date(request.query_params.get('transact_max_dt'))
+
+            # Fetch parties and transactions
+            response = self.party_api.get_parties(int(contract_idx))
+            if response["status"] == status.HTTP_200_OK:
+                parties = response["data"]
+            else:
+                return Response({"error" : response["message"]}, response["status"])
+
+            response = self.transaction_api.get_transactions(
+                int(contract_idx),
+                request.auth.get("api_key"),
                 parties,
-                transact_min_dt=transact_min_dt, 
-                transact_max_dt=transact_max_dt
+                transact_min_dt=transact_min_dt,
+                transact_max_dt=transact_max_dt,
             )
-            self.logger.info(f"Successfully retrieved transactions for contract {contract_idx}")
-            serializer = TransactionSerializer(transactions, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+
+            if response["status"] == status.HTTP_200_OK:
+                # Serialize and return the data
+                serializer = TransactionSerializer(response["data"], many=True)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                return Response({"error" : response["message"]}, response["status"])
+
+        except ValidationError as e:
+            log_error(self.logger, f"Validation error: {str(e)}")
+            return Response({"error": f"Validation error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            self.logger.error(f"Error fetching transactions for contract {contract_idx}: {e}")
-            return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
-
-    @extend_schema(
-        tags=['Transactions'],
-        request=TransactionSerializer(many=True),
-        responses={status.HTTP_201_CREATED: int},
-        summary="Create Transactions",
-        description="Add a list of transactions to an existing contract",
-    )
-    def add(self, request, contract_idx=None):
-        auth_info = request.auth  # This is where the authentication info is stored
-        api_key = auth_info.get("api_key")
-        
-        if not auth_info.get('is_master_key', False):  # Check if the master key was provided
-            raise PermissionDenied("You do not have permission to perform this action.")
-
-        self.logger.info(f"Attempting to add transactions for contract {contract_idx}")
-        serializer = TransactionSerializer(data=request.data, many=True)
-        if serializer.is_valid():
-            try:
-                self.logger.info(f"Validated transactions for contract {contract_idx}")
-                transact_logic = self.contract_api.get_contract(contract_idx, api_key)['transact_logic']
-                response = self.transaction_api.add_transactions(contract_idx, transact_logic, serializer.validated_data, api_key=api_key)
-                self.logger.info(f"Successfully added transactions for contract {contract_idx}")
-                return Response(response, status=status.HTTP_201_CREATED)
-            except Exception as e:
-                self.logger.error(f"Error adding transactions for contract {contract_idx}: {e}")
-                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            self.logger.warning(f"Invalid transaction data for contract {contract_idx}: {serializer.errors}")
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)   
+            log_error(self.logger, f"Unexpected error: {str(e)}")
+            return Response({"error": f"Unexpected error {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @extend_schema(
         tags=["Transactions"],
-        responses={status.HTTP_204_NO_CONTENT: int},
-        summary="Delete Transactions",
-        description="Delete all transactions from a contract",
+        request=TransactionSerializer(many=True),
+        responses={status.HTTP_201_CREATED: dict},
+        summary="Create Transactions",
+        description="Add a list of transactions to an existing contract.",
     )
-    def delete_contract(self, request, contract_idx=None):
-        auth_info = request.auth  # This is where the authentication info is stored
-        
-        if not auth_info.get('is_master_key', False):  # Check if the master key was provided
-            raise PermissionDenied("You do not have permission to perform this action.")
-
-        self.logger.info(f"Attempting to delete transactions for contract {contract_idx}")
+    def create(self, request, contract_idx=None):
+        """
+        Add transactions to a contract.
+        """
+        log_info(self.logger, f"Creating transactions for contract {contract_idx}.")
+        self._validate_master_key(request.auth)
 
         try:
-            response = self.transaction_api.delete_transactions(contract_idx)
-            self.logger.info(f"Successfully deleted transactions for contract {contract_idx}")
-            return Response(response, status=status.HTTP_204_NO_CONTENT)
+            # Validate contract_idx
+            if not is_valid_integer(contract_idx):
+                raise ValidationError("Contract_idx must be an integer")
+
+            # Validate request data
+            validated_data = self._validate_request_data(TransactionSerializer, request.data, many=True)
+
+            response = self.contract_api.get_contract(contract_idx, request.auth.get("api_key"))
+            transact_logic = response["data"]["transact_logic"]
+
+            response = self.transaction_api.add_transactions(contract_idx, transact_logic, validated_data, api_key=request.auth.get("api_key"))
+
+            if response["status"] == status.HTTP_201_CREATED:
+                # Serialize and return the data
+                return Response(response["data"], status=status.HTTP_201_CREATED)
+            else:
+                return Response({"error" : response["message"]}, response["status"])
+
+        except PermissionDenied as pd:
+            log_warning(self.logger, f"Permission denied for contract {contract_idx}: {pd}")
+            return Response({"error": str(pd)}, status=status.HTTP_403_FORBIDDEN)
+        except ValidationError as e:
+            log_error(self.logger, f"Validation error: {str(e)}")
+            return Response({"error": f"Validation error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            self.logger.error(f"Error deleting transactions for contract {contract_idx}: {e}")
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            log_error(self.logger, f"Unexpected error: {str(e)}")
+            return Response({"error": f"Unexpected error {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @extend_schema(
+        tags=["Transactions"],
+        responses={status.HTTP_204_NO_CONTENT: None},
+        summary="Delete Transactions",
+        description="Delete all transactions from a contract.",
+    )
+    def destroy(self, request, contract_idx=None):
+        """
+        Delete all transactions for a given contract.
+        """
+        log_info(self.logger, f"Deleting transactions for contract {contract_idx}.")
+        self._validate_master_key(request.auth)
+
+        try:
+            # Validate contract_idx
+            if not is_valid_integer(contract_idx):
+                raise ValidationError("Contract_idx must be an integer")
+
+            # Delete transactions via TransactionAPI
+            response = self.transaction_api.delete_transactions(contract_idx)
+
+            if response["status"] == status.HTTP_204_NO_CONTENT:
+                return Response(response["data"], status=status.HTTP_204_NO_CONTENT)
+            else:
+                return Response({"error" : response["message"]}, response["status"])
+
+        except PermissionDenied as pd:
+            log_warning(self.logger, f"Permission denied for contract {contract_idx}: {pd}")
+            return Response({"error": str(pd)}, status=status.HTTP_403_FORBIDDEN)
+        except ValidationError as e:
+            log_error(self.logger, f"Validation error: {str(e)}")
+            return Response({"error": f"Validation error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            log_error(self.logger, f"Unexpected error: {str(e)}")
+            return Response({"error": f"Unexpected error {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def parse_optional_date(self, date_str):
+        """
+        Parse and validate optional date parameters.
+        """
+        if not date_str:
+            return None
+        try:
+            return date_parser.isoparse(date_str).astimezone(timezone.utc)
+        except ValidationError:
+            log_warning(self.logger, f"Invalid date format: {date_str}")
+            raise ValidationError(f"Invalid date format. Expected ISO 8601 format.")

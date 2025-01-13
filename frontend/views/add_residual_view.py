@@ -4,12 +4,14 @@ import json
 
 from datetime import datetime
 
-from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.shortcuts import render, redirect
 
 from api.managers import ConfigManager, SecretsManager
-from api.operations import BankOperations, CsrfOperations, ContractOperations
+from api.operations import CsrfOperations, BankOperations, ContractOperations
 from frontend.forms import ResidualForm
+
+from api.utilities.logging import log_info, log_warning, log_error
 
 logger = logging.getLogger(__name__)
 
@@ -25,28 +27,28 @@ def initialize_backend_services():
     config = config_manager.load_config()
     return headers, config
 
+# Fetch total contract count and fetch each contract one by one
 def fetch_all_contracts(headers, config):
+
     contract_ops = ContractOperations(headers, config)
 
     # Get the total contract count
     try:
         count_response = contract_ops.get_count()
-    except requests.RequestException as e:
-        logger.error(f"Failed to fetch contract count: {e}")
+    except Exception as e:
+        log_error(logger, f"Failed to fetch contract count: {e}")
         return []
 
-    contract_count = count_response.json()['contract_count']
+    contract_count = count_response['count']
 
     # Fetch contracts one by one
     contracts = []
     for contract_idx in range(0, contract_count):
         try:
-            contract_response = contract_ops.get_contract(contract_idx)
-            contract_response.raise_for_status()
-            contract = contract_response.json()
+            contract = contract_ops.get_contract(contract_idx)
             contracts.append(contract)
-        except requests.RequestException as e:
-            logger.warning(f"Failed to fetch contract {contract_idx}: {e}")
+        except Exception as e:
+            log_error(logger, f"Failed to fetch contract {contract_idx}: {e}")
 
     return contracts
 
@@ -58,31 +60,33 @@ def fetch_all_residuals(headers, config):
     try:
         count_response = contract_ops.get_count()
     except requests.RequestException as e:
-        logger.error(f"Failed to fetch contract count: {e}")
+        log_error(logger, f"Failed to fetch contract count: {e}")
         return []
 
-    contract_count = count_response.json()['contract_count']
+    contract_count = count_response['count']
 
     # Fetch residuals one by one
     residuals = []
     for contract_idx in range(0, contract_count):
+        
         try:
-            residual_response = bank_ops.get_residuals(contract_idx)
-            residual_response.raise_for_status()
-            residuals = residual_response.json()
+            residual = bank_ops.get_residuals(contract_idx)
+            residuals.extend(residual)
 
         except requests.RequestException as e:
-            logger.warning(f"Failed to fetch contract {contract_idx}: {e}")
+            log_warning(logger, f"Failed to fetch residuals for contract {contract_idx}: {e}")
 
     return residuals
 
 def handle_post_request(request, headers, config):
 
-    bank_ops = BankOperations(headers, config)
     csrf_ops = CsrfOperations(headers, config)
+    csrf_token = csrf_ops.get_csrf_token()
+
+    bank_ops = BankOperations(headers, config, csrf_token)
 
     try:
-        # Retrieve selected advances from the form
+        # Retrieve selected residuals from the form
         contract_idx = request.POST.get("contract_idx")
         residuals_json = request.POST.get("residuals")
 
@@ -96,13 +100,12 @@ def handle_post_request(request, headers, config):
             messages.error(request, "No valid residuals found for posting.")
             return redirect(request.path)
 
-        csrf_token = csrf_ops.get_csrf_token()
-        add_residual_response = bank_ops.add_residuals(contract_idx, residuals_to_post, csrf_token)
+        add_residual_response = bank_ops.post_residuals(contract_idx, residuals_to_post)
 
-        if add_residual_response.status_code == 201:
+        if "error" not in add_residual_response:
             messages.success(request, "Residuals posted successfully.")
         else:
-            logger.error(f"Failed to post residuals: {add_residual_response.json()}")
+            log_error(logger, f"Failed to post residuals: {add_residual_response.json()}")
             messages.error(request, f"Failed to post residuals: {add_residual_response.json().get('error', 'Unknown error')}")
 
     except Exception as e:
@@ -132,7 +135,7 @@ def add_residual_view(request, extra_context=None):
     # Fetch all contracts with prepopulated transact_data
     residuals = fetch_all_residuals(headers, config)
 
-    # Group advances by contract_idx for the dropdown and table
+    # Group residuals by contract_idx for the dropdown and table
     grouped_residuals = group_residuals_by_contract(residuals)
 
     # Fetch all contracts with prepopulated transact_data
@@ -153,7 +156,7 @@ def add_residual_view(request, extra_context=None):
     context = {
         "residual_form": residual_form,
         "contracts": contracts,  # Used for the contract dropdown
-        "residuals_by_contract": grouped_residuals  # Used for populating tables dynamically
+        "residuals_by_contract": grouped_residuals,  # Used for populating tables dynamically
     }
 
     if extra_context:

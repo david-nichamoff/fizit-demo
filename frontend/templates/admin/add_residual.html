@@ -2,33 +2,58 @@
 {% load static %}
 
 {% block extrahead %}
+<script>
+    const contracts = {{ contracts|default:"[]"|safe }};
+    const residualsByContract = {{ residuals_by_contract|default:"{}"|safe }};
+    console.log("Contracts data:", contracts);
+    console.log("Grouped residuals:", residualsByContract);
+</script>
+<script src="{% static 'js/add_residual.js' %}?v1.0"></script>
 {% endblock %}
 
 {% block content %}
-<h1 class="title">Add Payment</h1>
-<form method="post" class="residual-form">
-    {% csrf_token %}
-
-    <fieldset class="module aligned">
-
-        <!-- Select Contract -->
-        <div class="form-row">
-            <div class="flex-container">
-                <label class="required" for="{{ payment_form.contract_idx.id_for_label }}">{{ payment_form.contract_idx.label }}</label>
-                {{ payment_form.contract_idx }}
-            </div>
-            <div class="help">{{ payment_form.contract_idx.help_text }}</div>
+<div id="content-main">
+    {% if error %}
+        <div class="errornote">
+            <p>{{ error }}</p>
         </div>
+    {% else %}
+        <h1 class="title">View Residuals by Contract</h1>
 
-    </fieldset>
+        <form method="post" class="residual-form">
+            {% csrf_token %}
+            <fieldset class="module aligned">
+                <!-- Select Contract -->
+                <div class="form-row">
+                    <div class="flex-container">
+                        <label class="required" for="id_contract_idx">{{ residual_form.contract_idx.label }}</label>
+                        {{ residual_form.contract_idx }}
+                    </div>
+                    <div class="help">{{ residual_form.contract_idx.help_text }}</div>
+                </div>
+            </fieldset>
 
-    <div class="submit-row">
-        <input type="submit" value="Save" class="default" />
-    </div>
-</form>
-
-<!-- Hidden contracts data -->
-<script id="contracts-data" type="application/json">
-    {{ contracts|safe }}
-</script>
+            <div class="module">
+                <table class="table table-striped results" id="residuals-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Select</th>
+                            <th scope="col">Bank</th>
+                            <th scope="col">Settlement</th>
+                            <th scope="col">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="5" class="empty-result">Please select a contract.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="submit-row">
+                <input type="submit" value="Post Residuals" class="default" />
+            </div>
+        </form>
+    {% endif %}
+</div>
 {% endblock %}

@@ -1,257 +1,187 @@
 import os
 import json
 import time
-
+import logging
 from decimal import Decimal
-from datetime import datetime
 
 from django.test import TestCase
 from rest_framework import status
 
 from api.managers import SecretsManager, ConfigManager
+from api.operations import (
+    ContractOperations, PartyOperations, SettlementOperations,
+    TransactionOperations, CsrfOperations, BankOperations
+)
 
-from api.operations import ContractOperations, PartyOperations, SettlementOperations
-from api.operations import TransactionOperations, CsrfOperations, BankOperations
+from api.utilities.logging import log_info, log_warning, log_error
 
 class PayTokenTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        pass
+        cls.logger = logging.getLogger(__name__)
+
+        """Initialize shared data for all test cases."""
+        cls.secrets_manager = SecretsManager()
+        cls.config_manager = ConfigManager()
+
+        cls.keys = cls.secrets_manager.load_keys()
+        cls.config = cls.config_manager.load_config()
 
     def setUp(self):
-        self.secrets_manager = SecretsManager()
-        self.config_manager = ConfigManager()
-        self.keys = self.secrets_manager.load_keys()
-        self.config = self.config_manager.load_config()
-
-        self.current_date = datetime.now().replace(microsecond=0).isoformat()
+        """Set up resources for each test."""
         self.headers = {
             'Authorization': f'Api-Key {self.keys["FIZIT_MASTER_KEY"]}',
             'Content-Type': 'application/json'
         }
-        self.payment_ops = BankOperations(self.headers, self.config)
-        self.contract_ops = ContractOperations(self.headers, self.config)
-        self.party_ops = PartyOperations(self.headers, self.config)
-        self.settlement_ops = SettlementOperations(self.headers, self.config)
-        self.transaction_ops = TransactionOperations(self.headers, self.config)
         self.csrf_ops = CsrfOperations(self.headers, self.config)
+        self.csrf_token = self.csrf_ops.get_csrf_token()
+
+        self.payment_ops = BankOperations(self.headers, self.config, self.csrf_token)
+        self.contract_ops = ContractOperations(self.headers, self.config, self.csrf_token)
+        self.party_ops = PartyOperations(self.headers, self.config, self.csrf_token)
+        self.settlement_ops = SettlementOperations(self.headers, self.config, self.csrf_token)
+        self.transaction_ops = TransactionOperations(self.headers, self.config, self.csrf_token)
 
     def test_token_payments(self):
+        """Test the full token payment workflow using fixture data."""
         fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'token_payments_test')
-        advance_filename = 'pay_advance.json'
-        deposit_filename = 'deposit_params.json'
-        fixture_path = os.path.join(fixtures_dir, advance_filename)
+        advance_fixture = 'pay_advance.json'
 
-        with open(fixture_path, 'r') as file:
-            try:
-                data = json.load(file)
-                print(f"Loading contract data from file: {advance_filename}")
-                contract_idx = self._test_create_contract(data['contract'])
-                self._test_load_parties(contract_idx, data['parties'])
-                self._test_load_settlements(contract_idx, data['settlements'])
-                self._test_load_transactions(contract_idx, data['transactions'])
-                self._test_get_advances(contract_idx, data['contract'])
-                self._test_get_deposits(contract_idx, deposit_filename)  
-                self._test_get_residuals(contract_idx, data['contract'])
-                self._test_compare_settlement_values(contract_idx)
-            except json.JSONDecodeError as e:
-                self.fail(f'Error decoding JSON from file: {advance_filename}, Error: {str(e)}')
-            except KeyError as e:
-                self.fail(f'Missing key in JSON from file: {advance_filename}, Error: {str(e)}')
+        try:
+            data = self._load_fixture(os.path.join(fixtures_dir, advance_fixture))
+            contract_idx = self._create_contract(data['contract'])
+            self._load_entities(contract_idx, data)
+            self._validate_advances(contract_idx, data['contract'])
+            self._validate_deposits(contract_idx, fixtures_dir)
+            self._validate_residuals(contract_idx, data['contract'])
+            self._compare_settlement_values(contract_idx)
+        except (json.JSONDecodeError, KeyError) as e:
+            self.fail(f"Error processing fixture data: {e}")
 
-    def _test_create_contract(self, contract_data):
-        response = self.contract_ops.load_contract(contract_data)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED, "Failed to create contract.")
-        contract_idx = response.json()
-        self.assertIsNotNone(contract_idx, 'Contract index should not be None')
-        print(f'Successfully added contract {contract_idx}')
+    def _create_contract(self, contract_data):
+        """Create a contract and return its ID."""
+        contract = self.contract_ops.post_contract(contract_data)
+        contract_idx = contract.get("contract_idx", -1)
+        self.assertGreater(contract_idx, -1)
+        log_info(self.logger, f"Successfully created contract: {contract_idx}")
         return contract_idx
 
-    def _test_load_parties(self, contract_idx, parties_data):
-        response = self.party_ops.add_parties(contract_idx, parties_data)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED, f"Failed to add parties to contract {contract_idx}.")
-        print(f"Parties loaded for contract: {contract_idx}")
+    def _load_entities(self, contract_idx, data):
+        """Load related entities (parties, settlements, transactions) for a contract."""
+        self._load_parties(contract_idx, data.get('parties', []))
+        self._load_settlements(contract_idx, data.get('settlements', []))
+        self._load_transactions(contract_idx, data.get('transactions', []))
 
-    def _test_load_settlements(self, contract_idx, settlements_data):
+    def _load_parties(self, contract_idx, parties_data):
+        """Load parties into a contract."""
+        response = self.party_ops.post_parties(contract_idx, parties_data) 
+        self.assertGreater(response["count"], 0)
+        log_info(self.logger, f"Parties successfully loaded for contract: {contract_idx}")
+
+    def _load_settlements(self, contract_idx, settlements_data):
+        """Load settlements into a contract."""
         response = self.settlement_ops.post_settlements(contract_idx, settlements_data)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED, f"Failed to add settlements to contract {contract_idx}.")
-        print(f"Settlements loaded for contract: {contract_idx}")
+        self.assertGreater(response["count"], 0)
+        log_info(self.logger, f"Settlements successfully loaded for contract: {contract_idx}")
 
-    def _test_load_transactions(self, contract_idx, transactions_data):
+    def _load_transactions(self, contract_idx, transactions_data):
+        """Load transactions into a contract."""
         response = self.transaction_ops.post_transactions(contract_idx, transactions_data)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED, f"Failed to add transactions to contract {contract_idx}.")
-        print(f"Transactions loaded for contract: {contract_idx}")
+        self.assertGreater(response["count"], 0)
+        log_info(self.logger, f"Transactions successfully loaded for contract: {contract_idx}")
 
-    def _test_get_advances(self, contract_idx, contract_data):
-        expected_advance_count = contract_data["extended_data"].get("advance_count")
+    def _validate_advances(self, contract_idx, contract_data):
+        """Validate and process advances for a contract."""
+        advances = self._fetch_advances(contract_idx)
+        self.assertEqual(len(advances), contract_data['extended_data'].get('advance_count', 0),
+                         f"Unexpected advance count for contract {contract_idx}.")
 
-        # First, get the advances
-        response = self.payment_ops.get_advances(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_200_OK, f"Failed to get advance amount for contract {contract_idx}.")
-        advances = response.json()  
+        response = self.payment_ops.post_advances(contract_idx, advances)
+        self.assertGreater(response["count"], 0)
+        log_info(self.logger, f"Advances successfully processed for contract: {contract_idx}")
 
-        self.assertEqual(
-            len(advances),
-            expected_advance_count,
-            f"Expected advance count {expected_advance_count} does not match actual count {len(advances)} for contract {contract_idx}."
+        self._wait_and_validate_cleared_advances(contract_idx)
+
+    def _fetch_advances(self, contract_idx):
+        """Fetch advances for a contract."""
+        advances = self.payment_ops.get_advances(contract_idx)
+        return advances
+
+    def _wait_and_validate_cleared_advances(self, contract_idx):
+        """Wait and validate that advances are cleared."""
+        time.sleep(10)  # Simulate processing delay
+        advances = self._fetch_advances(contract_idx)
+        self.assertEqual(len(advances), 0, f"Advances not cleared for contract {contract_idx}.")
+
+    def _validate_deposits(self, contract_idx, fixtures_dir):
+        """Validate deposits for a contract."""
+        deposit_fixture = 'deposit_params.json'
+        data = self._load_fixture(os.path.join(fixtures_dir, deposit_fixture))
+        deposits = self.payment_ops.get_deposits(contract_idx, data['params']['start_date'], data['params']['end_date'])
+        self.assertGreater(len(deposits), 0)
+
+        # Validate expected deposit matches
+        expected = data['deposits']
+        match_found = any(
+            Decimal(deposit['deposit_amt']) == Decimal(expected['deposit_amt'])
+            and deposit['deposit_dt'] == expected['deposit_dt']
+            for deposit in deposits
         )
 
-        print(f"Advances loaded for contract: {contract_idx}")
+        self.assertTrue(match_found, f"No matching deposit found for contract {contract_idx}.")
+        log_info(self.logger, f"Deposits successfully validated for contract: {contract_idx}")
 
-        # Now, call the payment_ops.add_advances function with the advances
-        csrf_token = self.csrf_ops.get_csrf_token()
-        add_advance_response = self.payment_ops.add_advances(contract_idx, advances, csrf_token)
-        self.assertEqual(
-            add_advance_response.status_code, 
-            status.HTTP_201_CREATED,
-            f"Failed to add advances for contract {contract_idx}. Status code: {add_advance_response.status_code}\nResponse: {add_advance_response.text}"
-        )
+        # Now, call the payment_ops.add_deposits function with the deposits 
+        add_deposit_response = self.payment_ops.post_deposit(contract_idx, expected)
+        self.assertEqual(add_deposit_response["count"], 1)
+        log_info(self.logger, f"Deposit successfully posted for contract: {contract_idx}")
 
-        print(f"Successfully added advances for contract: {contract_idx}")
+    def _validate_residuals(self, contract_idx, contract_data):
+        """Validate and process residuals for a contract."""
+        residuals = self._fetch_residuals(contract_idx)
+        self.assertEqual(len(residuals), contract_data['extended_data'].get('residual_count', 0),
+                         f"Unexpected residual count for contract {contract_idx}.")
 
-        print("Sleeping to ensure that advances have processed") 
-        time.sleep(10)
+        response = self.payment_ops.post_residuals(contract_idx, residuals)
+        self.assertGreater(response["count"], 0)
+        log_info(self.logger, f"{response["count"]} residuals successfully processed for contract: {contract_idx}")
 
-        response = self.payment_ops.get_advances(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_200_OK, f"Failed to get advance amount for contract {contract_idx} after waiting.")
+        self._wait_and_validate_cleared_residuals(contract_idx)
 
-        advances_after_payment = response.json()
-        self.assertEqual(
-            len(advances_after_payment),
-            0,
-            f"Expected advance count to be 0 after payment, but got {len(advances_after_payment)} for contract {contract_idx}."
-        )
+    def _fetch_residuals(self, contract_idx):
+        """Fetch residuals for a contract."""
+        residuals = self.payment_ops.get_residuals(contract_idx)
+        return residuals
 
-    def _test_get_deposits(self, contract_idx, fixture_filename="deposit_params.json"):
-        fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures', "token_payments_test", fixture_filename)
+    def _wait_and_validate_cleared_residuals(self, contract_idx):
+        """Wait and validate that residuals are cleared."""
+        time.sleep(10)  # Simulate processing delay
+        residuals = self._fetch_residuals(contract_idx)
+        self.assertEqual(len(residuals), 0, f"Residuals not cleared for contract {contract_idx}.")
+        log_info(self.logger, f"{residuals} cleared for contract {contract_idx}")
 
-        with open(fixture_path, 'r') as file:
-            data = json.load(file)
-        
-        params = data['params']
-        expected_result = data['deposits']
-
-        # Use the payment_ops.get_deposits function to get the deposits
-        start_date = params["start_date"]
-        end_date = params["end_date"]
-        
-        response = self.payment_ops.get_deposits(contract_idx, start_date, end_date)
-        deposits = response.json()
-        
-        # Check if one of the deposits matches the expected result
-        match_found = False
-        for deposit in deposits:
-            if (deposit['bank'] == expected_result['bank'] and
-                Decimal(deposit['deposit_amt']) == Decimal(expected_result['deposit_amt']) and
-                deposit['deposit_dt'] == expected_result['deposit_dt']):
-
-                # Now, call the payment_ops.add_deposits function with the deposits 
-                csrf_token = self.csrf_ops.get_csrf_token()
-                add_deposit_response = self.payment_ops.add_deposits(contract_idx, [expected_result], csrf_token)
-                self.assertEqual(
-                    add_deposit_response.status_code, 
-                    status.HTTP_201_CREATED,
-                    f"Failed to add deposits for contract {contract_idx}. Status code: {add_deposit_response.status_code}\nResponse: {add_deposit_response.text}"
-                )
-
-                match_found = True
-                break
-
-        self.assertTrue(match_found, f"No matching deposit found for contract {contract_idx}. Expected result: {expected_result}\nReturned deposits: {deposits}")
-
-    def _test_get_residuals(self, contract_idx, contract_data):
-        expected_residual_count = contract_data["extended_data"].get("residual_count")
-
-        # First, get the residuals
-        response = self.payment_ops.get_residuals(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_200_OK, f"Failed to get residual amounts for contract {contract_idx}.")
-
-        residuals = response.json()
-        self.assertEqual(
-            len(residuals),
-            expected_residual_count,
-            f"Expected residual count {expected_residual_count} does not match actual count {len(residuals)} for contract {contract_idx}."
-        )
-
-        print(f"Residuals loaded for contract: {contract_idx}")
-        print(f"residuals {residuals}")
-
-        # Now, call the payment_ops.add_residuals function with the residuals
-        csrf_token = self.csrf_ops.get_csrf_token()
-        add_residuals_response = self.payment_ops.add_residuals(contract_idx, residuals, csrf_token)
-        self.assertEqual(
-            add_residuals_response.status_code,
-            status.HTTP_201_CREATED,
-            f"Failed to add residuals for contract {contract_idx}. Status code: {add_residuals_response.status_code}\nResponse: {add_residuals_response.text}"
-        )
-
-        print(f"Successfully added residuals for contract: {contract_idx}")
-
-        print("Sleeping to ensure that residuals have processed") 
-        time.sleep(10)
-
-        # Get the residuals again after the payment
-        response = self.payment_ops.get_residuals(contract_idx)
-        self.assertEqual(response.status_code, status.HTTP_200_OK, f"Failed to get residual amounts for contract {contract_idx} after payment.")
-        residuals_after_payment = response.json()
-
-        self.assertEqual(
-            len(residuals_after_payment),
-            0,
-            f"Expected residual count to be 0 after payment, but got {len(residuals_after_payment)} for contract {contract_idx}."
-        )
-
-        print(f"Residuals successfully processed and cleared for contract: {contract_idx}")
-
-    def _test_compare_settlement_values(self, contract_idx):
-        
-        # Assume we want to compare settlement 0
-        response = self.settlement_ops.get_settlements(contract_idx)
-        if response.status_code != status.HTTP_200_OK:
-            self.fail(f'Failed to retrieve settlements for contract {contract_idx}. Status code: {response.status_code}\nResponse: {response.text}')
-
-        settlements = response.json()
+    def _compare_settlement_values(self, contract_idx):
+        """Compare settlement values with contract data."""
+        settlements = self.settlement_ops.get_settlements(contract_idx)
+        self.assertGreater(len(settlements), 0)
         settlement = settlements[0] if settlements else None
         self.assertIsNotNone(settlement, f"No settlements found for contract {contract_idx}.")
 
-        # Load the contract data to compare values
-        contract = self.contract_ops.get_contract(contract_idx).json()
+        contract = self.contract_ops.get_contract(contract_idx)
+        self._compare_field(settlement, contract, 'late_fee_amt')
+        self._compare_field(settlement, contract, 'dispute_amt')
+        self._compare_field(settlement, contract, 'residual_calc_amt', 'residual_pay_amt')
 
-        # Compare late_fee_amt
-        expected_late_fee_amt = contract['extended_data'].get('late_fee_amt')
-        actual_late_fee_amt = settlement.get('late_fee_amt')
+    def _compare_field(self, settlement, contract, contract_field, settlement_field=None):
+        """Compare individual fields between settlement and contract."""
+        settlement_field = settlement_field or contract_field
         self.assertEqual(
-            actual_late_fee_amt,
-            expected_late_fee_amt,
-            f"Expected late fee amount {expected_late_fee_amt} does not match actual late fee amount {actual_late_fee_amt} for contract {contract_idx}."
+            settlement.get(settlement_field), contract['extended_data'].get(contract_field),
+            f"Mismatch for field {settlement_field} in contract {contract['contract_idx']}."
         )
 
-        # Compare dispute_amt
-        expected_dispute_amt = contract['extended_data'].get('dispute_amt')
-        actual_dispute_amt = settlement.get('dispute_amt')
-        self.assertEqual(
-            actual_dispute_amt,
-            expected_dispute_amt,
-            f"Expected dispute amount {expected_dispute_amt} does not match actual dispute amount {actual_dispute_amt} for contract {contract_idx}."
-        )
-
-        # Compare residual_calc_amt
-        expected_residual_calc_amt = contract['extended_data'].get('residual_calc_amt')
-        actual_residual_calc_amt = settlement.get('residual_calc_amt')
-        self.assertEqual(
-            actual_residual_calc_amt,
-            expected_residual_calc_amt,
-            f"Expected residual calculated amount {expected_residual_calc_amt} does not match actual residual amount {actual_residual_calc_amt} for contract {contract_idx}."
-        )
-
-        # Compare residual_pay_amt
-        expected_residual_pay_amt = contract['extended_data'].get('residual_calc_amt')
-        actual_residual_pay_amt = settlement.get('residual_pay_amt')
-        self.assertEqual(
-            actual_residual_pay_amt,
-            expected_residual_pay_amt,
-            f"Expected residual paid amount {expected_residual_pay_amt} does not match actual residual amount {actual_residual_pay_amt} for contract {contract_idx}."
-        )
-
-        print(f"Settlement values successfully validated for contract: {contract_idx}")
+    def _load_fixture(self, path):
+        """Load a JSON fixture."""
+        with open(path, 'r') as file:
+            return json.load(file)

@@ -19,8 +19,7 @@
         <thead>
             <tr>
                 <th scope="col">Select</th>
-                <th scope="col">Buyer</th>
-                <th scope="col">Funder</th>
+                <th scope="col">Counterparty</th>
                 <th scope="col">Amount</th>
                 <th scope="col">Date</th>
             </tr>
@@ -34,8 +33,7 @@
                            data-deposit-amt="{{ deposit.deposit_amt }}" 
                            value="{{ deposit.deposit_id }}">
                 </td>
-                <td>{{ deposit.buyer_addr }}</td>
-                <td>{{ deposit.funder_addr }}</td>
+                <td>{{ deposit.counterparty }}</td>
                 <td>{{ deposit.deposit_amt }}</td>
                 <td>{{ deposit.deposit_dt }}</td>
             </tr>

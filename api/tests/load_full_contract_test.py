@@ -1,106 +1,117 @@
 import os
 import json
-from datetime import datetime
+import logging
 
 from django.test import TestCase
-from rest_framework import status
 
-from api.operations import ContractOperations, PartyOperations, SettlementOperations
-from api.operations import TransactionOperations, ArtifactOperations, CsrfOperations
-
+from api.operations import (
+    ContractOperations, PartyOperations, SettlementOperations,
+    TransactionOperations, ArtifactOperations, CsrfOperations
+)
 from api.managers import SecretsManager, ConfigManager
 
-class ContractTests(TestCase):
+from api.utilities.logging import log_info, log_warning, log_error
+
+class FullContractTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        pass
+        """Set up shared data for all test cases."""
+        cls.secrets_manager = SecretsManager()
+        cls.config_manager = ConfigManager()
+
+        cls.keys = cls.secrets_manager.load_keys()
+        cls.config = cls.config_manager.load_config()
 
     def setUp(self):
-        self.secrets_manager = SecretsManager()
-        self.config_manager = ConfigManager()
-
-        self.keys = self.secrets_manager.load_keys()
-        self.config = self.config_manager.load_config()
-
-        self.current_date = datetime.now().replace(microsecond=0).isoformat()
+        """Set up resources for each individual test."""
         self.headers = {
             'Authorization': f'Api-Key {self.keys["FIZIT_MASTER_KEY"]}',
             'Content-Type': 'application/json'
         }
 
-        self.contract_ops = ContractOperations(self.headers, self.config)
-        self.party_ops = PartyOperations(self.headers, self.config)
-        self.settlement_ops = SettlementOperations(self.headers, self.config)
-        self.transaction_ops = TransactionOperations(self.headers, self.config)
-        self.artifact_ops = ArtifactOperations(self.headers, self.config)
+        self.logger = logging.getLogger(__name__)
+
         self.csrf_ops = CsrfOperations(self.headers, self.config)
+        self.csrf_token = self.csrf_ops.get_csrf_token()
+
+        self.contract_ops = ContractOperations(self.headers, self.config, self.csrf_token)
+        self.party_ops = PartyOperations(self.headers, self.config, self.csrf_token)
+        self.settlement_ops = SettlementOperations(self.headers, self.config, self.csrf_token)
+        self.transaction_ops = TransactionOperations(self.headers, self.config, self.csrf_token)
+        self.artifact_ops = ArtifactOperations(self.headers, self.config, self.csrf_token)
 
     def test_load_contract(self):
+        """Load and test all contracts from the fixtures directory."""
         fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'full_contract_test')
-        for filename in os.listdir(fixtures_dir):
-            if filename.endswith('.json'):
-                with open(os.path.join(fixtures_dir, filename), 'r') as file:
-                    try:
-                        data = json.load(file)
-                        print(f"Loading contract from file: {filename}")
-                        self._load_contract_data(data)
-                    except json.JSONDecodeError as e:
-                        self.fail(f'Error decoding JSON from file: {filename}, Error: {str(e)}')
-                    except KeyError as e:
-                        self.fail(f'Missing key in JSON from file: {filename}, Error: {str(e)}')
+        log_info(self.logger, f"Loading contracts from directory: {fixtures_dir}")
 
-    def _load_contract_data(self, data):
-        # Load the contract
-        response = self.contract_ops.load_contract(data['contract'])
-        if response.status_code == status.HTTP_201_CREATED:
-            contract_idx = response.json()
-            print(f'Successfully added contract: {contract_idx}')
+        for filename in self._get_json_files(fixtures_dir):
+            try:
+                contract_data = self._load_fixture(os.path.join(fixtures_dir, filename))
+                log_info(self.logger, f"Processing contract from file: {filename}")
+                self._process_contract(contract_data)
+            except (json.JSONDecodeError, KeyError) as e:
+                self.fail(f"Error processing file {filename}: {e}")
 
-            # Load the parties
-            if 'parties' in data:
-                self._load_parties(contract_idx, data['parties'])
+    def _process_contract(self, data):
+        """Process a single contract and its associated entities."""
+        contract_idx = self._load_entity(
+            operation=self.contract_ops.post_contract,
+            data=data['contract'],
+            entity_name="contract"
+        )
 
-            # Load the settlements
-            if 'settlements' in data:
-                self._load_settlements(contract_idx, data['settlements'])
+        if 'parties' in data:
+            self._load_entity(
+                operation=self.party_ops.post_parties,
+                data=data['parties'],
+                contract_idx=contract_idx,
+                entity_name="parties"
+            )
 
-            # Load the transactions
-            if 'transactions' in data:
-                self._load_transactions(contract_idx, data['transactions'])
+        if 'settlements' in data:
+            self._load_entity(
+                operation=self.settlement_ops.post_settlements,
+                data=data['settlements'],
+                contract_idx=contract_idx,
+                entity_name="settlements"
+            )
 
-            # Load the artifacts
-            if 'artifacts' in data:
-                self._load_artifacts(contract_idx, data['artifacts'])
+        if 'transactions' in data:
+            self._load_entity(
+                operation=self.transaction_ops.post_transactions,
+                data=data['transactions'],
+                contract_idx=contract_idx,
+                entity_name="transactions"
+            )
 
+        if 'artifacts' in data:
+            self._load_entity(
+                operation=self.artifact_ops.post_artifacts,
+                data=data['artifacts'],
+                contract_idx=contract_idx,
+                entity_name="artifacts",
+            )
+
+    def _load_entity(self, operation, data, entity_name, contract_idx=None):
+        """Generic method to load entities (e.g., parties, settlements, transactions, artifacts)."""
+
+        response = operation(contract_idx, data) if contract_idx else operation(data)
+        
+        log_info(self.logger, f"Response from add {entity_name}: {response}")
+
+        if entity_name == "contract":
+            self.assertGreaterEqual(response.get("contract_idx", -1), 0)
+            return response["contract_idx"]
         else:
-            self.fail(f'Failed to add contract. Status code: {response.status_code}\nResponse: {response.text}')
+            self.assertGreaterEqual(response.get("count", 0), 1)
 
-    def _load_parties(self, contract_idx, parties_data):
-        response = self.party_ops.add_parties(contract_idx, parties_data)
-        if response.status_code == status.HTTP_201_CREATED:
-            print(f'Successfully added parties to contract {contract_idx}')
-        else:
-            self.fail(f'Failed to add parties to contract {contract_idx}. Status code: {response.status_code}\nResponse: {response.text}')
+    def _load_fixture(self, filepath):
+        """Load a JSON fixture file."""
+        with open(filepath, 'r') as file:
+            return json.load(file)
 
-    def _load_settlements(self, contract_idx, settlements_data):
-        response = self.settlement_ops.post_settlements(contract_idx, settlements_data)
-        if response.status_code == status.HTTP_201_CREATED:
-            print(f'Successfully added settlements to contract {contract_idx}')
-        else:
-            self.fail(f'Failed to add settlements to contract {contract_idx}. Status code: {response.status_code}\nResponse: {response.text}')
-
-    def _load_transactions(self, contract_idx, transactions_data):
-        response = self.transaction_ops.post_transactions(contract_idx, transactions_data)
-        if response.status_code == status.HTTP_201_CREATED:
-            print(f'Successfully added transactions to contract {contract_idx}')
-        else:
-            self.fail(f'Failed to add transactions to contract {contract_idx}. Status code: {response.status_code}\nResponse: {response.text}')
-
-    def _load_artifacts(self, contract_idx, artifact_urls):
-        csrf_token = self.csrf_ops.get_csrf_token()
-        response = self.artifact_ops.add_artifacts(contract_idx, artifact_urls, csrf_token)
-        if response.status_code == status.HTTP_201_CREATED:
-            print(f'Successfully added artifacts to contract {contract_idx}')
-        else:
-            self.fail(f'Failed to add artifacts to contract {contract_idx}. Status code: {response.status_code}\nResponse: {response.text}')
+    def _get_json_files(self, directory):
+        """Retrieve all JSON files from a directory."""
+        return [f for f in os.listdir(directory) if f.endswith('.json')]

@@ -1,12 +1,16 @@
 import logging
 import requests
 
+from datetime import datetime
+
 from django.contrib import messages
 from django.shortcuts import render, redirect
 
 from api.managers import ConfigManager, SecretsManager
 from api.operations import BankOperations, CsrfOperations, SettlementOperations
 from frontend.forms import PostDepositForm
+
+from api.utilities.logging import log_info, log_warning, log_error
 
 logger = logging.getLogger(__name__)
 
@@ -23,40 +27,41 @@ def initialize_backend_services():
     return headers, config
 
 # Helper function to handle deposit posting
-def handle_post_deposit(form, headers, config, request):
+def handle_post_deposit(form, request, headers, config):
     """
     Handles the logic for posting a deposit to the backend API.
     """
     contract_idx = form.cleaned_data["contract_idx"]
     deposit_dt = form.cleaned_data["deposit_dt"]
-    deposit_amt = form.cleaned_data["deposit_amt"]
+    deposit_amt = float(form.cleaned_data["deposit_amt"])
     settle_idx = form.cleaned_data["settle_idx"]
     dispute_reason = form.cleaned_data["dispute_reason"]
 
-    logger.info(f"Posting deposit for Contract IDX: {contract_idx}")
-
     # Prepare payload
     deposit_to_post = {
-        "deposit_dt": deposit_dt,
+        "deposit_dt": deposit_dt.isoformat(),
         "deposit_amt": deposit_amt,
         "settle_idx": settle_idx,
         "dispute_reason": dispute_reason,
     }
 
-    bank_ops = BankOperations(headers, config)
-    csrf_ops = CsrfOperations(headers, config)
+    log_info(logger, f"Posting {deposit_to_post} deposit for Contract IDX: {contract_idx}")
 
+    csrf_ops = CsrfOperations(headers, config)
     csrf_token = csrf_ops.get_csrf_token()
 
-    deposit_response = bank_ops.add_deposits(contract_idx, deposit_to_post, csrf_token)
+    bank_ops = BankOperations(headers, config, csrf_token)
+    deposit = bank_ops.post_deposit(contract_idx, deposit_to_post)
 
-    if deposit_response.status_code == 201:
+    log_info(logger, f"Deposited: {deposit}")
+
+    if "error" not in deposit:
         messages.success(request, "Deposit posted successfully.")
-        return True
+        return redirect(f"/admin/")
     else:
-        logger.error(f"Failed to post deposit: {deposit_response.json()}")
-        messages.error(request, f"Failed to post deposit: {deposit_response.json().get('error', 'Unknown error')}")
-        return False
+        log_error(logger, f"Failed to post deposit: {deposit["error"]}")
+        messages.error(request, f"Failed to post deposit: {deposit["error"]}")
+        return redirect(f"/admin/")
 
 def fetch_settlements(headers, config, contract_idx):
     """
@@ -66,14 +71,14 @@ def fetch_settlements(headers, config, contract_idx):
     settlement_ops = SettlementOperations(headers, config)
 
     try:
-        settlement_response = settlement_ops.get_settlements(contract_idx)
-        if settlement_response.status_code == 200:
-            return settlement_response.json()  # Return settlements as a list
+        settlements = settlement_ops.get_settlements(contract_idx)
+        if "error" not in settlements:
+            return settlements  # Return settlements as a list
         else:
-            logger.error(f"Failed to fetch settlements: {settlement_response.json()}")
+            log_error(logger, f"Failed to fetch settlements: {settlements["error"]}")
             return []
     except Exception as e:
-        logger.error(f"Exception while fetching settlements: {e}")
+        log_error(logger, f"Exception while fetching settlements: {e}")
         return []
 
 def post_deposit_view(request, extra_context=None):
@@ -84,8 +89,8 @@ def post_deposit_view(request, extra_context=None):
     selected_contract_idx = request.session.get('selected_contract_idx', None)
     settlements = []
 
-    logger.info(f"deposits: {deposits}")
-    logger.info(f"selected_contract_idx: {selected_contract_idx}")
+    log_info(logger, f"deposits: {deposits}")
+    log_info(logger, f"selected_contract_idx: {selected_contract_idx}")
 
     if selected_contract_idx:
         # Fetch settlements for the selected contract
@@ -95,8 +100,7 @@ def post_deposit_view(request, extra_context=None):
         form = PostDepositForm(request.POST)
         if form.is_valid():
             # Process deposit posting
-            return handle_post_deposit(request, headers, config)
-
+            return handle_post_deposit(form, request, headers, config)
         else:
             messages.error(request, "Invalid form data submitted.")
 

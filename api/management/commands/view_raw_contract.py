@@ -2,6 +2,8 @@ import logging
 from django.core.management.base import BaseCommand
 from api.managers import Web3Manager, ConfigManager
 
+from api.utilities.logging import  log_error, log_info, log_warning
+
 class Command(BaseCommand):
     help = 'Retrieve contract details, settlements, parties, transactions, and artifacts for a specific contract_idx from the blockchain'
 
@@ -20,7 +22,7 @@ class Command(BaseCommand):
         w3_contract = w3_manager.get_web3_contract()
 
         try:
-            self.logger.info(f"Fetching data for contract {contract_idx}")
+            log_info(self.logger, f"Fetching data for contract {contract_idx}")
             contract_data = self.get_contract_data(w3_contract, contract_idx)
             settlements = self.get_settlements(w3_contract, contract_idx)
             parties = self.get_parties(w3_contract, contract_idx)
@@ -36,7 +38,7 @@ class Command(BaseCommand):
 
         except Exception as e:
             self.stderr.write(self.style.ERROR(f"Error retrieving data: {str(e)}"))
-            self.logger.error(f"Error retrieving data for contract {contract_idx}: {str(e)}")
+            log_error(self.logger, f"Error retrieving data for contract {contract_idx}: {str(e)}")
 
     def get_contract_data(self, w3_contract, contract_idx):
         """Retrieve raw contract data from the blockchain."""
@@ -80,14 +82,16 @@ class Command(BaseCommand):
                 "settle_pay_dt": settlement[7],
                 "settle_exp_amt": settlement[8],
                 "settle_pay_amt": settlement[9],
-                "dispute_amt": settlement[10],
-                "dispute_reason": settlement[11],
-                "days_late": settlement[12],
-                "late_fee_amt": settlement[13],
-                "residual_pay_dt": settlement[14],
-                "residual_pay_amt": settlement[15],
-                "residual_exp_amt": settlement[16],
-                "residual_calc_amt": settlement[17]
+                "settle_tx_hash": settlement[10],
+                "dispute_amt": settlement[11],
+                "dispute_reason": settlement[12],
+                "days_late": settlement[13],
+                "late_fee_amt": settlement[14],
+                "residual_pay_dt": settlement[15],
+                "residual_pay_amt": settlement[16],
+                "residual_exp_amt": settlement[17],
+                "residual_calc_amt": settlement[18],
+                "residual_tx_hash": settlement[19]
             }
             settlements_data.append(settlement_data)
         return settlements_data
@@ -118,7 +122,8 @@ class Command(BaseCommand):
                 "advance_amt": transaction[4],
                 "transact_data": transaction[5],
                 "advance_pay_dt": transaction[6],
-                "advance_pay_amt": transaction[7]
+                "advance_pay_amt": transaction[7],
+                "advance_tx_hash": transaction[8]
             }
             transactions_data.append(transaction_data)
         return transactions_data

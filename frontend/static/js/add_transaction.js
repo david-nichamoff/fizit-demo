@@ -1,27 +1,43 @@
 document.addEventListener("DOMContentLoaded", function () {
-    console.log("Contract form script loaded.");
     console.log("Loaded contracts:", contracts);
 
-    // Elements
     const contractDropdown = document.getElementById("id_contract_idx");
     const transactionLogicField = document.getElementById("id_transact_logic");
     const transactionDataField = document.getElementById("id_transact_data");
 
-    // Event listener for contract dropdown change
+    // Prepopulate fields for the first contract if available
+    if (contracts.length > 0) {
+        const initialContract = contracts[0];
+        transactionLogicField.value = JSON.stringify(initialContract.transact_logic, null, 2);
+        transactionDataField.value = JSON.stringify(initialContract.pre_transact_data, null, 2);
+
+        console.log("Prepopulated fields on load:", {
+            transact_logic: transactionLogicField.value,
+            transact_data: transactionDataField.value,
+        });
+
+        // Set the contract dropdown to the first contract
+        if (contractDropdown) {
+            contractDropdown.value = initialContract.contract_idx;
+        }
+    }
+
+    // Add event listener for dropdown changes
     contractDropdown.addEventListener("change", function () {
         const selectedContractIdx = contractDropdown.value;
         const selectedContract = contracts.find(contract => contract.contract_idx == selectedContractIdx);
 
-        if (selectedContract) {
-            // Populate transaction logic as formatted JSON
-            transactionLogicField.value = JSON.stringify(selectedContract.transact_logic, null, 2);
+        console.log("Selected contract:", selectedContract);
 
-            // Populate transaction data as prepopulated JSON if available
-            transactionDataField.value = selectedContract.pre_transact_data
-                ? JSON.stringify(selectedContract.pre_transact_data, null, 2)
-                : "{}";
+        if (selectedContract) {
+            transactionLogicField.value = JSON.stringify(selectedContract.transact_logic, null, 2);
+            transactionDataField.value = JSON.stringify(selectedContract.pre_transact_data, null, 2);
+
+            console.log("Populated fields on change:", {
+                transact_logic: transactionLogicField.value,
+                transact_data: transactionDataField.value,
+            });
         } else {
-            // Clear fields if no contract is selected
             transactionLogicField.value = "";
             transactionDataField.value = "{}";
         }

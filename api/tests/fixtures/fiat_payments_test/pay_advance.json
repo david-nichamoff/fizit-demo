@@ -1,7 +1,7 @@
 {
     "contract": {
         "extended_data": {"advance_count" : 2, "residual_count" : 1, 
-        "late_fee_amt" : "61.47", "dispute_amt" : "100.00", "residual_calc_amt": "858.53"},
+        "late_fee_amt" : "61.47", "dispute_amt" : "100.00", "residual_calc_amt": "858.53", "residual_pay_amt" : "858.53"},
         "contract_name": "Mercury Test",
         "contract_type": "ticketing",
         "funding_instr": {"bank": "mercury", "account_id": "61396d72-e780-11ee-b69b-137ed758771c", "recipient_id": "627ecace-e780-11ee-b69b-f311fd81fcb4"},

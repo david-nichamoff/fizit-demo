@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 class DepositSerializer(serializers.Serializer):
     settle_idx = serializers.IntegerField()
-    bank = serializers.CharField(max_length=50)
+    bank = serializers.CharField(required=False, max_length=50)
     account_id = serializers.UUIDField(required=False)
     deposit_id = serializers.UUIDField(required=False)
     counterparty = serializers.CharField(required=False,max_length=255)
