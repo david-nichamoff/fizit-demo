@@ -64,3 +64,6 @@ cs/
 
 # config files
 api/config/config.json
+
+#django debug log
+django_debug.log
