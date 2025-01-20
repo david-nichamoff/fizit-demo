@@ -19,6 +19,7 @@ class AccountViewSet(viewsets.ViewSet, ValidationMixin):
     def __init__(self, **kwargs):
         """Initialize the view with AccountAPI instance and logger."""
         super().__init__(**kwargs)
+        print(f"DEBUG: AccountViewSet schema is {self.schema}")
         self.account_api = AccountAPI()
         self.logger = logging.getLogger(__name__)
 

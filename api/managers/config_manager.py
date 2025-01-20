@@ -9,7 +9,6 @@ class ConfigManager():
 
     _instance = None
     _config_cache = None
-    CONFIG_FILE_PATH = os.path.join(settings.BASE_DIR, 'api', 'config', 'config.json')
 
     def __new__(cls, *args, **kwargs):
         """Singleton pattern to ensure only one instance of ConfigManager exists."""
@@ -20,6 +19,7 @@ class ConfigManager():
     def __init__(self):
         """Initialize ConfigManager (lazy loading for configuration)."""
         if not hasattr(self, 'initialized'):
+            self.CONFIG_FILE_PATH = os.path.join(settings.BASE_DIR, 'api', 'config', 'config.json')
             self._config_cache = None  # Cache for loaded configurations
             self.initialized = True
             self.logger = logging.getLogger(__name__)
