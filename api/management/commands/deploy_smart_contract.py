@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from django.core.management.base import BaseCommand
 from django.conf import settings
+from django.utils import timezone
 from api.managers import SecretsManager, ConfigManager, Web3Manager
 from api.models import Contract
 
@@ -77,7 +78,7 @@ class Command(BaseCommand):
         # Set expiry date for the current contract
         try:
             current_contract = Contract.objects.get(contract_addr=current_contract_addr)
-            current_contract.expiry_dt = datetime.utcnow()
+            current_contract.expiry_dt = timezone.now()
             current_contract.save()
             self.stdout.write(f"Updated expiry date for contract: {current_contract_addr}")
         except Contract.DoesNotExist:
@@ -86,7 +87,7 @@ class Command(BaseCommand):
         # Create a new entry for the new contract
         new_contract = Contract(
             contract_addr=new_contract_addr,
-            created_dt=datetime.utcnow()
+            created_dt= timezone.now()
         )
         new_contract.save()
         self.stdout.write(f"Created new smart contract entry for: {new_contract_addr}")
