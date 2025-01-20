@@ -50,6 +50,7 @@ static/
 # dev specific start and stop scripts
 start.sh
 stop.sh
+restart.sh
 coverage.sh
 pids.txt
 

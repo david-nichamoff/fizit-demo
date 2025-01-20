@@ -22,7 +22,7 @@ class Command(BaseCommand):
 
         # Network and wallet configuration
         network = "fizit"
-        wallet_key = "Contract"
+        wallet_key = "Transactor"
 
         # Fetch wallet address associated with "Contract"
         wallet_config = config.get("wallet_addr", [])
