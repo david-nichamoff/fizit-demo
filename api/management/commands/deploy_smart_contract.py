@@ -60,6 +60,12 @@ class Command(BaseCommand):
                 abi=abi
             )
 
+            # Extract transaction hash from the receipt
+            tx_hash = tx_receipt.transactionHash.hex()
+
+            # Log transaction hash
+            self.stdout.write(f"Transaction Hash: {tx_hash}")
+
             new_contract_addr = tx_receipt.contractAddress
             self.stdout.write(f"New contract deployed at address: {new_contract_addr}")
 
