@@ -246,11 +246,17 @@ class Web3Manager():
             nonce = web3_instance.eth.get_transaction_count(wallet_addr)
             
             # Set a manually high gas limit
-            gas_limit = 10_000_000  # Reasonably high limit for large contracts
+            gas_limit = 9_000_000  # Reasonably high limit for large contracts
             
             # Use fixed gas fees for simplicity
             max_priority_fee_per_gas = web3_instance.to_wei('2', 'gwei')  # Priority fee
             max_fee_per_gas = web3_instance.to_wei('100', 'gwei')  # Max fee per gas
+
+            log_info(self.logger, f"Deployment Details")
+            log_info(self.logger, f"Wallet Address: {wallet_addr}")
+            log_info(self.logger, f"Gas Limit: {gas_limit}")
+            log_info(self.logger, f"maxFeePerGas: {max_fee_per_gas}")
+            log_info(self.logger, f"maxPriorityFeePerGas: {max_priority_fee_per_gas}")
                 
             # Build transaction
             tx = {

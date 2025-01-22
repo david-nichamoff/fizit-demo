@@ -104,7 +104,8 @@ class PartyViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         tags=["Parties"],
         responses={status.HTTP_204_NO_CONTENT: None},
         summary="Delete All Parties",
-        description="Delete all parties from a contract."
+        description="Delete all parties from a contract",
+        operation_id="delete_all_parties"
     )
     def destroy(self, request, contract_idx=None):
         """
@@ -136,7 +137,8 @@ class PartyViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         tags=["Parties"],
         responses={status.HTTP_204_NO_CONTENT: None},
         summary="Delete Party",
-        description="Delete a specific party from a contract."
+        description="Delete a specific party from a contract", 
+        operation_id = "delete_party"
     )
     def delete(self, request, contract_idx=None, party_idx=None):
         """
