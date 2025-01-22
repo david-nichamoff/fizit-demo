@@ -97,7 +97,7 @@ class FullContractTests(TestCase):
     def _load_entity(self, operation, data, entity_name, contract_idx=None):
         """Generic method to load entities (e.g., parties, settlements, transactions, artifacts)."""
 
-        response = operation(contract_idx, data) if contract_idx else operation(data)
+        response = operation(contract_idx, data) if contract_idx is not None else operation(data)
         
         log_info(self.logger, f"Response from add {entity_name}: {response}")
 
