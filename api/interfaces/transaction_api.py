@@ -8,16 +8,15 @@ from json_logic import jsonLogic
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
-from api.managers import Web3Manager, ConfigManager
-from api.interfaces import ContractAPI
+from api.web3 import Web3Manager
+from api.config import ConfigManager
+from api.registry import RegistryManager
 from api.interfaces.encryption_api import get_encryptor, get_decryptor
-
-from api.mixins import ValidationMixin, AdapterMixin, InterfaceResponseMixin
+from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
 from api.utilities.formatting import from_timestamp
-from api.utilities.validation import is_valid_json
 
-class TransactionAPI(ValidationMixin, InterfaceResponseMixin):
+class TransactionAPI(ResponseMixin):
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -30,43 +29,41 @@ class TransactionAPI(ValidationMixin, InterfaceResponseMixin):
         """Initialize TransactionAPI with Web3 and configuration settings."""
         if not hasattr(self, "initialized"):
             self.config_manager = ConfigManager()
-            self.config = self.config_manager.load_config()
+            self.registry_manager = RegistryManager()
             self.w3_manager = Web3Manager()
             self.w3 = self.w3_manager.get_web3_instance()
-            self.w3_contract = self.w3_manager.get_web3_contract()
-            self.contract_api = ContractAPI()
-
-            self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
+            self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
             self.checksum_wallet_addr = self.w3_manager.get_checksum_address(self.wallet_addr)
 
             self.logger = logging.getLogger(__name__)
             self.initialized = True
 
-    def get_transactions(self, contract_idx, api_key=None, parties=[], transact_min_dt=None, transact_max_dt=None):
+    def get_transactions(self, contract_type, contract_idx, api_key=None, parties=[], transact_min_dt=None, transact_max_dt=None):
         """Retrieve transactions for a contract within a date range."""
         try:
-            self._validate_contract_idx(contract_idx, self.contract_api)
+            contract_api = self.registry_manager.get_contract_api(contract_type)
+            contract = contract_api.get_contract(contract_type, contract_idx, api_key, parties).get("data")
+            log_info(self.logger, f"Retrieving contracts for {contract_type}:{contract_idx} with data {contract}")
 
-            contract = self.contract_api.get_contract(contract_idx, api_key, parties).get("data")
-            log_info(self.logger, f"Retrieving contracts for contract {contract_idx} with data {contract}")
-            raw_transactions = self.w3_contract.functions.getTransactions(contract_idx).call()
+            w3_contract = self.w3_manager.get_web3_contract(contract_type) 
+            raw_transactions = w3_contract.functions.getTransactions(contract_idx).call()
             log_info(self.logger, f"Retrieved raw transaction data {raw_transactions}")
 
             transactions = [
-                self._parse_transaction(t, idx, contract, api_key, parties)
+                self._parse_transaction(t, idx, contract_type, contract, api_key, parties)
                 for idx, t in enumerate(raw_transactions)
                 if self._filter_transaction(t, transact_min_dt, transact_max_dt)
             ]
 
-            success_message = f"Successfully retrieved transactions for contract {contract_idx}"
+            success_message = f"Successfully retrieved transactions for {contract_type}:{contract_idx}"
             data = sorted(transactions, key=lambda t: t["transact_dt"], reverse=True)
             return self._format_success(data, success_message, status.HTTP_200_OK)
 
         except ValidationError as e:
-            error_message = f"Validation error for {contract_idx}: {str(e)}"
+            error_message = f"Validation error for {contract_type}:{contract_idx}: {str(e)}"
             return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            error_message = f"Error retrieving transactions for contract {contract_idx}: {e}"
+            error_message = f"Error retrieving transactions for {contract_type}:{contract_idx}: {e}"
             return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def _filter_transaction(self, transaction, transact_min_dt=None, transact_max_dt=None):
@@ -92,19 +89,17 @@ class TransactionAPI(ValidationMixin, InterfaceResponseMixin):
             log_error(self.logger, f"Error filtering transaction: {transaction}, error: {e}")
             return False
 
-    def add_transactions(self, contract_idx, transact_logic, transactions, api_key):
+    def add_transactions(self, contract_type, contract_idx, transact_logic, transactions, api_key):
         """Add transactions to the blockchain for a given contract."""
         try:
-            self._validate_contract_idx(contract_idx, self.contract_api)
-
-            self._validate_transactions(transactions)
             encryptor = get_encryptor()
 
             for transaction in transactions:
                 encrypted_data = self._encrypt_transaction_data(transaction, encryptor)
                 transact_amt = self._calculate_transaction_amount(transaction, transact_logic)
 
-                tx = self.w3_contract.functions.addTransaction(
+                w3_contract = self.w3_manager.get_web3_contract(contract_type)
+                tx = w3_contract.functions.addTransaction(
                     contract_idx,
                     encrypted_data["extended_data"],
                     int(transaction["transact_dt"].timestamp()),
@@ -112,37 +107,36 @@ class TransactionAPI(ValidationMixin, InterfaceResponseMixin):
                     encrypted_data["transact_data"]
                 ).build_transaction()
 
-                self._send_transaction(tx, contract_idx, "addTransaction")
+                self._send_transaction(tx, contract_type, contract_idx, "addTransaction")
 
-            success_message = f"Successfully added transactions for contract {contract_idx}"
+            success_message = f"Successfully added transactions for {contract_type}:{contract_idx}"
             return self._format_success({"count": len(transactions)}, success_message, status.HTTP_201_CREATED)
 
         except ValidationError as e:
-            error_message = f"Validation error adding transactions for {contract_idx}: {str(e)}"
+            error_message = f"Validation error adding transactions for {contract_type}:{contract_idx}: {str(e)}"
             return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            error_message = f"Error adding transactions for contract {contract_idx}: {e}"
+            error_message = f"Error adding transactions for {contract_type}:{contract_idx}: {e}"
             return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def delete_transactions(self, contract_idx):
+    def delete_transactions(self, contract_type, contract_idx):
         """Delete all transactions for a contract from the blockchain."""
         try:
-            self._validate_contract_idx(contract_idx, self.contract_api)
+            w3_contract = self.w3_manager.get_web3_contract(contract_type)
+            tx = w3_contract.functions.deleteTransactions(contract_idx).build_transaction()
+            self._send_transaction(tx, contract_type, contract_idx, "deleteTransactions")
 
-            tx = self.w3_contract.functions.deleteTransactions(contract_idx).build_transaction()
-            self._send_transaction(tx, contract_idx, "deleteTransactions")
-
-            success_message = f"Successfully deleted transactions for contract {contract_idx}"
+            success_message = f"Successfully deleted transactions for {contract_type}:{contract_idx}"
             return self._format_success({ "contract_idx":contract_idx}, success_message, status.HTTP_204_NO_CONTENT)
 
         except ValidationError as e:
-            error_message = f"Validation error for {contract_idx}: {str(e)}"
+            error_message = f"Validation error for {contract_type}:{contract_idx}: {str(e)}"
             return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            error_message = f"Error deleting transactions for contract {contract_idx}: {e}"
+            error_message = f"Error deleting transactions for {contract_type}:{contract_idx}: {e}"
             return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def _parse_transaction(self, transact, idx, contract, api_key, parties):
+    def _parse_transaction(self, transact, idx, contract_type, contract, api_key, parties):
         """Parse a raw transaction from the blockchain into a dictionary."""
         decryptor = get_decryptor(api_key, parties)
         try:
@@ -156,6 +150,7 @@ class TransactionAPI(ValidationMixin, InterfaceResponseMixin):
                 "advance_pay_dt": from_timestamp(transact[6]),
                 "advance_pay_amt": f"{Decimal(transact[7]) / 100:.2f}",
                 "advance_tx_hash": transact[8],
+                "contract_type": contract_type,
                 "contract_idx": contract["contract_idx"],
                 "funding_instr": contract["funding_instr"],
                 "transact_idx": idx,
@@ -166,22 +161,6 @@ class TransactionAPI(ValidationMixin, InterfaceResponseMixin):
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e
 
-    def _validate_transactions(self, transactions):
-        """Validate transactions to ensure required fields are correct."""
-        try:
-            for transaction in transactions:
-                self._validate_json_field(transaction, "extended_data")
-                self._validate_json_field(transaction, "transact_data")
-
-        except ValidationError as e:
-            error_message = f"Transaction validation error: {e}"
-            log_error(self.logger, error_message) 
-            raise ValidationError(error_message) from e
-
-    def _validate_json_field(self, transaction, field):
-        """Validate a JSON field in a transaction."""
-        if not is_valid_json(transaction.get(field, "")):
-            raise ValidationError(f"Invalid JSON for '{field}': {transaction.get(field)}")
 
     def _encrypt_transaction_data(self, transaction, encryptor):
         """Encrypt sensitive transaction data."""
@@ -209,10 +188,10 @@ class TransactionAPI(ValidationMixin, InterfaceResponseMixin):
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e
 
-    def _send_transaction(self, tx, contract_idx, operation):
+    def _send_transaction(self, tx, contract_type, contract_idx, operation):
         """Send a signed transaction to the blockchain."""
         try:
-            tx_receipt = self.w3_manager.send_signed_transaction(tx, self.wallet_addr, contract_idx, "fizit")
+            tx_receipt = self.w3_manager.send_signed_transaction(tx, self.wallet_addr, contract_type, contract_idx, "fizit")
 
             if tx_receipt["status"] != 1:
                 error_message = f"Blockchain {operation} failed for contract {contract_idx}" 
@@ -221,6 +200,5 @@ class TransactionAPI(ValidationMixin, InterfaceResponseMixin):
 
         except Exception as e:
             error_message = f"Error sending transaction: {e}"
-            extra={"operation": "_send_transaction", "contract_idx": contract_idx}
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e

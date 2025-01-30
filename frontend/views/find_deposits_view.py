@@ -4,12 +4,14 @@ import requests
 from datetime import datetime, timedelta
 
 from django.contrib import messages
-from api.managers import ConfigManager, SecretsManager
-from api.operations import BankOperations, ContractOperations
-from frontend.forms import FindDepositsForm
 from django.shortcuts import render, redirect
 
+from api.config import ConfigManager
+from api.secrets import SecretsManager
+from api.operations import BankOperations, ContractOperations
 from api.utilities.logging import log_info, log_warning, log_error
+
+from frontend.forms import FindDepositsForm
 
 logger = logging.getLogger(__name__)
 
@@ -17,12 +19,10 @@ logger = logging.getLogger(__name__)
 def initialize_backend_services():
     secrets_manager = SecretsManager()
     config_manager = ConfigManager()
-    keys = secrets_manager.load_keys()
     headers = {
         'Authorization': f"Api-Key {keys['FIZIT_MASTER_KEY']}",
         'Content-Type': 'application/json',
     }
-    config = config_manager.load_config()
     return headers, config
 
 # Helper function to fetch all contracts

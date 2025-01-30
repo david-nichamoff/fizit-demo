@@ -1,0 +1,24 @@
+{
+    "contract_type": "advance",
+    "contract_data": {
+        "contract_name": "Advance Contract for Party Test",
+        "extended_data": {"Contract #": 3001},
+        "funding_instr": {"bank": "mercury"},
+        "service_fee_pct": "0.0200",
+        "service_fee_amt": "10.00",
+        "transact_logic": {"*": [{"var": "barrels"}, {"var": "price"}]},
+        "min_threshold_amt": "0.00",
+        "max_threshold_amt": "500000.00",
+        "notes": "Testing advance contract parties",
+        "is_active": true,
+        "is_quote": false
+    },
+    "parties": [
+        {"party_code": "FIZIT", "party_type": "funder"},
+        {"party_code": "Supplier_1", "party_type": "seller"}
+    ],
+    "artifacts": [
+        "https://fizit-repository.s3.amazonaws.com/FIZIT+Executive+Summary.pdf",
+        "https://fizit-repository.s3.amazonaws.com/Fizit+Introduction+2023-12.pdf"
+    ]
+}

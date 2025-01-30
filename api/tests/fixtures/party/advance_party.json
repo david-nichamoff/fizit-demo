@@ -1,0 +1,18 @@
+{
+    "contract_type": "advance",
+    "contract_data": {
+        "contract_name": "Advance Contract for Party Test",
+        "extended_data": {"Contract #": 3001},
+        "funding_instr": {"bank": "mercury"},
+        "transact_logic": {"*": [{"var": "barrels"}, {"var": "price"}]},
+        "min_threshold_amt": "0.00",
+        "max_threshold_amt": "500000.00",
+        "notes": "Testing advance contract parties",
+        "is_active": true,
+        "is_quote": false
+    },
+    "parties": [
+        {"party_code": "FIZIT", "party_type": "funder"},
+        {"party_code": "Supplier_1", "party_type": "seller"}
+    ]
+}

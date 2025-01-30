@@ -9,5 +9,4 @@ from .recipient_view import RecipientViewSet
 from .event_view import EventViewSet
 from .advance_view import AdvanceViewSet
 from .residual_view import ResidualViewSet
-from .contact_view import ContactViewSet
 from ..utilities.csrf import *

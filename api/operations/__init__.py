@@ -1,6 +1,5 @@
 from .bank_ops import BankOperations
 from .contract_ops import ContractOperations
-from .contact_ops import ContactOperations
 from .csrf_ops import CsrfOperations
 from .event_ops import EventOperations
 from .party_ops import PartyOperations

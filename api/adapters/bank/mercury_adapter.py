@@ -1,14 +1,16 @@
 import requests
 import uuid
 import logging
-from api.managers import SecretsManager, ConfigManager
 
 from rest_framework.exceptions import ValidationError
+from rest_framework import status
 
-from api.mixins.interfaces import InterfaceResponseMixin
+from api.secrets import SecretsManager
+from api.config import ConfigManager
+from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import log_error, log_info, log_warning
 
-class MercuryAdapter(InterfaceResponseMixin):
+class MercuryAdapter(ResponseMixin):
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -20,9 +22,7 @@ class MercuryAdapter(InterfaceResponseMixin):
     def __init__(self):
         if not hasattr(self, 'initialized'):
             self.secrets_manager = SecretsManager()
-            self.keys = self.secrets_manager.load_keys()
             self.config_manager = ConfigManager()
-            self.config = self.config_manager.load_config()
             self.initialized = True
             self.logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class MercuryAdapter(InterfaceResponseMixin):
 
     def _build_url(self, endpoint):
         """Helper to construct full API URL."""
-        base_url = self.config.get("mercury_url", "")
+        base_url = self.config_manager.get_mercury_url()
         return f"{base_url}/{endpoint}"
 
     def _send_request(self, method, url, **kwargs):
@@ -41,7 +41,7 @@ class MercuryAdapter(InterfaceResponseMixin):
         try:
             log_info(self.logger, f"Sending {method.upper()} request to {url} with {kwargs}")
 
-            response = requests.request(method, url, auth=(self.keys["mercury_token"], ''), **kwargs)
+            response = requests.request(method, url, auth=(self.secrets_manager.get_mercury_key(), ''), **kwargs)
             response.raise_for_status()
             return response.json()
 
@@ -104,8 +104,8 @@ class MercuryAdapter(InterfaceResponseMixin):
                 {
                     'bank': 'mercury',
                     'account_id': account_id,
-                    'deposit_id': txn['id'],
                     'counterparty': txn['counterpartyName'],
+                    'tx_hash': txn['id'],
                     'deposit_amt': txn['amount'],
                     'deposit_dt': txn['createdAt']
                 } for txn in transactions if txn['amount'] > 0  # Filter out expenses
@@ -120,6 +120,7 @@ class MercuryAdapter(InterfaceResponseMixin):
             raise RuntimeError(error_message) from e
 
     def make_payment(self, account_id, recipient_id, amount):
+        log_info(self.logger, f"Attempting payment for account {account_id}, recipient {recipient_id}, amount {amount}")
 
         """Initiate a payment to a recipient."""
         url = self._build_url(f"account/{account_id}/request-send-money")
@@ -130,8 +131,17 @@ class MercuryAdapter(InterfaceResponseMixin):
             "idempotencyKey": str(uuid.uuid1())
         }
         try:
-            response = requests.post(url, auth=(self.keys["mercury_token"], ''), json=payload)
-            log_info(self.logger,  f"Payment successful: {response}")
+            response = requests.post(url, auth=(self.secrets_manager.get_mercury_key(),''), json=payload)
+
+            # Ensure response was successful
+            if response.status_code == status.HTTP_200_OK:
+                response_data = response.json()
+                tx_hash = response_data.get("requestId","undefined")  # Extract transaction ID
+                log_info(self.logger, f"Payment successful: {response_data}, tx_hash: {tx_hash}")
+                return tx_hash  # Return transaction hash for storage
+            else:
+                log_error(self.logger, f"Payment request failed with status {response.status_code}: {response.text}")
+                raise RuntimeError(f"Payment failed: {response.text}")
 
         except Exception as e:
             error_message = f"Error making payment: {e}"

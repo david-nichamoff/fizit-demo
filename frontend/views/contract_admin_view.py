@@ -1,7 +1,7 @@
 from django.contrib import admin
-from api.models import Contract
+from api.models import SmartContract
 
-@admin.register(Contract)
+@admin.register(SmartContract)
 class ContractAdmin(admin.ModelAdmin):
     list_display = ('contract_addr', 'created_dt', 'expiry_dt')
     search_fields = ('contract_addr', 'created_dt', 'expiry_dt')

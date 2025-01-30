@@ -1,7 +1,9 @@
 import logging
 from django.core.management.base import BaseCommand
-from api.managers import ConfigManager, SecretsManager
-from api.managers.web3_manager import Web3Manager
+
+from api.config import ConfigManager
+from api.secrets import SecretsManager
+from api.web3.web3_manager import Web3Manager
 from api.utilities.logging import log_error, log_info
 
 class Command(BaseCommand):
@@ -49,8 +51,6 @@ class Command(BaseCommand):
     def _initialize(self):
         """Initialize ConfigManager, SecretsManager, and Web3Manager."""
         self.config_manager = ConfigManager()
-        self.config = self.config_manager.load_config()
         self.secrets_manager = SecretsManager()
-        self.keys = self.secrets_manager.load_keys()
         self.web3_manager = Web3Manager()
         self.web3 = self.web3_manager.get_web3_instance()

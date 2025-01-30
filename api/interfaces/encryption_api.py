@@ -1,18 +1,15 @@
 import json
 import logging
 from cryptography.fernet import Fernet
-from api.managers import SecretsManager
 
-from rest_framework.exceptions import ValidationError
-
-from api.mixins import ValidationMixin, AdapterMixin, InterfaceResponseMixin
+from api.secrets import SecretsManager
+from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
 
-logger = logging.getLogger(__name__)
-
-class Encryptor(InterfaceResponseMixin):
+class Encryptor(ResponseMixin):
     def __init__(self, encryption_key: bytes):
         self.cipher = Fernet(encryption_key)
+        self.logger = logging.getLogger(__name__)
 
     def encrypt(self, data: dict) -> str:
         json_str = json.dumps(data)
@@ -22,10 +19,9 @@ class Encryptor(InterfaceResponseMixin):
 def get_aes_key_for_encryption():
     """Retrieve the AES key from the loaded secrets for encryption using SecretsManager."""
     secrets_manager = SecretsManager()
-    keys = secrets_manager.load_keys()
 
     # Get the AES key from the loaded secrets
-    aes_key = keys.get('aes_key')
+    aes_key = secrets_manager.get_aes_key()
 
     if not aes_key:
         raise ValueError("AES key not found in loaded secrets.")
@@ -41,8 +37,9 @@ def get_encryptor():
 
     return Encryptor(encryption_key)
 
-class Decryptor(InterfaceResponseMixin):
+class Decryptor(ResponseMixin):
     def __init__(self, encryption_key: bytes = None):
+        self.logger = logging.getLogger(__name__)
         if encryption_key:
             self.cipher = Fernet(encryption_key)
         else:
@@ -54,7 +51,7 @@ class Decryptor(InterfaceResponseMixin):
                 decrypted_text = self.cipher.decrypt(encrypted_text.encode()).decode()
                 return json.loads(decrypted_text)
             except Exception as e:
-                log_warning(logger, f"Decryption failed: {e}. Returning 'encrypted data'.")
+                log_warning(self.logger, f"Decryption failed: {e}. Returning 'encrypted data'.")
                 return "encrypted data"  # Return 'encrypted data' if decryption fails
         else:
             return "encrypted data"  # Return 'encrypted data' if no key is available
@@ -62,18 +59,22 @@ class Decryptor(InterfaceResponseMixin):
 def get_aes_key_for_decryption(api_key: str, parties: list):
     """Retrieve the AES key for decryption using SecretsManager."""
     secrets_manager = SecretsManager()
-    keys = secrets_manager.load_keys()
 
     # Check for the FIZIT_MASTER_KEY
-    master_key = keys.get('FIZIT_MASTER_KEY')
+    master_key = secrets_manager.get_master_key()
     if master_key and api_key == master_key:
-        return keys.get('aes_key')
+        return secrets_manager.get_aes_key()
+        
+    # Retrieve all partner keys from SecretsManager
+    partner_keys = secrets_manager.get_all_partner_keys()
 
     # Match with party API keys
     for party in parties:
-        party_key = keys.get(party['party_code'])
-        if party_key == api_key:
-            return keys.get('aes_key')
+        party_code = party.get("party_code")
+        party_api_key = partner_keys.get(party_code)  # Ensure mapping exists
+
+        if party_api_key and party_api_key == api_key:
+            return secrets_manager.get_aes_key()  # Return AES key if match found
 
     # If no match is found, return None (this will signal to return 'encrypted data')
     return None

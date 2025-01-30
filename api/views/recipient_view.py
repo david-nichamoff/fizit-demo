@@ -1,20 +1,21 @@
 import logging
+
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets, status
+
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from api.serializers.recipient_serializer import RecipientSerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
 from api.interfaces import RecipientAPI
-
-from api.mixins.shared import ValidationMixin
+from api.views.mixins.validation import ValidationMixin
+from api.views.mixins.permission import PermissionMixin
 from api.utilities.logging import log_error, log_info
 
-
-class RecipientViewSet(viewsets.ViewSet, ValidationMixin):
+class RecipientViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
     """
     A ViewSet for managing recipients.
     """
@@ -47,6 +48,8 @@ class RecipientViewSet(viewsets.ViewSet, ValidationMixin):
         """
         log_info(self.logger, f"Fetching recipients with query parameters: {request.query_params}")
         try:
+            self._validate_master_key(request.auth)
+
             # Validate required query parameter
             bank = request.query_params.get('bank')
             self._validate_query_param("bank", bank)

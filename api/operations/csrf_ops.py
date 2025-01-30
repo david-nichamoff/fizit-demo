@@ -2,10 +2,9 @@ import requests
 from rest_framework import status
 
 class CsrfOperations:
-    def __init__(self, headers, config):
+    def __init__(self, headers, base_url):
         self.headers = headers
-        self.config = config
-        self.base_url = f"{self.config['url']}/api/get-csrf-token/"
+        self.base_url = f"{base_url}/api/get-csrf-token/"
 
     def get_csrf_token(self):
         response = requests.get(self.base_url, headers=self.headers)

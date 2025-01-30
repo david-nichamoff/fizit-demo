@@ -1,5 +1,5 @@
-import os
 from cryptography.fernet import Fernet
+
 from django.core.management.base import BaseCommand
 
 class Command(BaseCommand):

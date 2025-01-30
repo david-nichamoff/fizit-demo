@@ -1,11 +1,10 @@
 import requests
 
 class SettlementOperations:
-    def __init__(self, headers, config, csrf_token=None):
+    def __init__(self, headers, base_url, csrf_token=None):
         self.headers = headers
-        self.config = config
         self.csrf_token = csrf_token
-        self.base_url = f"{self.config['url']}/api/contracts/"
+        self.base_url = f"{base_url}/api/contracts/"
 
     def _add_csrf_token(self):
         """Add CSRF token to headers if required."""
@@ -23,19 +22,19 @@ class SettlementOperations:
         """
         return response.json() if response.content else None
 
-    def post_settlements(self, contract_idx, settlements):
-        url = f"{self.base_url}{contract_idx}/settlements/"
+    def post_settlements(self, contract_type, contract_idx, settlements):
+        url = f"{self.base_url}{contract_type}/{contract_idx}/settlements/"
         headers_with_csrf = self._add_csrf_token()
         response = requests.post(url, json=settlements, headers=headers_with_csrf)
         return self._process_response(response)
 
-    def get_settlements(self, contract_idx):
-        url = f"{self.base_url}{contract_idx}/settlements/"
+    def get_settlements(self, contract_type, contract_idx):
+        url = f"{self.base_url}{contract_type}/{contract_idx}/settlements/"
         response = requests.get(url, headers=self.headers)
         return self._process_response(response)
 
-    def delete_settlements(self, contract_idx):
-        url = f"{self.base_url}{contract_idx}/settlements/"
+    def delete_settlements(self, contract_type, contract_idx):
+        url = f"{self.base_url}{contract_type}/{contract_idx}/settlements/"
         headers_with_csrf = self._add_csrf_token()
         response = requests.delete(url, headers=headers_with_csrf, cookies={"csrftoken": self.csrf_token})
         return self._process_response(response)

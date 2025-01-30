@@ -2,11 +2,7 @@ import logging
 import datetime
 from decimal import Decimal
 from hexbytes import HexBytes
-
 from eth_utils import to_checksum_address
-
-from api.managers import Web3Manager, SecretsManager, ConfigManager
-from api.interfaces import PartyAPI
 
 from web3.middleware.proof_of_authority import ExtraDataToPOAMiddleware
 from web3 import Web3
@@ -14,10 +10,14 @@ from web3 import Web3
 from rest_framework.exceptions import ValidationError
 from rest_framework import status
 
-from api.mixins.interfaces import InterfaceResponseMixin
+from api.web3 import Web3Manager
+from api.secrets import SecretsManager
+from api.config import ConfigManager
+from api.interfaces import PartyAPI
+from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import log_error, log_info, log_warning
 
-class TokenAdapter(InterfaceResponseMixin):
+class TokenAdapter(ResponseMixin):
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -29,9 +29,7 @@ class TokenAdapter(InterfaceResponseMixin):
     def __init__(self):
         if not hasattr(self, 'initialized'):
             self.secrets_manager = SecretsManager()
-            self.keys = self.secrets_manager.load_keys()
             self.config_manager = ConfigManager()
-            self.config = self.config_manager.load_config()
             self.party_api = PartyAPI()
             self.w3_manager = Web3Manager()
             self.w3 = self.w3_manager.get_web3_instance(network="avalanche")
@@ -42,10 +40,16 @@ class TokenAdapter(InterfaceResponseMixin):
             # Inject middleware for POA chains if necessary
             self.w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
 
-    def get_deposits(self, start_date, end_date, token_symbol, contract):
+    # accounts and recipients are not applicable for wallets
+    def get_accounts(self):
+        return []
+    def get_recipients(self):
+        return []
+
+    def get_deposits(self, start_date, end_date, token_symbol, contract_type, contract):
         """Retrieve deposits using Web3 for transfers on the Avalanche chain."""
         try:
-            parties = self._get_parties(contract["contract_idx"])
+            parties = self._get_parties(contract_type, contract["contract_idx"])
             token_contract, decimals = self._get_token_contract(token_symbol)
 
             buyer_addr = parties.get("buyer")
@@ -65,7 +69,7 @@ class TokenAdapter(InterfaceResponseMixin):
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e
 
-    def make_payment(self, contract_idx, funder_addr, recipient_addr, token_symbol, amount):
+    def make_payment(self, contract_type, contract_idx, funder_addr, recipient_addr, token_symbol, amount):
         """Initiate a token payment from the funder wallet to the recipient wallet."""
 
         try:
@@ -84,11 +88,12 @@ class TokenAdapter(InterfaceResponseMixin):
             log_info(self.logger, f"Sending transaction {transaction}")
 
             tx_receipt = self.w3_manager.send_signed_transaction(
-                transaction, funder_addr, contract_idx, network="avalanche"
+                transaction, funder_addr, contract_type, contract_idx, network="avalanche"
             )
 
             if tx_receipt["status"] == 1:
                 log_info(self.logger,  f"Token payment successful. TX hash: {tx_receipt['transactionHash'].hex()}")
+                return tx_receipt['transactionHash'].hex()
             else:
                 error_message = f"Token payment failed. TX hash: {tx_receipt['transactionHash'].hex()}"
                 log_error(self.logger, error_message)
@@ -100,9 +105,9 @@ class TokenAdapter(InterfaceResponseMixin):
             raise RuntimeError from e
 
     # --- Helper Methods ---
-    def _get_parties(self, contract_idx):
+    def _get_parties(self, contract_type, contract_idx):
         """Retrieve buyer and funder addresses from the contract parties."""
-        response = self.party_api.get_parties(contract_idx)
+        response = self.party_api.get_parties(contract_type, contract_idx)
         if response["status"] == status.HTTP_200_OK:
             parties = response["data"]
 
@@ -121,20 +126,17 @@ class TokenAdapter(InterfaceResponseMixin):
 
     def _get_token_contract(self, token_symbol):
         """Retrieve the token contract instance and decimals."""
-        token_config = self.config_manager.get_config_value("token_addr")
-        token_entry = next((token for token in token_config if token["key"].lower() == token_symbol.lower()), None)
+        token_addr = self.config_manager.get_token_address(token_symbol)
+        token_checksum_addr = self.w3_manager.get_checksum_address(token_addr)
+        log_info(self.logger, f"Token address: {token_checksum_addr}")
 
         try:
-            if not token_entry:
+            if not token_checksum_addr:
                 raise ValidationError(f"Token symbol {token_symbol} not found")
 
-            token_contract_addr = self.w3_manager.get_checksum_address(token_entry["value"])
-            log_info(self.logger, f"Found token contract address for {token_symbol}: {token_contract_addr}")
-
-            token_contract = self.w3.eth.contract(address=token_contract_addr, abi=self._get_erc20_abi())
+            token_contract = self.w3.eth.contract(address=token_checksum_addr, abi=self._get_erc20_abi())
             decimals = token_contract.functions.decimals().call()
             log_info(self.logger, f"Found decimals for {token_symbol}: {decimals}")
-
 
             return token_contract, decimals
 
@@ -215,7 +217,7 @@ class TokenAdapter(InterfaceResponseMixin):
                 deposit_amt = value / (10 ** decimals)
                 deposits.append({
                     "bank": "token",
-                    "deposit_id": log["transactionHash"].hex(),
+                    "tx_hash": log["transactionHash"].hex(),
                     "deposit_amt": deposit_amt,
                     "deposit_dt": self._get_date_from_block(log["blockNumber"]),
                     'counterparty' : counterparty

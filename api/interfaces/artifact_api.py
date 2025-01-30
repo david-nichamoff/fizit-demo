@@ -6,15 +6,14 @@ from datetime import datetime
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
-from api.managers import Web3Manager, ConfigManager
-from api.interfaces import ContractAPI
-
-from api.mixins import ValidationMixin, AdapterMixin, InterfaceResponseMixin
+from api.web3 import Web3Manager
+from api.config import ConfigManager
+from api.registry import RegistryManager
+from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
 from api.utilities.formatting import from_timestamp
-from api.utilities.validation import is_valid_url
 
-class ArtifactAPI(ValidationMixin, InterfaceResponseMixin):
+class ArtifactAPI(ResponseMixin):
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -27,136 +26,93 @@ class ArtifactAPI(ValidationMixin, InterfaceResponseMixin):
         """Initialize ArtifactAPI with necessary dependencies."""
         if not hasattr(self, "initialized"):
             self.config_manager = ConfigManager()
-            self.config = self.config_manager.load_config()
+            self.registry_manager = RegistryManager()
             self.w3_manager = Web3Manager()
-            self.w3_contract = self.w3_manager.get_web3_contract()
-            self.contract_api = ContractAPI()
             self.s3_client = boto3.client('s3')
             self.logger = logging.getLogger(__name__)
-            self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
+            self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
             self.initialized = True
 
-    def get_artifacts(self, contract_idx):
+    def get_artifacts(self, contract_type, contract_idx):
         """Retrieve all artifacts for a contract."""
         try:
-            # Validate contract_idx
-            self._validate_contract_idx(contract_idx, self.contract_api)
-
-            response = self.contract_api.get_contract(contract_idx)
+            contract_api = self.registry_manager.get_contract_api(contract_type)
+            response = contract_api.get_contract(contract_type, contract_idx)
             contract = response["data"]
-            log_info(self.logger, f"Retrieved contract {contract_idx}: {contract}")
+            log_info(self.logger, f"Retrieved {contract_type}:{contract_idx}: {contract}")
 
-            raw_artifacts = self.w3_contract.functions.getArtifacts(contract['contract_idx']).call()
+            w3_contract = self.w3_manager.get_web3_contract(contract_type)
+            raw_artifacts = w3_contract.functions.getArtifacts(contract['contract_idx']).call()
             log_info(self.logger, f"Raw artifacts for contract {contract_idx}: {raw_artifacts}")
 
             artifacts = [
-                self._build_artifact_dict(contract_idx, idx, artifact)
+                self._build_artifact_dict(contract_type, contract_idx, idx, artifact)
                 for idx, artifact in enumerate(raw_artifacts)
             ]
-            log_info(self.logger, f"Formatted artifacts for contract {contract_idx}: {artifacts}")
+            log_info(self.logger, f"Formatted artifacts for {contract_type}:{contract_idx}: {artifacts}")
 
-            success_message = f"Retrieved artifacts for contract {contract_idx}"
+            success_message = f"Retrieved artifacts for {contract_type}:{contract_idx}"
             return self._format_success(artifacts, success_message, status.HTTP_200_OK)
 
         except ValidationError as e:
-            error_message = f"Data error retrieving artifacts for contract {contract_idx}: {str(e)}"
+            error_message = f"Data error retrieving artifacts for {contract_type}:{contract_idx}: {str(e)}"
             return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            error_message = f"Exception retrieving artifacts for contract {contract_idx}: {str(e)}"
+            error_message = f"Exception retrieving artifacts for {contract_type}:{contract_idx}: {str(e)}"
             return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def add_artifacts(self, contract_idx, artifact_urls):
+    def add_artifacts(self, contract_type, contract_idx, artifact_urls):
         """Add artifacts for a contract from URLs."""
         try:
-            # Validate contract_idx and url
-            self._validate_contract_idx(contract_idx, self.contract_api)
-            
-            for artifact_url in artifact_urls:
-                if not is_valid_url(artifact_url):
-                    raise ValidationError(f"URL {artifact_url} is not a valid URL")
-
-            s3_bucket = self.config['s3_bucket']
+            s3_bucket = self.config_manager.get_s3_bucket()
             current_time = int(datetime.now().timestamp())
             processed_count = 0
 
             for artifact_url in artifact_urls:
                 artifact_filename = artifact_url.split("/")[-1]
-                s3_object_key, version_id = self._upload_to_s3(artifact_url, s3_bucket, contract_idx, artifact_filename)
+                s3_object_key, version_id = self._upload_to_s3(artifact_url, s3_bucket, contract_type, contract_idx, artifact_filename)
                 doc_type = self._determine_content_type(artifact_filename)
                 self._record_artifact_on_blockchain(
-                    contract_idx, artifact_filename, doc_type, current_time, s3_bucket, s3_object_key, version_id
+                    contract_type, contract_idx, artifact_filename, doc_type, current_time, s3_bucket, s3_object_key, version_id
                 )
                 processed_count += 1
 
             data = {"count": processed_count}
-            success_message = "Added artifacts for contract {contract_idx}"
+            success_message = f"Added artifacts for {contract_type}:{contract_idx}"
             return self._format_success(data, success_message, status.HTTP_201_CREATED)
 
         except ValidationError as e:
-            error_message = f"Data error adding artifacts for contract {contract_idx}: {str(e)}"
+            error_message = f"Data error adding artifacts for {contract_type}:{contract_idx}: {str(e)}"
             return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            error_message = f"Exception adding artifacts for contract {contract_idx}: {str(e)}"
+            error_message = f"Exception adding artifacts for {contract_type}:{contract_idx}: {str(e)}"
             return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def delete_artifacts(self, contract_idx):
-        """Delete all artifacts for a contract."""
-        try:
-            # Validate contract_idx and url
-            self._validate_contract_idx(contract_idx, self.contract_api)
+    def delete_artifacts(self, contract_type, contract_idx):
 
-            artifacts = self.get_artifacts(contract_idx)["data"]
+        try:
+            artifacts = self.get_artifacts(contract_type, contract_idx)["data"]
             processed_count = 0
 
             for artifact in artifacts:
                 self._delete_from_s3(artifact["s3_bucket"], artifact["s3_object_key"], artifact.get("s3_version_id"))
                 processed_count += 1
 
-            transaction = self.w3_contract.functions.deleteArtifacts(contract_idx).build_transaction()
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
+            w3_contract = self.w3_manager.get_web3_contract(contract_type)
+            transaction = w3_contract.functions.deleteArtifacts(contract_idx).build_transaction()
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, "fizit")
 
             if tx_receipt["status"] != 1:
                 raise RuntimeError("Blockchain transaction to delete artifacts failed.")
 
-            success_message = f"Artifacts delete for contract {contract_idx}"
+            success_message = f"Artifacts delete for {contract_type}:{contract_idx}"
             return self._format_success({"count": processed_count}, success_message, status.HTTP_204_NO_CONTENT)
 
         except ValidationError as e:
-            error_message = f"Data error deleting artifacts for contract {contract_idx}: {str(e)}"
+            error_message = f"Data error deleting artifacts for {contract_type}:{contract_idx}: {str(e)}"
             return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            error_message = f"Exceptions deleting artifacts for contract {contract_idx}: {str(e)}"
-            return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    def import_artifacts(self, contract_idx, artifacts):
-        """Import artifacts into the blockchain."""
-        try:
-            # Validate contract_idx and url
-            self._validate_contract_idx(contract_idx, self.contract_api)
-
-            processed_count = 0
-            for artifact in artifacts:
-                added_dt = int(datetime.fromisoformat(artifact["added_dt"]).timestamp())
-                artifact_struct = (
-                    artifact["doc_title"],
-                    artifact["doc_type"],
-                    added_dt,
-                    artifact["s3_bucket"],
-                    artifact["s3_object_key"],
-                    artifact["s3_version_id"],
-                )
-                processed_count += 1
-
-                self._record_artifact_on_blockchain(contract_idx, *artifact_struct)
-
-            success_message = f"Successfully imported artifacts to contract {contract_idx}"
-            return self._format_success({"count": processed_count}, success_message, status.HTTP_201_CREATED)
-
-        except ValidationError as e:
-            error_message = f"Data error importing artifacts for contract {contract_idx}: {str(e)}"
-            return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            error_message = f"Error importing artifacts for contract {contract_idx}: {str(e)}"
+            error_message = f"Exceptions deleting artifacts for {contract_type}:{contract_idx}: {str(e)}"
             return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def generate_presigned_url(self, s3_bucket, s3_object_key, s3_version_id=None, expiration=3600):
@@ -173,10 +129,11 @@ class ArtifactAPI(ValidationMixin, InterfaceResponseMixin):
             error_message = f"Failed to generate presigned URL: {str(e)}"
             return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def _build_artifact_dict(self, contract_idx, artifact_idx, artifact):
+    def _build_artifact_dict(self, contract_type, contract_idx, artifact_idx, artifact):
         """Build a dictionary representation of an artifact."""
         try:
             return {
+                "contract_type": contract_type,
                 "contract_idx": contract_idx,
                 "artifact_idx": artifact_idx,
                 "doc_title": artifact[0],
@@ -192,12 +149,12 @@ class ArtifactAPI(ValidationMixin, InterfaceResponseMixin):
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e
 
-    def _upload_to_s3(self, artifact_url, bucket, contract_idx, artifact_filename):
+    def _upload_to_s3(self, artifact_url, bucket, contract_type, contract_idx, artifact_filename):
         """Download and upload an artifact to S3."""
         try:
             response = requests.get(artifact_url)
             response.raise_for_status()
-            object_key = f"{contract_idx}/{artifact_filename}"
+            object_key = f"{contract_type}_{contract_idx}/{artifact_filename}"
             self.s3_client.put_object(Body=response.content, Bucket=bucket, Key=object_key)
             head_response = self.s3_client.head_object(Bucket=bucket, Key=object_key)
             version_id = head_response.get("VersionId", "")
@@ -208,13 +165,14 @@ class ArtifactAPI(ValidationMixin, InterfaceResponseMixin):
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e
 
-    def _record_artifact_on_blockchain(self, contract_idx, doc_title, doc_type, added_dt, bucket, object_key, version_id):
+    def _record_artifact_on_blockchain(self, contract_type, contract_idx, doc_title, doc_type, added_dt, bucket, object_key, version_id):
         """Record an artifact on the blockchain."""
         try:
-            transaction = self.w3_contract.functions.addArtifact(
+            w3_contract = self.w3_manager.get_web3_contract(contract_type)
+            transaction = w3_contract.functions.addArtifact(
                 contract_idx, doc_title, doc_type, added_dt, bucket, object_key, version_id
             ).build_transaction()
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, "fizit")
             if tx_receipt["status"] != 1:
                 raise RuntimeError("Blockchain transaction failed.")
 

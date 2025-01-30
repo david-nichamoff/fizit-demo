@@ -5,17 +5,17 @@ from decimal import Decimal
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
-from api.managers import ConfigManager, Web3Manager
-from api.interfaces import TransactionAPI, ContractAPI, PartyAPI
-from api.adapters.bank import MercuryAdapter, TokenAdapter
+from api.config import ConfigManager
+from api.web3 import Web3Manager
+from api.interfaces import TransactionAPI, PartyAPI
+from api.registry import RegistryManager
 from api.interfaces.account_api import AccountAPI
 from api.interfaces.recipient_api import RecipientAPI
-
-from api.mixins import ValidationMixin, AdapterMixin, InterfaceResponseMixin
+from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
 from api.utilities.general import find_match
 
-class AdvanceAPI(ValidationMixin, AdapterMixin, InterfaceResponseMixin):
+class AdvanceAPI(ResponseMixin):
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -28,115 +28,110 @@ class AdvanceAPI(ValidationMixin, AdapterMixin, InterfaceResponseMixin):
         """Initialize AdvanceAPI with necessary dependencies."""
         if not hasattr(self, "initialized"):
             self.config_manager = ConfigManager()
-            self.config = self.config_manager.load_config()
             self.w3_manager = Web3Manager()
             self.w3 = self.w3_manager.get_web3_instance()
 
             self.transaction_api = TransactionAPI()
-            self.contract_api = ContractAPI()
             self.account_api = AccountAPI()
             self.recipient_api = RecipientAPI()
             self.party_api = PartyAPI()
 
-            self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
+            self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
             self.checksum_wallet_addr = self.w3_manager.get_checksum_address(self.wallet_addr)
-
-            self.mercury_adapter = MercuryAdapter()
-            self.token_adapter = TokenAdapter()
+            self.registry_manager = RegistryManager()
 
             self.logger = logging.getLogger(__name__)
             self.initialized = True
 
-    def get_advances(self, contract_idx):
-        """Retrieve advances for a contract."""
+    def get_advances(self, contract_type, contract_idx):
 
         try:
-            # Validate contract_idx
-            self._validate_contract_idx(contract_idx, self.contract_api)
-
-            advances = []
-
-            response = self.transaction_api.get_transactions(contract_idx)
+            response = self.transaction_api.get_transactions(contract_type, contract_idx)
             if response["status"] == status.HTTP_200_OK:
                 transactions = response["data"]
                 log_info(self.logger, f"Checking transactions for advances: {transactions}")
 
-            response = self.party_api.get_parties(contract_idx)
+            response = self.party_api.get_parties(contract_type, contract_idx)
             if response["status"] == status.HTTP_200_OK:
                 parties = response["data"]
                 log_info(self.logger, f"Checking parties for advances: {parties}")
 
-            response = self.contract_api.get_contract(contract_idx)
+            contract_api = self.registry_manager.get_contract_api(contract_type)
+            response = contract_api.get_contract(contract_type, contract_idx)
             if response["status"] == status.HTTP_200_OK:
                 contract = response["data"]
                 log_info(self.logger, f"Contract for advances: {contract}")
 
-            accounts, recipients = [], []
-            if contract["funding_instr"]["bank"] == "mercury":
-                response = self._get_accounts(contract["funding_instr"]["bank"])
-                if response["status"] == status.HTTP_200_OK:
-                    accounts = response["data"]
+            advances, accounts, recipients = [], [], []
 
-                response = self._get_recipients(contract["funding_instr"]["bank"])
-                if response["status"] == status.HTTP_200_OK:
-                    recipients = response["data"]
+            response = self._get_accounts(contract["funding_instr"]["bank"])
+            if response["status"] == status.HTTP_200_OK:
+                accounts = response["data"]
+
+            response = self._get_recipients(contract["funding_instr"]["bank"])
+            if response["status"] == status.HTTP_200_OK:
+                recipients = response["data"]
 
             for transact in transactions:
                 if transact["advance_pay_amt"] != "0.00" or Decimal(transact["advance_amt"]) <= Decimal(0.00):
                     continue
 
                 party_data = self._extract_party_data(parties)
-                advance_dict = self._build_advance_dict(contract, transact, party_data, accounts, recipients)
+                advance_dict = self._build_advance_dict(contract_type, contract, transact, party_data, accounts, recipients)
                 advances.append(advance_dict)
 
-            success_message =  f"Retrieved advances for contract {contract_idx}"
+            success_message =  f"Retrieved advances for {contract_type}:{contract_idx}"
             return self._format_success(advances, success_message, status.HTTP_200_OK)
 
         except ValidationError as e:
-            error_message = f"Validation error retrieving advances for contract '{contract_idx}': {str(e)}"
+            error_message = f"Validation error retrieving advances for {contract_type}:{contract_idx}: {str(e)}"
             return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            error_message = f"Exception retrieving advances for contract '{contract_idx}': {str(e)}"
+            error_message = f"Exception retrieving advances for {contract_type}:{contract_idx}: {str(e)}"
             return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def add_advances(self, contract_idx, advances):
-        """Process advance payments."""
-        try:
-            # Validate contract_idx
-            self._validate_contract_idx(contract_idx, self.contract_api)
+    def add_advances(self, contract_type, contract_idx, advances):
 
+        try:
             processed_count = 0
             for advance in advances:
-                self._make_payment(advance)
-                self._record_blockchain_transaction(contract_idx, advance)
+                tx_hash = self._make_payment(advance)
+                self._record_blockchain_transaction(contract_type, contract_idx, advance, tx_hash)
                 processed_count += 1
 
-            success_message =  f"Added advances for contract {contract_idx}"
+            success_message =  f"Added advances for {contract_type}:{contract_idx}"
             return self._format_success({"count" : processed_count}, success_message, status.HTTP_201_CREATED)
 
         except ValidationError as e:
-            error_message = f"Validation error adding advances for contract '{contract_idx}': {str(e)}"
+            error_message = f"Validation error adding advances for {contract_type}:{contract_idx}: {str(e)}"
             return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            error_message = f"Exception adding advances for contract '{contract_idx}': {str(e)}"
+            error_message = f"Exception adding advances for {contract_type}:{contract_idx}: {str(e)}"
             return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def _make_payment(self, advance):
         """Handle payments based on bank type."""
         try:
             # Get the appropriate adapter
-            adapter = self._get_bank_adapter(advance["bank"])
+            adapter = self.registry_manager.get_bank_adapter(advance["bank"])
+
+            # Get required fields for the bank
+            required_fields = self.registry_manager.get_bank_payment_fields(advance["bank"])
+            log_info(self.logger, f"Payment required fields: {required_fields}")
+
+            # Apply field mapping
+            mapped_advance = self.registry_manager.map_payment_fields(advance)
+            log_info(self.logger, f"Field mapping: {mapped_advance}")
+
+            # Extract parameters dynamically based on required fields
+            payment_params = {field: mapped_advance[field] for field in required_fields}
+            log_info(self.logger, f"Payment params: {payment_params}")
             
-            # Dynamically call the `make_payment` method based on bank type
-            if advance["bank"] == "mercury":
-                adapter.make_payment(
-                    advance["account_id"], advance["recipient_id"], advance["advance_amt"]
-                )
-            elif advance["bank"] == "token":
-                adapter.make_payment(
-                    advance["contract_idx"], advance["funder_addr"], advance["recipient_addr"],
-                    advance["token_symbol"], advance["advance_amt"]
-                )
+            # Call the adapter's payment method with correctly mapped fields
+            tx_hash =  adapter.make_payment(**payment_params)
+            log_info(self.logger, f"Tx hash: {tx_hash}")
+            
+            return tx_hash
 
         except ValidationError as e:
             error_message = f"Validation error processing payment: {str(e)}"
@@ -147,17 +142,16 @@ class AdvanceAPI(ValidationMixin, AdapterMixin, InterfaceResponseMixin):
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e
 
-    def _record_blockchain_transaction(self, contract_idx, advance):
-        """Record advance payment on the blockchain."""
+    def _record_blockchain_transaction(self, contract_type, contract_idx, advance, tx_hash):
         try:
             current_time = int(datetime.datetime.now().timestamp())
             payment_amt = int(Decimal(advance["advance_amt"]) * 100)
 
-            transaction = self.w3_manager.get_web3_contract().functions.payAdvance(
-                contract_idx, advance["transact_idx"], current_time, payment_amt
+            transaction = self.w3_manager.get_web3_contract(contract_type).functions.payAdvance(
+                contract_idx, advance["transact_idx"], current_time, payment_amt, tx_hash
             ).build_transaction()
 
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, "fizit")
 
             if tx_receipt["status"] != 1:
                 raise RuntimeError("Transaction failed on the blockchain.") from e
@@ -202,20 +196,14 @@ class AdvanceAPI(ValidationMixin, AdapterMixin, InterfaceResponseMixin):
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e
 
-    def _build_advance_dict(self, contract, transact, party_data, accounts, recipients):
+    def _build_advance_dict(self, contract_type, contract, transact, party_data, accounts, recipients):
         """Build the advance dictionary."""
         try:
             log_info(self.logger, f"Building advance dictionary for contract: {contract}")
-
             funding_instr = contract["funding_instr"]
-            log_info(self.logger,f"Checking validity of funding instructions: {funding_instr}")
-            # Check if funding_instr is a dictionary
-            if isinstance(funding_instr, dict):
-                log_info(self.logger, f"Contract funding instructions are valid: {funding_instr}")
-            else:
-                log_error(self.logger, f"Contract funding instructions are NOT a valid dictionary: {funding_instr}")
 
             advance_dict = {
+                "contract_type": contract_type,
                 "contract_idx": contract["contract_idx"],
                 "contract_name": contract["contract_name"],
                 "transact_idx": transact["transact_idx"],

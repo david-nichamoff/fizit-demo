@@ -5,13 +5,13 @@ from django.contrib.admin import AdminSite
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 
-from api.models import Event, Contact, Contract
+from api.models import Event, SmartContract
 
 from frontend.views import erc20_balances_view, avax_balances_view, fizit_balances_view, mercury_balances_view
 from frontend.views import view_contract_view, list_contracts_view, add_contract_view
 from frontend.views import add_transaction_view, add_advance_view, add_residual_view
 from frontend.views import find_deposits_view, post_deposit_view
-from frontend.views import EventAdmin, ContactAdmin, ContractAdmin
+from frontend.views import EventAdmin, ContractAdmin
 
 from api.utilities.logging import log_info, log_warning, log_error
 
@@ -139,8 +139,7 @@ custom_admin_site = CustomAdminSite(name='custom_admin')
 # Register models with the custom admin site
 try:
     custom_admin_site.register(Event, EventAdmin)
-    custom_admin_site.register(Contact, ContactAdmin)
-    custom_admin_site.register(Contract, ContractAdmin)
+    custom_admin_site.register(SmartContract, ContractAdmin)
     from django.contrib.auth.admin import UserAdmin, GroupAdmin
     custom_admin_site.register(User, UserAdmin)
     custom_admin_site.register(Group, GroupAdmin)

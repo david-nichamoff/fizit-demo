@@ -4,7 +4,8 @@ import requests
 from rest_framework import status
 from django.shortcuts import render
 
-from api.managers import ConfigManager, SecretsManager
+from api.config import ConfigManager
+from api.secrets import SecretsManager
 from api.operations import BankOperations
 
 from api.utilities.logging import log_info, log_warning, log_error
@@ -21,8 +22,6 @@ def mercury_balances_view(request, extra_context=None):
         # Initialize Config and Secrets Managers
         config_manager = ConfigManager()
         secrets_manager = SecretsManager()
-        config = config_manager.load_config()
-        keys = secrets_manager.load_keys()
 
         headers = {
             'Authorization': f"Api-Key {keys['FIZIT_MASTER_KEY']}",

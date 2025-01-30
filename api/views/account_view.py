@@ -1,15 +1,16 @@
 import logging
+
 from rest_framework.response import Response
 from rest_framework import viewsets, status
 from rest_framework.exceptions import ValidationError
+
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from api.serializers.account_serializer import AccountSerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
 from api.interfaces import AccountAPI
-
-from api.mixins.shared import ValidationMixin
+from api.views.mixins.validation import ValidationMixin
 from api.utilities.logging import log_error, log_info, log_warning
 
 class AccountViewSet(viewsets.ViewSet, ValidationMixin):
@@ -46,6 +47,9 @@ class AccountViewSet(viewsets.ViewSet, ValidationMixin):
         log_info(self.logger, f"Received request to list accounts for bank: {bank}")
 
         try:
+            # Validate master key and contract_idx
+            self._validate_master_key(request.auth)
+
             # Validate the 'bank' query parameter
             self._validate_query_param("bank", bank, expected_values=["mercury"])
 

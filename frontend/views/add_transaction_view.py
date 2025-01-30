@@ -7,11 +7,13 @@ from datetime import datetime
 
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from api.managers import ConfigManager, SecretsManager
-from api.operations import TransactionOperations, ContractOperations, CsrfOperations
-from frontend.forms import TransactionForm
 
+from api.config import ConfigManager
+from api.secrets import SecretsManager
+from api.operations import TransactionOperations, ContractOperations, CsrfOperations
 from api.utilities.logging import log_info, log_warning, log_error
+
+from frontend.forms import TransactionForm
 
 logger = logging.getLogger(__name__)
 
@@ -19,13 +21,10 @@ logger = logging.getLogger(__name__)
 def initialize_backend_services():
     secrets_manager = SecretsManager()
     config_manager = ConfigManager()
-    keys = secrets_manager.load_keys()
     headers = {
         'Authorization': f"Api-Key {keys['FIZIT_MASTER_KEY']}",
         'Content-Type': 'application/json',
     }
-    config = config_manager.load_config()
-
     csrf_ops = CsrfOperations(headers, config)
     csrf_token = csrf_ops.get_csrf_token()
 

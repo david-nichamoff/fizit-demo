@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 class SettlementSerializer(serializers.Serializer):
+    contract_type = serializers.CharField(read_only=True, max_length=25)
     contract_idx = serializers.IntegerField(read_only=True)
     settle_idx = serializers.IntegerField(read_only=True)
     contract_name = serializers.CharField(read_only=True, max_length=50)
@@ -16,7 +17,7 @@ class SettlementSerializer(serializers.Serializer):
     settle_pay_dt =  serializers.DateTimeField(read_only=True) 
     settle_exp_amt = serializers.CharField(max_length=20, default = "0.00")
     settle_pay_amt = serializers.CharField(max_length=20, default = "0.00")
-    settle_tx_hash = serializers.CharField(max_length=32, required=False)
+    settle_tx_hash = serializers.CharField(max_length=64, required=False)
     dispute_amt = serializers.CharField(max_length=20, default = "0.00")
     dispute_reason =  serializers.CharField(read_only=True,max_length=1000)
     days_late = serializers.IntegerField(read_only=True)
@@ -25,4 +26,4 @@ class SettlementSerializer(serializers.Serializer):
     residual_exp_amt = serializers.CharField(max_length=20, default = "0.00")
     residual_pay_amt = serializers.CharField(max_length=20, default = "0.00")
     residual_calc_amt = serializers.CharField(max_length=20, default = "0.00")
-    residual_tx_hash = serializers.CharField(max_length=32, required=False)
+    residual_tx_hash = serializers.CharField(max_length=64, required=False)

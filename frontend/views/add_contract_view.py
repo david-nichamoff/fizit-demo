@@ -4,11 +4,13 @@ import requests
 from django.shortcuts import render, redirect
 from django.contrib import messages
 
-from api.managers import ConfigManager, LibraryManager, SecretsManager
+from api.config import ConfigManager
+from api.library import LibraryManager 
+from api.secrets import SecretsManager
 from api.operations import ContractOperations, BankOperations
-from frontend.forms import ContractForm
-
 from api.utilities.logging import log_info, log_warning, log_error
+
+from frontend.forms import ContractForm
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +18,6 @@ logger = logging.getLogger(__name__)
 def initialize_backend_services():
     secrets_manager = SecretsManager()
     config_manager = ConfigManager()
-    keys = secrets_manager.load_keys()
     headers = {
         'Authorization': f"Api-Key {keys['FIZIT_MASTER_KEY']}",
         'Content-Type': 'application/json',

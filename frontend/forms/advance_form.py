@@ -1,6 +1,7 @@
 from django import forms
-from api.managers import ConfigManager
 from datetime import datetime, timezone
+
+from api.config import ConfigManager
 
 import logging
 

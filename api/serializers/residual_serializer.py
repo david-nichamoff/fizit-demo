@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 class ResidualSerializer(serializers.Serializer):
+    contract_type = serializers.CharField(max_length=25)
     contract_idx = serializers.IntegerField()
     settle_idx = serializers.IntegerField()
     bank = serializers.CharField(max_length=50)

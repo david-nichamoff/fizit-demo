@@ -1,0 +1,16 @@
+{
+    "contract_type" : "advance",
+    "contract_data" : {
+        "extended_data": {"Contract #": 100},
+        "contract_name": "Test Contract",
+        "funding_instr": {"bank": "mercury"},
+        "service_fee_pct": "0.0200",
+        "service_fee_amt": "10.00",
+        "transact_logic": { "*": [{ "var": "barrels" }, {"var": "price"}]},
+        "min_threshold_amt": "0.00",
+        "max_threshold_amt": "1000000.00",
+        "notes": "Valid test contract",
+        "is_active": true,
+        "is_quote": false
+    }
+}

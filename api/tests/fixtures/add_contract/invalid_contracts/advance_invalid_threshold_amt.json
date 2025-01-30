@@ -1,0 +1,14 @@
+{
+    "contract_type": "advance",
+    "contract_data": {
+        "extended_data": {"Contract #": 101},
+        "contract_name": "Test Contract",
+        "funding_instr": {"bank": "mercury"},
+        "transact_logic": {"*": [{"var": "barrels"}, {"var": "price"}]},
+        "min_threshold_amt": "5000000.00",
+        "max_threshold_amt": "1000000.00",
+        "notes": "Threshold validation failure",
+        "is_active": true,
+        "is_quote": false
+    }
+}

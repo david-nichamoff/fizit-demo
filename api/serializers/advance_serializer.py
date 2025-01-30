@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 class AdvanceSerializer(serializers.Serializer):
+    contract_type = serializers.CharField(max_length=25)
     contract_idx = serializers.IntegerField()
     contract_name = serializers.CharField(required=False,max_length=255)
     transact_idx = serializers.IntegerField()

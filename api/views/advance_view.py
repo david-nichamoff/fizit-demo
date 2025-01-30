@@ -4,16 +4,16 @@ from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ValidationError
 from rest_framework import viewsets, status
+
 from drf_spectacular.utils import extend_schema
 
 from api.serializers.advance_serializer import AdvanceSerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
 from api.interfaces import AdvanceAPI
-
-from api.mixins.shared import ValidationMixin
-from api.mixins.views import PermissionMixin
-
+from api.registry import RegistryManager
+from api.views.mixins.validation import ValidationMixin
+from api.views.mixins.permission import PermissionMixin
 from api.utilities.logging import log_error, log_info, log_warning
 from api.utilities.validation import is_valid_integer
 
@@ -25,6 +25,7 @@ class AdvanceViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         """Initialize the view with AdvanceAPI instance and logger."""
         super().__init__(*args, **kwargs)
         self.advance_api = AdvanceAPI()
+        self.registry_manager = RegistryManager()
         self.logger = logging.getLogger(__name__)
 
     @extend_schema(
@@ -33,19 +34,20 @@ class AdvanceViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         summary="Get Advance Amounts",
         description="Get the current advance amounts for a contract as a list.",
     )
-    def list(self, request, contract_idx=None):
+    def list(self, request, contract_type=None, contract_idx=None):
         """
         Retrieve a list of advance amounts for a specific contract.
         """
-        log_info(self.logger, f"Fetching advance amounts for contract {contract_idx}")
+        log_info(self.logger, f"Fetching advance amounts for {contract_type}:{contract_idx}")
 
         try:
-            # Validate contract_idx
-            if not is_valid_integer(contract_idx):
-                raise ValidationError("Contract_idx must be an integer")
+            # Validate contract_type and contract_idx
+            contract_api = self.registry_manager.get_contract_api(contract_type)
+            self._validate_contract_type(contract_type, self.registry_manager)
+            self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
             # Fetch advances using AdvanceAPI
-            response = self.advance_api.get_advances(int(contract_idx))
+            response = self.advance_api.get_advances(contract_type, int(contract_idx))
 
             if response["status"] == status.HTTP_200_OK:
                 # Serialize the data and return
@@ -68,36 +70,38 @@ class AdvanceViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         summary="Initiate Advance Payment",
         description="Initiate advance payment.",
     )
-    def create(self, request, contract_idx=None):
+    def create(self, request, contract_type=None, contract_idx=None):
         """
         Create advance payments for a specific contract.
         """
-        log_info(self.logger, f"Initiating advance payment for contract {contract_idx}")
-        auth_info = request.auth
+        log_info(self.logger, f"Initiating advance payment for {contract_type}:{contract_idx}")
 
         try:
             # Validate master key and contract_idx
-            self._validate_master_key(auth_info)
+            self._validate_master_key(request.auth)
 
-            if not is_valid_integer(contract_idx):
-                raise ValidationError("Contract_idx must be an integer")
+            # Validate contract_type and contract_idx
+            contract_api = self.registry_manager.get_contract_api(contract_type)
+            self._validate_contract_type(contract_type, self.registry_manager)
+            self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
             # Validate request data
             serializer = AdvanceSerializer(data=request.data, many=True)
             serializer.is_valid(raise_exception=True)
-            log_info(self.logger, f"Validated advance payment data for contract {contract_idx}")
+            log_info(self.logger, f"Validated advance payment data for {contract_type}:{contract_idx}")
 
             # Add advances using AdvanceAPI
-            response = self.advance_api.add_advances(int(contract_idx), serializer.validated_data)
+            log_info(self.logger, f"Sending advanced payments {serializer.validated_data}")
+            response = self.advance_api.add_advances(contract_type, int(contract_idx), serializer.validated_data)
 
             if response["status"] == status.HTTP_201_CREATED:
-                log_info(self.logger, f"Successfully initiated advance payments for contract {contract_idx}")
+                log_info(self.logger, f"Successfully initiated advance payments for {contract_type}:{contract_idx}")
                 return Response(response["data"], status=status.HTTP_201_CREATED)
             else:
                 return Response({"error" : response["message"]}, response["status"])
 
         except PermissionDenied as pd:
-            log_warning(self.logger, f"Permission denied for contract {contract_idx}: {pd}")
+            log_warning(self.logger, f"Permission denied for contract {contract_type}:{contract_idx}: {pd}")
             return Response({"error": str(pd)}, status=status.HTTP_403_FORBIDDEN)
         except ValidationError as e:
             log_error(self.logger, f"Validation error: {str(e)}")

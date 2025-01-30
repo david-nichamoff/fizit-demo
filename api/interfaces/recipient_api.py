@@ -1,14 +1,15 @@
 import logging
-from api.managers import Web3Manager, ConfigManager
-from api.adapters.bank import MercuryAdapter
 
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
-from api.mixins import ValidationMixin, AdapterMixin, InterfaceResponseMixin
+from api.web3 import Web3Manager
+from api.config import ConfigManager
+from api.registry import RegistryManager
+from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
 
-class RecipientAPI(ValidationMixin, AdapterMixin, InterfaceResponseMixin):
+class RecipientAPI(ResponseMixin):
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -21,16 +22,15 @@ class RecipientAPI(ValidationMixin, AdapterMixin, InterfaceResponseMixin):
         """Initialize the RecipientAPI class with configurations and logger."""
         if not hasattr(self, "initialized"):
             self.config_manager = ConfigManager()
-            self.config = self.config_manager.load_config()
             self.w3_manager = Web3Manager()
-            self.mercury_adapter = MercuryAdapter()
+            self.registry_manager = RegistryManager()
 
             self.logger = logging.getLogger(__name__)
             self.initialized = True  # Mark this instance as initialized
 
     def get_recipients(self, bank):
         try:
-            adapter = self._get_bank_adapter(bank)
+            adapter = self.registry_manager.get_bank_adapter(bank)
             recipients = adapter.get_recipients()
 
             success_message = f"Successfully retrieved {len(recipients)} recipients for bank {bank}"

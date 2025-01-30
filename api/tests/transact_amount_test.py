@@ -1,7 +1,6 @@
 import os
 import json
 import logging
-
 from datetime import datetime
 from decimal import Decimal, ROUND_DOWN
 
@@ -12,11 +11,13 @@ from api.operations import (
     ContractOperations, PartyOperations, SettlementOperations, 
     TransactionOperations, CsrfOperations
 )
-from api.managers import SecretsManager, ConfigManager
+from api.secrets import SecretsManager
+from api.config import ConfigManager
 
 from api.utilities.logging import log_info, log_warning, log_error
 
-class TransactionAmountTests(TestCase):
+
+class TransactionAmountTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
@@ -28,24 +29,22 @@ class TransactionAmountTests(TestCase):
         self.secrets_manager = SecretsManager()
         self.config_manager = ConfigManager()
 
-        self.keys = self.secrets_manager.load_keys()
-        self.config = self.config_manager.load_config()
-
         self.headers = {
-            'Authorization': f'Api-Key {self.keys["FIZIT_MASTER_KEY"]}',
+            'Authorization': f'Api-Key {self.secrets_manager.get_master_key()}',
             'Content-Type': 'application/json',
         }
-        self.csrf_ops = CsrfOperations(self.headers, self.config)
+
+        self.csrf_ops = CsrfOperations(self.headers, self.config_manager.get_base_url())
         self.csrf_token = self.csrf_ops.get_csrf_token()
 
-        self.contract_ops = ContractOperations(self.headers, self.config, self.csrf_token)
-        self.party_ops = PartyOperations(self.headers, self.config, self.csrf_token)
-        self.settlement_ops = SettlementOperations(self.headers, self.config, self.csrf_token)
-        self.transaction_ops = TransactionOperations(self.headers, self.config, self.csrf_token)
+        self.contract_ops = ContractOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
+        self.party_ops = PartyOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
+        self.settlement_ops = SettlementOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
+        self.transaction_ops = TransactionOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
 
     def test_transactions(self):
         """Test transaction and settlement amount validations using fixture data."""
-        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'transact_amount_test')
+        fixtures_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'transact_amount')
         for filename in os.listdir(fixtures_dir):
             if filename.endswith('.json'):
                 try:
@@ -57,50 +56,52 @@ class TransactionAmountTests(TestCase):
 
     def _process_fixture_data(self, data):
         """Process a single fixture for transactions and settlements."""
-        contract_idx = self._create_contract(data['contract'])
-        self._load_entities(contract_idx, data)
-        self._validate_settlements(contract_idx)
-        self._validate_transactions(contract_idx)
+        contract_type = data["contract_type"]
+        contract_idx = self._create_contract(contract_type, data['contract'])
 
-    def _create_contract(self, contract_data):
+        self._load_entities(contract_type, contract_idx, data)
+        self._validate_settlements(contract_type, contract_idx)
+        self._validate_transactions(contract_type, contract_idx)
+
+    def _create_contract(self, contract_type, contract_data):
         """Create a contract and return its ID."""
-        contract = self.contract_ops.post_contract(contract_data)
+        contract = self.contract_ops.post_contract(contract_type, contract_data)
         self.assertGreaterEqual(contract["contract_idx"], 0)
         contract_idx = contract["contract_idx"]
         log_info(self.logger, f"Successfully created contract: {contract_idx}")
         return contract_idx
 
-    def _load_entities(self, contract_idx, data):
+    def _load_entities(self, contract_type, contract_idx, data):
         """Load related entities for a contract."""
-        self._load_parties(contract_idx, data.get('parties', []))
-        self._load_settlements(contract_idx, data.get('settlements', []))
-        self._load_transactions(contract_idx, data.get('transactions', []))
+        self._load_parties(contract_type, contract_idx, data.get('parties', []))
+        self._load_settlements(contract_type, contract_idx, data.get('settlements', []))
+        self._load_transactions(contract_type, contract_idx, data.get('transactions', []))
 
-    def _load_parties(self, contract_idx, parties_data):
+    def _load_parties(self, contract_type, contract_idx, parties_data):
         """Load parties into the contract."""
-        parties = self.party_ops.post_parties(contract_idx, parties_data)
+        parties = self.party_ops.post_parties(contract_type, contract_idx, parties_data)
         log_info(self.logger, f"Successfully added {parties} to contract {contract_idx}")
 
-    def _load_settlements(self, contract_idx, settlements_data):
+    def _load_settlements(self, contract_type, contract_idx, settlements_data):
         """Load settlements into the contract."""
-        settlements = self.settlement_ops.post_settlements(contract_idx, settlements_data)
+        settlements = self.settlement_ops.post_settlements(contract_type, contract_idx, settlements_data)
         log_info(self.logger, f"Successfully added {settlements} to contract {contract_idx}")
 
-    def _load_transactions(self, contract_idx, transactions_data):
+    def _load_transactions(self, contract_type, contract_idx, transactions_data):
         """Load transactions into the contract."""
-        transactions = self.transaction_ops.post_transactions(contract_idx, transactions_data)
+        transactions = self.transaction_ops.post_transactions(contract_type, contract_idx, transactions_data)
         log_info(self.logger, f"Successfully added {transactions} to contract {contract_idx}")
 
-    def _validate_settlements(self, contract_idx):
+    def _validate_settlements(self, contract_type, contract_idx):
         """Validate settlement amounts."""
-        settlements = self.settlement_ops.get_settlements(contract_idx)
+        settlements = self.settlement_ops.get_settlements(contract_type, contract_idx)
 
         for settlement in settlements:
             self._validate_settlement_fields(settlement)
 
-    def _validate_transactions(self, contract_idx):
+    def _validate_transactions(self,  contract_type,contract_idx):
         """Validate transaction amounts."""
-        transactions = self.transaction_ops.get_transactions(contract_idx)
+        transactions = self.transaction_ops.get_transactions(contract_type, contract_idx)
 
         for transaction in transactions:
             self._validate_transaction_fields(transaction)

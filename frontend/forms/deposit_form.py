@@ -1,5 +1,5 @@
 from django import forms
-from api.managers import ConfigManager
+from api.config import ConfigManager
 
 class DepositForm(forms.Form):
     def __init__(self, *args, **kwargs):

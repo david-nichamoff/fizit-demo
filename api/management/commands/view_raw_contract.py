@@ -1,6 +1,8 @@
 import logging
 from django.core.management.base import BaseCommand
-from api.managers import Web3Manager, ConfigManager
+
+from api.web3 import Web3Manager
+from api.config import ConfigManager
 
 from api.utilities.logging import  log_error, log_info, log_warning
 
@@ -10,20 +12,22 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         # Add contract_idx as an argument with the flag --contract_idx
         parser.add_argument('--contract_idx', type=int, required=True, help='The index of the contract to retrieve')
+        parser.add_argument('--contract_type', type=str, required=True, help='The contract type of the contract to retrieve')
 
     def handle(self, *args, **kwargs):
         contract_idx = kwargs['contract_idx']
+        contract_type = kwargs['contract_type']
         self.logger = logging.getLogger(__name__)
 
         # Initialize managers and retrieve data from blockchain
         w3_manager = Web3Manager()
         config_manager = ConfigManager()
         w3 = w3_manager.get_web3_instance()
-        w3_contract = w3_manager.get_web3_contract()
+        w3_contract = w3_manager.get_web3_contract(contract_type)
 
         try:
-            log_info(self.logger, f"Fetching data for contract {contract_idx}")
-            contract_data = self.get_contract_data(w3_contract, contract_idx)
+            log_info(self.logger, f"Fetching data for {contract_type}:{contract_idx}")
+            contract_data = self.get_contract_data(w3_contract, contract_type, contract_idx)
             settlements = self.get_settlements(w3_contract, contract_idx)
             parties = self.get_parties(w3_contract, contract_idx)
             transactions = self.get_transactions(w3_contract, contract_idx)
@@ -38,31 +42,31 @@ class Command(BaseCommand):
 
         except Exception as e:
             self.stderr.write(self.style.ERROR(f"Error retrieving data: {str(e)}"))
-            log_error(self.logger, f"Error retrieving data for contract {contract_idx}: {str(e)}")
+            log_error(self.logger, f"Error retrieving data for {contract_type}:{contract_idx}: {str(e)}")
 
-    def get_contract_data(self, w3_contract, contract_idx):
+    def get_contract_data(self, w3_contract, contract_type, contract_idx):
         """Retrieve raw contract data from the blockchain."""
         contract = w3_contract.functions.getContract(contract_idx).call()
 
         # Build a dictionary of contract data, directly from the blockchain, without formatting
         contract_data = {
+            "contract_type": contract_type,
             "contract_idx": contract_idx,
             "extended_data": contract[0],  # Raw data as it is on-chain
             "contract_name": contract[1],
-            "contract_type": contract[2],
-            "funding_instr": contract[3],  # Raw data as it is on-chain
-            "deposit_instr": contract[4],  # Raw data as it is on-chain
-            "service_fee_pct": contract[5],  # Unformatted
-            "service_fee_max": contract[6],  # Unformatted
-            "service_fee_amt": contract[7],  # Unformatted
-            "advance_pct": contract[8],      # Unformatted
-            "late_fee_pct": contract[9],     # Unformatted
-            "transact_logic": contract[10],   # Raw data as it is on-chain
-            "min_threshold_amt": contract[11],   # Unformatted
-            "max_threshold_amt": contract[12],   # Unformatted
-            "notes": contract[13],
-            "is_active": contract[14],
-            "is_quote": contract[15],
+            "funding_instr": contract[2],  # Raw data as it is on-chain
+            "deposit_instr": contract[3],  # Raw data as it is on-chain
+            "service_fee_pct": contract[4],  # Unformatted
+            "service_fee_max": contract[5],  # Unformatted
+            "service_fee_amt": contract[6],  # Unformatted
+            "advance_pct": contract[7],      # Unformatted
+            "late_fee_pct": contract[8],     # Unformatted
+            "transact_logic": contract[9],   # Raw data as it is on-chain
+            "min_threshold_amt": contract[10],   # Unformatted
+            "max_threshold_amt": contract[11],   # Unformatted
+            "notes": contract[12],
+            "is_active": contract[13],
+            "is_quote": contract[14],
         }
         return contract_data
 

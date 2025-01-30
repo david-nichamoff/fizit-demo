@@ -1,9 +1,11 @@
 import logging
 
 from django.shortcuts import render
-from api.managers import ConfigManager, Web3Manager
+
 from eth_utils import to_checksum_address
 
+from api.config import ConfigManager
+from api.web3 import Web3Manager
 from api.utilities.logging import log_info, log_warning, log_error
 
 logger = logging.getLogger(__name__)

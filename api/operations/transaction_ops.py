@@ -1,11 +1,10 @@
 import requests
 
 class TransactionOperations:
-    def __init__(self, headers, config, csrf_token=None):
+    def __init__(self, headers, base_url, csrf_token=None):
         self.headers = headers
-        self.config = config
         self.csrf_token = csrf_token
-        self.base_url = f"{self.config['url']}/api/contracts/"
+        self.base_url = f"{base_url}/api/contracts/"
 
     def _add_csrf_token(self):
         """Add CSRF token to headers if required."""
@@ -24,9 +23,9 @@ class TransactionOperations:
         return response.json() if response.content else None
 
 
-    def post_transactions(self, contract_idx, transactions):
+    def post_transactions(self, contract_type, contract_idx, transactions):
         batch_size = 10
-        url = f"{self.base_url}{contract_idx}/transactions/"
+        url = f"{self.base_url}{contract_type}/{contract_idx}/transactions/"
         headers_with_csrf = self._add_csrf_token()
 
         count = 0
@@ -42,8 +41,8 @@ class TransactionOperations:
 
         return {"count": count}
 
-    def get_transactions(self, contract_idx, transact_min_dt=None, transact_max_dt=None):
-        url = f"{self.base_url}{contract_idx}/transactions/"
+    def get_transactions(self, contract_type, contract_idx, transact_min_dt=None, transact_max_dt=None):
+        url = f"{self.base_url}{contract_type}/{contract_idx}/transactions/"
         params = {}
         if transact_min_dt:
             params["transact_min_dt"] = transact_min_dt
@@ -53,8 +52,8 @@ class TransactionOperations:
         response = requests.get(url, headers=self.headers, params=params)
         return self._process_response(response)
 
-    def delete_transactions(self, contract_idx):
-        url = f"{self.base_url}{contract_idx}/transactions/"
+    def delete_transactions(self, contract_type, contract_idx):
+        url = f"{self.base_url}{contract_type}/{contract_idx}/transactions/"
         headers_with_csrf = self._add_csrf_token()
         response = requests.delete(url, headers=headers_with_csrf, cookies={"csrftoken": self.csrf_token})
         return self._process_response(response)

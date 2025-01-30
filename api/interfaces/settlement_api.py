@@ -4,16 +4,15 @@ from decimal import Decimal
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
-from api.managers import Web3Manager, ConfigManager
-from api.interfaces import ContractAPI
+from api.web3 import Web3Manager
+from api.config import ConfigManager
+from api.registry import RegistryManager
 from api.interfaces.encryption_api import get_encryptor, get_decryptor
-
-from api.mixins import ValidationMixin, AdapterMixin, InterfaceResponseMixin
+from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
 from api.utilities.formatting import from_timestamp, to_decimal
-from api.utilities.validation import is_valid_json
 
-class SettlementAPI(ValidationMixin, InterfaceResponseMixin):
+class SettlementAPI(ResponseMixin):
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -25,98 +24,91 @@ class SettlementAPI(ValidationMixin, InterfaceResponseMixin):
     def __init__(self):
         """Initialize SettlementAPI with necessary dependencies."""
         if not hasattr(self, "initialized"):
+            self.registry_manager = RegistryManager()
             self.config_manager = ConfigManager()
-            self.config = self.config_manager.load_config()
             self.w3_manager = Web3Manager()
-            self.w3_contract = self.w3_manager.get_web3_contract()
-            self.contract_api = ContractAPI()
 
-            self.wallet_addr = self.config_manager.get_nested_config_value("wallet_addr", "Transactor")
+            self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
             self.logger = logging.getLogger(__name__)
             self.initialized = True
 
-    def get_settlements(self, contract_idx, api_key=None, parties=[]):
+    def get_settlements(self, contract_type, contract_idx, api_key=None, parties=[]):
         """Retrieve all settlements for a given contract."""
         try:
-            self._validate_contract_idx(contract_idx, self.contract_api)
-
-            settlements = []
-
-            response = self.contract_api.get_contract(contract_idx, api_key, parties)
+            contract_api = self.registry_manager.get_contract_api(contract_type)
+            response = contract_api.get_contract(contract_type, contract_idx, api_key, parties)
             if response["status"] == status.HTTP_200_OK:
                 contract = response["data"]
-                log_info(self.logger, f"Retrieved contract {contract_idx} with data {contract}")
+                log_info(self.logger, f"Retrieved {contract_type}:{contract_idx} with data {contract}")
             else:
                 raise RuntimeError("Error retrieving contract")
 
-            raw_settlements = self.w3_contract.functions.getSettlements(contract["contract_idx"]).call()
-            log_info(self.logger, f"Retrieved settlements {raw_settlements} for contract {contract_idx}")
+            w3_contract = self.w3_manager.get_web3_contract(contract_type)
+            raw_settlements = w3_contract.functions.getSettlements(contract["contract_idx"]).call()
+            log_info(self.logger, f"Retrieved settlements {raw_settlements} for {contract_type}:{contract_idx}")
 
+            settlements = []
             for idx, settlement in enumerate(raw_settlements):
-                settlement_dict = self._build_settlement_dict(settlement, idx, contract, api_key, parties)
+                settlement_dict = self._build_settlement_dict(settlement, idx, contract_type, contract, api_key, parties)
                 settlements.append(settlement_dict)
 
-            success_message = f"Retrieved {len(settlements)} settlements for contract {contract_idx}"
+            success_message = f"Retrieved {len(settlements)} settlements for {contract_type}:{contract_idx}"
             data = sorted(settlements, key=lambda d: d["settle_due_dt"], reverse=True)
             return self._format_success(data, success_message, status.HTTP_200_OK)
 
         except ValidationError as e:
-            error_message = f"Validation error returning settlements for {contract_idx}: {str(e)}"
+            error_message = f"Validation error returning settlements for {contract_type}:{contract_idx}: {str(e)}"
             return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            error_message = f"Error retrieving settlements for contract {contract_idx}: {e}"
+            error_message = f"Error retrieving settlements for {contract_type}:{contract_idx}: {e}"
             return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def add_settlements(self, contract_idx, settlements):
+    def add_settlements(self, contract_type, contract_idx, settlements):
         """Add settlements to the blockchain for a given contract."""
         try:
-            self._validate_contract_idx(contract_idx, self.contract_api)
-
-            self._validate_settlements(settlements)
             encryptor = get_encryptor()
             processed_count = 0
 
             for settlement in settlements:
-                transaction = self._build_add_settlement_transaction(contract_idx, settlement, encryptor)
-                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
+                transaction = self._build_add_settlement_transaction(contract_type, contract_idx, settlement, encryptor)
+                tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, "fizit")
 
                 if tx_receipt["status"] != 1:
                     raise RuntimeError
 
                 processed_count += 1
 
-            success_message = f"Successfully added {processed_count} settlements for contract {contract_idx}"
+            success_message = f"Successfully added {processed_count} settlements for {contract_type}:{contract_idx}"
             return self._format_success({"count":processed_count}, success_message, status.HTTP_201_CREATED )
 
         except ValidationError as e:
-            error_message = f"Validation error for {contract_idx}: {str(e)}"
+            error_message = f"Validation error for {contract_type}:{contract_idx}: {str(e)}"
             return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            error_message = f"Error adding settlements for contract {contract_idx}: {e}"
+            error_message = f"Error adding settlements for {contract_type}:{contract_idx}: {e}"
             return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def delete_settlements(self, contract_idx):
+    def delete_settlements(self, contract_type, contract_idx):
         """Delete all settlements for a given contract."""
         try:
-            self._validate_contract_idx(contract_idx, self.contract_api)
-
-            transaction = self.w3_contract.functions.deleteSettlements(contract_idx).build_transaction()
+            w3_contract = self.w3_manager.get_web3_contract(contract_type)
+            transaction = w3_contract.functions.deleteSettlements(contract_idx).build_transaction()
             tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_idx, "fizit")
 
             if tx_receipt["status"] != 1:
                 raise RuntimeError
 
-            success_message = "All settlements deleted for contract {contract_idx}"
+            success_message = f"All settlements deleted for {contract_type}:{contract_idx}"
             return self._format_success({"contract_idx" : contract_idx}, success_message, status.HTTP_204_NO_CONTENT)
 
         except ValidationError as e:
-            error_message = f"Validation error for {contract_idx}: {str(e)}"
+            error_message = f"Validation error for {contract_type}:{contract_idx}: {str(e)}"
             return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            error_message = f"Error deleting settlements for contract {contract_idx}: {e}"
+            error_message = f"Error deleting settlements for {contract_type}:{contract_idx}: {e}"
             return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def _build_settlement_dict(self, settle, idx, contract, api_key, parties):
+    def _build_settlement_dict(self, settle, idx, contract_type, contract, api_key, parties):
         """Build a settlement dictionary from raw data."""
         try:
             decryptor = get_decryptor(api_key, parties)
@@ -143,6 +135,7 @@ class SettlementAPI(ValidationMixin, InterfaceResponseMixin):
                 "residual_exp_amt": to_decimal(settle[17]),
                 "residual_calc_amt": to_decimal(settle[18]),
                 "residual_tx_hash": settle[19],
+                "contract_type": contract_type,
                 "contract_idx": contract["contract_idx"],
                 "contract_name": contract["contract_name"],
                 "funding_instr": contract["funding_instr"],
@@ -154,7 +147,7 @@ class SettlementAPI(ValidationMixin, InterfaceResponseMixin):
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e
 
-    def _build_add_settlement_transaction(self, contract_idx, settlement, encryptor):
+    def _build_add_settlement_transaction(self, contract_type, contract_idx, settlement, encryptor):
         """Build the transaction to add a settlement."""
         try:
             encrypted_data = encryptor.encrypt(settlement["extended_data"])
@@ -162,26 +155,12 @@ class SettlementAPI(ValidationMixin, InterfaceResponseMixin):
             min_dt = int(settlement["transact_min_dt"].timestamp())
             max_dt = int(settlement["transact_max_dt"].timestamp())
 
-            return self.w3_contract.functions.addSettlement(
+            w3_contract = self.w3_manager.get_web3_contract(contract_type)
+            return w3_contract.functions.addSettlement(
                 contract_idx, encrypted_data, due_dt, min_dt, max_dt
             ).build_transaction()
         except Exception as e:
-            error_message = f"Error building settlement transaction for contract {contract_idx}: {e}"
+            error_message = f"Error building settlement transaction for {contract_type}:{contract_idx}: {e}"
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e
 
-    def _validate_settlements(self, settlements):
-        """Validate settlements before adding them to the blockchain."""
-        try:
-            for settlement in settlements:
-                if settlement["transact_min_dt"] >= settlement["transact_max_dt"]:
-                    raise ValidationError(f"Minimum transaction date must be before maximum transaction date.")
-                if settlement["transact_max_dt"] > settlement["settle_due_dt"]:
-                    raise ValidationError(f"Maximum transaction date must be before or equal to settlement due date.")
-                if not is_valid_json(settlement["extended_data"]):
-                    raise ValidationError(f"Invalid JSON for 'extended_data'.")
-
-        except ValidationError as e:
-            error_message = f"Validation error: {e}"
-            log_error(self.logger, error_message)
-            raise RuntimeError(error_message) from e

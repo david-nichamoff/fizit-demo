@@ -1,7 +1,9 @@
 import logging
+
 from rest_framework.authentication import BaseAuthentication
-from rest_framework.exceptions import AuthenticationFailed
-from .managers.secrets_manager import SecretsManager  
+from rest_framework.exceptions import AuthenticationFailed, ValidationError
+
+from api.secrets.secrets_manager import SecretsManager  
 
 from api.utilities.logging import  log_error, log_info, log_warning
 
@@ -29,16 +31,10 @@ class AWSSecretsAPIKeyAuthentication(BaseAuthentication):
 
         api_key = api_key.replace("Api-Key ", "", 1)
 
-        try:
-            # Initialize the SecretsManager and load the keys
-            secrets_manager = SecretsManager()
-            valid_keys = secrets_manager.load_keys()  # Expecting valid_keys to be a dictionary
-        except Exception as e:
-            log_error(logger, "Error loading keys from SecretsManager: %s", str(e))
-            raise AuthenticationFailed('Error loading API keys.')
+        secrets_manager = SecretsManager()
+        valid_keys = secrets_manager.get_all_partner_keys()  # Expecting valid_keys to be a dictionary
+        master_key = secrets_manager.get_master_key()
 
-        # Check for the FIZIT_MASTER_KEY in the loaded keys
-        master_key = valid_keys.get("FIZIT_MASTER_KEY")
         if master_key:
             if api_key == master_key:
                 return (None, {'api_key': api_key, 'is_master_key': True})

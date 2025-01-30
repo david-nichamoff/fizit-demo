@@ -4,9 +4,9 @@ from rest_framework import status
 
 
 class PartyOperations:
-    def __init__(self, headers, config, csrf_token=None):
+    def __init__(self, headers, base_url, csrf_token=None):
         self.headers = headers
-        self.config = config
+        self.base_url = base_url 
         self.csrf_token = csrf_token
 
     def _add_csrf_token(self, headers):
@@ -23,49 +23,35 @@ class PartyOperations:
         """
         return response.json() if response.content else None
 
-    def post_parties(self, contract_idx, parties_data):
+    def post_parties(self, contract_type, contract_idx, parties_data):
         """
         Add parties to a contract.
         """
         headers_with_csrf = self._add_csrf_token(self.headers.copy())
         response = requests.post(
-            f"{self.config['url']}/api/contracts/{contract_idx}/parties/",
+            f"{self.base_url}/api/contracts/{contract_type}/{contract_idx}/parties/",
             json=parties_data,
             headers=headers_with_csrf
         )
         return self._process_response(response)
 
-    def get_parties(self, contract_idx):
+    def get_parties(self, contract_type, contract_idx):
         """
         Retrieve all parties for a specific contract.
         """
         response = requests.get(
-            f"{self.config['url']}/api/contracts/{contract_idx}/parties/",
+            f"{self.base_url}/api/contracts/{contract_type}/{contract_idx}/parties/",
             headers=self.headers
         )
         return self._process_response(response)
 
-    def delete_party(self, contract_idx, party_idx):
-        """
-        Delete a specific party from a contract with retry logic.
-        """
-        headers_with_csrf = self._add_csrf_token(self.headers.copy())
-        delete_url = f"{self.config['url']}/api/contracts/{contract_idx}/parties/{party_idx}/"
-
-        response = requests.delete(
-            delete_url,
-            headers=headers_with_csrf,
-            cookies={'csrftoken': self.csrf_token}
-        )
-        return self._process_response(response)
-
-    def delete_parties(self, contract_idx):
+    def delete_parties(self, contract_type, contract_idx):
         """
         Delete all parties from a specific contract.
         """
         headers_with_csrf = self._add_csrf_token(self.headers.copy())
         response = requests.delete(
-            f"{self.config['url']}/api/contracts/{contract_idx}/parties/",
+            f"{self.base_url}/api/contracts/{contract_type}/{contract_idx}/parties/",
             headers=headers_with_csrf,
             cookies={'csrftoken': self.csrf_token}
         )

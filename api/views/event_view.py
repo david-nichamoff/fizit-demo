@@ -1,18 +1,17 @@
 import logging
+
 from rest_framework.response import Response
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework import viewsets, status
+
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from api.serializers.event_serializer import EventSerializer
 from api.models import Event
-
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-
-from api.mixins.shared import ValidationMixin
+from api.views.mixins.validation import ValidationMixin
 from api.utilities.logging import log_info, log_warning, log_error
-
 
 class EventViewSet(viewsets.ViewSet, ValidationMixin):
     """
@@ -29,6 +28,7 @@ class EventViewSet(viewsets.ViewSet, ValidationMixin):
         tags=["Events"],
         parameters=[
             OpenApiParameter(name='contract_idx', description='Contract index for filtering events', required=False, type=int),
+            OpenApiParameter(name='contract_type', description='Contract type for filtering events', required=False, type=str),
             OpenApiParameter(name='from_addr', description='Source address for filtering events', required=False, type=str),
             OpenApiParameter(name='to_addr', description='Destination address for filtering events', required=False, type=str),
         ],
@@ -41,12 +41,8 @@ class EventViewSet(viewsets.ViewSet, ValidationMixin):
         Retrieve a list of events filtered by optional query parameters.
         """
         log_info(self.logger, f"Listing events with query parameters: {request.query_params}")
-        try:
-            # Validate optional query parameters
-            self._validate_optional_integer("contract_idx", request.query_params.get("contract_idx"))
-            self._validate_optional_string("from_addr", request.query_params.get("from_addr"))
-            self._validate_optional_string("to_addr", request.query_params.get("to_addr"))
 
+        try:
             # Filter events
             queryset = self._filter_queryset(request.query_params)
             serializer = EventSerializer(queryset, many=True)
@@ -67,6 +63,9 @@ class EventViewSet(viewsets.ViewSet, ValidationMixin):
 
         if contract_idx := query_params.get('contract_idx'):
             queryset = queryset.filter(contract_idx=contract_idx)
+
+        if contract_type := query_params.get('contract_type'):
+            queryset = queryset.filter(contract_type=contract_type)
 
         if from_addr := query_params.get('from_addr'):
             queryset = queryset.filter(from_addr=from_addr)

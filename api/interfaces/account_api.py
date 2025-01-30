@@ -3,12 +3,11 @@ import logging
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
-from api.managers import ConfigManager
-from api.adapters.bank import MercuryAdapter
-from api.mixins import ValidationMixin, AdapterMixin, InterfaceResponseMixin
+from api.registry import RegistryManager
+from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
 
-class AccountAPI(ValidationMixin, AdapterMixin, InterfaceResponseMixin):
+class AccountAPI(ResponseMixin):
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -20,19 +19,15 @@ class AccountAPI(ValidationMixin, AdapterMixin, InterfaceResponseMixin):
     def __init__(self):
         """Initialize the AccountAPI class with configurations and logger."""
         if not hasattr(self, "initialized"):
-            self.config_manager = ConfigManager()
-            self.config = self.config_manager.load_config()
-
             # Initialize adapters
-            self.mercury_adapter = MercuryAdapter()
-
+            self.registry_manager = RegistryManager()
             self.logger = logging.getLogger(__name__)
             self.initialized = True
 
     def get_accounts(self, bank):
         """Retrieve accounts for the specified bank."""
         try:
-            adapter = self._get_bank_adapter(bank)
+            adapter = self.registry_manager.get_bank_adapter(bank)
             accounts = adapter.get_accounts()
 
             success_message = f"Successfully retrieved {len(accounts)} accounts for bank {bank}"

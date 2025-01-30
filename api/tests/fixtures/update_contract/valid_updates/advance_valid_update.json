@@ -1,0 +1,19 @@
+{
+    "contract_type": "advance",
+    "contract_data": {
+        "extended_data": {"Contract #": 2001},
+        "contract_name": "Original Advance Contract",
+        "funding_instr": {"bank": "mercury"},
+        "transact_logic": {"*": [{"var": "barrels"}, {"var": "price"}]},
+        "min_threshold_amt": "0.00",
+        "max_threshold_amt": "1000000.00",
+        "notes": "Original contract",
+        "is_active": true,
+        "is_quote": false
+    },
+    "update_data": {
+        "contract_name": "Updated Advance Contract",
+        "notes": "This is an updated note for the advance contract.",
+        "is_active": false
+    }
+}

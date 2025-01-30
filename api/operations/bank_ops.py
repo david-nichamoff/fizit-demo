@@ -1,9 +1,9 @@
 import requests
 
 class BankOperations:
-    def __init__(self, headers, config, csrf_token=None):
+    def __init__(self, headers, base_url, csrf_token=None):
         self.headers = headers
-        self.config = config
+        self.base_url = base_url
         self.csrf_token = csrf_token
 
     def _add_csrf_token(self, headers):
@@ -23,7 +23,7 @@ class BankOperations:
     def get_accounts(self, bank):
         """Retrieve bank accounts."""
         response = requests.get(
-            f"{self.config['url']}/api/accounts/",
+            f"{self.base_url}/api/accounts/",
             headers=self.headers,
             params={"bank": bank}
         )
@@ -32,64 +32,64 @@ class BankOperations:
     def get_recipients(self, bank):
         """Retrieve recipients for a specific bank."""
         response = requests.get(
-            f"{self.config['url']}/api/recipients/",
+            f"{self.base_url}/api/recipients/",
             headers=self.headers,
             params={"bank": bank}
         )
         return self._process_response(response)
 
-    def get_advances(self, contract_idx):
+    def get_advances(self, contract_type, contract_idx):
         """Retrieve advances for a contract."""
         response = requests.get(
-            f"{self.config['url']}/api/contracts/{contract_idx}/advances/",
+            f"{self.base_url}/api/contracts/{contract_type}/{contract_idx}/advances/",
             headers=self.headers
         )
         return self._process_response(response)
 
-    def post_advances(self, contract_idx, advances):
+    def post_advances(self, contract_type, contract_idx, advances):
         """Add advances for a contract."""
         headers_with_csrf = self._add_csrf_token(self.headers.copy())
         response = requests.post(
-            f"{self.config['url']}/api/contracts/{contract_idx}/advances/",
+            f"{self.base_url}/api/contracts/{contract_type}/{contract_idx}/advances/",
             headers=headers_with_csrf,
             json=advances,
             cookies={'csrftoken': self.csrf_token}
         )
         return self._process_response(response)
 
-    def get_deposits(self, contract_idx, start_date, end_date):
+    def get_deposits(self, contract_type, contract_idx, start_date, end_date):
         """Retrieve deposits for a contract within a date range."""
         response = requests.get(
-            f"{self.config['url']}/api/contracts/{contract_idx}/deposits/",
+            f"{self.base_url}/api/contracts/{contract_type}/{contract_idx}/deposits/",
             headers=self.headers,
             params={"start_date": start_date, "end_date": end_date}
         )
         return self._process_response(response)
 
-    def post_deposit(self, contract_idx, deposit):
+    def post_deposit(self, contract_type, contract_idx, deposit):
         """Add deposits to a contract."""
         headers_with_csrf = self._add_csrf_token(self.headers.copy())
         response = requests.post(
-            f"{self.config['url']}/api/contracts/{contract_idx}/deposits/",
+            f"{self.base_url}/api/contracts/{contract_type}/{contract_idx}/deposits/",
             headers=headers_with_csrf,
             json=deposit,
             cookies={'csrftoken': self.csrf_token}
         )
         return self._process_response(response)
 
-    def get_residuals(self, contract_idx):
+    def get_residuals(self, contract_type, contract_idx):
         """Retrieve residuals for a contract."""
         response = requests.get(
-            f"{self.config['url']}/api/contracts/{contract_idx}/residuals/",
+            f"{self.base_url}/api/contracts/{contract_type}/{contract_idx}/residuals/",
             headers=self.headers
         )
         return self._process_response(response)
 
-    def post_residuals(self, contract_idx, residuals):
+    def post_residuals(self, contract_type, contract_idx, residuals):
         """Add residuals for a contract."""
         headers_with_csrf = self._add_csrf_token(self.headers.copy())
         response = requests.post(
-            f"{self.config['url']}/api/contracts/{contract_idx}/residuals/",
+            f"{self.base_url}/api/contracts/{contract_type}/{contract_idx}/residuals/",
             headers=headers_with_csrf,
             json=residuals,
             cookies={'csrftoken': self.csrf_token}

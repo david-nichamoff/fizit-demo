@@ -1,0 +1,25 @@
+{
+    "contract_type"    : "ticketing",
+    "contract" : {
+        "extended_data"    : "invalid_json", 
+        "contract_name"    : "Invalid JSON Unit Test",
+        "funding_instr"    : {"bank": "mercury", "account_id" : "61396d72-e780-11ee-b69b-137ed758771c", "recipient_id": "627ecace-e780-11ee-b69b-f311fd81fcb4"},
+        "deposit_instr"    : {"bank": "mercury", "account_id" : "61396d72-e780-11ee-b69b-137ed758771c", "recipient_id": "627ecace-e780-11ee-b69b-f311fd81fcb4"},
+        "service_fee_pct"  : "0.0250",
+        "service_fee_max"  : "0.0250",
+        "service_fee_amt"  : "5.50",
+        "advance_pct"      : "0.8000",
+        "late_fee_pct"     : "0.2200",
+        "transact_logic"   : "invalid_json", 
+        "min_threshold_amt"    : "-100.00",
+        "max_threshold_amt"    : "1000.00",
+        "notes"            : "integrity contract",
+        "is_active"        : true,
+        "is_quote"         : false
+    },
+    "parties" : [
+        {"party_code": "Supplier_1", "party_type": "seller"},  
+        {"party_code": "Refiner", "party_type" : "buyer"},
+        {"party_code": "FIZIT", "party_type": "funder"}
+    ]
+}

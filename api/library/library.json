@@ -1,0 +1,20 @@
+[
+    {
+        "contract_type": "advance",
+        "logics": [
+            {
+                "transact_logic": { "*": [{ "var": "barrels" }, {"var": "price"}]},
+                "description": "Standard advance contract"
+            }
+        ]
+    },
+    {
+        "contract_type": "ticketing",
+        "logics": [
+            {
+                "transact_logic": { "var": "ticket_amt" },
+                "description": "Pay for each ticket based on ticket amount"
+            }
+        ]
+    }
+]

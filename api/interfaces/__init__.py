@@ -1,4 +1,4 @@
-from .contract_api import ContractAPI
+from .contract_api import AdvanceContractAPI, TicketingContractAPI
 from .party_api import PartyAPI
 from .transaction_api import TransactionAPI
 from .settlement_api import SettlementAPI

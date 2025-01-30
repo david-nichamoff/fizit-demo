@@ -1,0 +1,155 @@
+{
+    "contract_type": "ticketing",
+    "contract": {
+        "extended_data": {},
+        "contract_name": "Transaction Test",
+        "funding_instr": {
+            "bank": "mercury",
+            "account_id": "61396d72-e780-11ee-b69b-137ed758771c",
+            "recipient_id": "627ecace-e780-11ee-b69b-f311fd81fcb4"
+        },
+        "deposit_instr": {
+            "bank": "mercury",
+            "account_id": "61396d72-e780-11ee-b69b-137ed758771c",
+            "recipient_id": "627ecace-e780-11ee-b69b-f311fd81fcb4"
+        },
+        "service_fee_pct": "0.0500",
+        "service_fee_max": "0.0500",
+        "service_fee_amt": "5.00",
+        "advance_pct": "0.8000",
+        "late_fee_pct": "0.2200",
+        "transact_logic": {"var": "ticket_amt"},
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
+        "notes": "Test",
+        "is_active": true,
+        "is_quote": false
+    },
+    "parties": [
+        {"party_code": "Supplier_1", "party_type": "seller"},  
+        {"party_code": "Refiner", "party_type" : "buyer"},
+        {"party_code": "FIZIT", "party_type": "funder"}
+    ],
+    "settlements": [
+        {
+            "extended_data": {
+                "transact_count": 12,
+                "settle_exp_amt": "1675.00",
+                "residual_exp_amt": "55.00"
+            },
+            "settle_due_dt": "2024-10-01T00:00:00",
+            "transact_min_dt": "2024-08-01T00:00:00",
+            "transact_max_dt": "2024-09-01T00:00:00"
+        }
+    ],
+    "transactions": [
+        {
+            "extended_data": {
+                "advance_amt": "145.00",
+                "service_fee_amt": "15.00"
+            },
+            "transact_dt": "2024-08-15T00:00:00",
+            "transact_amt": "200.00",
+            "transact_data": {"ticket_amt": 200.00}
+        },
+        {
+            "extended_data": {
+                "advance_amt": "0.00",
+                "service_fee_amt": "0.00"
+            },
+            "transact_dt": "2024-08-16T00:00:00",
+            "transact_amt": "-100.00",
+            "transact_data": {"ticket_amt": -100.00}
+        },
+        {
+            "extended_data": {
+                "advance_amt": "220.00",
+                "service_fee_amt": "20.00"
+            },
+            "transact_dt": "2024-08-17T00:00:00",
+            "transact_amt": "300.00",
+            "transact_data": {"ticket_amt": 300.00}
+        },
+        {
+            "extended_data": {
+                "advance_amt": "70.00",
+                "service_fee_amt": "10.00"
+            },
+            "transact_dt": "2024-08-18T00:00:00",
+            "transact_amt": "100.00",
+            "transact_data": {"ticket_amt": 100.00}
+        },
+        {
+            "extended_data": {
+                "advance_amt": "107.50",
+                "service_fee_amt": "12.50"
+            },
+            "transact_dt": "2024-08-19T00:00:00",
+            "transact_amt": "150.00",
+            "transact_data": {"ticket_amt": 150.00}
+        },
+        {
+            "extended_data": {
+                "advance_amt": "370.00",
+                "service_fee_amt": "30.00"
+            },
+            "transact_dt": "2024-08-20T00:00:00",
+            "transact_amt": "500.00",
+            "transact_data": {"ticket_amt": 500.00}
+        },
+        {
+            "extended_data": {
+                "advance_amt": "0.00",
+                "service_fee_amt": "0.00"
+            },
+            "transact_dt": "2024-08-21T00:00:00",
+            "transact_amt": "-200.00",
+            "transact_data": {"ticket_amt": -200.00}
+        },
+        {
+            "extended_data": {
+                "advance_amt": "70.00",
+                "service_fee_amt": "10.00"
+            },
+            "transact_dt": "2024-08-22T00:00:00",
+            "transact_amt": "100.00",
+            "transact_data": {"ticket_amt": 100.00}
+        },
+        {
+            "extended_data": {
+                "advance_amt": "145.00",
+                "service_fee_amt": "15.00"
+            },
+            "transact_dt": "2024-08-23T00:00:00",
+            "transact_amt": "200.00",
+            "transact_data": {"ticket_amt": 200.00}
+        },
+        {
+            "extended_data": {
+                "advance_amt": "0.00",
+                "service_fee_amt": "0.00"
+            },
+            "transact_dt": "2024-08-24T00:00:00",
+            "transact_amt": "-50.00",
+            "transact_data": {"ticket_amt": -50.00}
+        },
+        {
+            "extended_data": {
+                "advance_amt": "295.00",
+                "service_fee_amt": "25.00"
+            },
+            "transact_dt": "2024-08-25T00:00:00",
+            "transact_amt": "400.00",
+            "transact_data": {"ticket_amt": 400.00}
+        },
+        {
+            "extended_data": {
+                "advance_amt": "51.25",
+                "service_fee_amt": "8.75"
+            },
+            "transact_dt": "2024-08-26T00:00:00",
+            "transact_amt": "75.00",
+            "transact_data": {"ticket_amt": 75.00}
+        }
+    ]
+}

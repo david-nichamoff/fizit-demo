@@ -1,19 +1,20 @@
 import logging
 
 from datetime import datetime, timedelta
+
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework import viewsets, status
+
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from api.serializers.deposit_serializer import DepositSerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
 from api.interfaces import DepositAPI
-
-from api.mixins.shared import ValidationMixin
-from api.mixins.views import PermissionMixin
-
+from api.registry import RegistryManager
+from api.views.mixins.validation import ValidationMixin
+from api.views.mixins.permission import PermissionMixin
 from api.utilities.logging import log_info, log_warning, log_error
 from api.utilities.validation import is_valid_integer
 
@@ -28,6 +29,7 @@ class DepositViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.deposit_api = DepositAPI()
+        self.registry_manager = RegistryManager()
         self.logger = logging.getLogger(__name__)
 
     @extend_schema(
@@ -52,17 +54,18 @@ class DepositViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         summary="List Deposits",
         description="Retrieve a list of potential bank deposits for a contract."
     )
-    def list(self, request, contract_idx=None):
+    def list(self, request, contract_type=None, contract_idx=None):
         """Retrieve a list of deposits for a specific contract."""
-        log_info(self.logger, f"Retrieving deposits for contract {contract_idx}.")
+        log_info(self.logger, f"Retrieving deposits for {contract_type}:{contract_idx}")
 
         try:
-            if not is_valid_integer(contract_idx):
-                raise ValidationError("Contract_idx must be an integer")
+            contract_api = self.registry_manager.get_contract_api(contract_type)
+            self._validate_contract_type(contract_type, self.registry_manager)
+            self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
             # Parse and validate date range
             start_date, end_date = self.parse_date_range(request)
-            response = self.deposit_api.get_deposits(start_date, end_date, int(contract_idx))
+            response = self.deposit_api.get_deposits(start_date, end_date, contract_type, int(contract_idx))
 
             if response["status"] == status.HTTP_200_OK:
                 return Response(response["data"], status=status.HTTP_200_OK)
@@ -83,20 +86,20 @@ class DepositViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         summary="Add Settlement Deposit",
         description="Add a bank deposit to a settlement period."
     )
-    def create(self, request, contract_idx=None):
+    def create(self, request, contract_type=None, contract_idx=None):
         """Add deposit to a settlement for a specific contract."""
-        log_info(self.logger, f"Attempting to add deposit for contract {contract_idx}.")
+        log_info(self.logger, f"Attempting to add deposit for {contract_type}:{contract_idx}")
 
         try:
             # Validate master key and contract_idx
             self._validate_master_key(request.auth)
-
-            if not is_valid_integer(contract_idx):
-                raise ValidationError("Contract_idx must be an integer")
+            contract_api = self.registry_manager.get_contract_api(contract_type)
+            self._validate_contract_type(contract_type, self.registry_manager)
+            self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
             # Validate request data
             validated_data = self._validate_request_data(DepositSerializer, request.data, many=False)
-            response = self.deposit_api.add_deposit(int(contract_idx), validated_data)
+            response = self.deposit_api.add_deposit(contract_type, int(contract_idx), validated_data)
 
             log_info(self.logger, f"Posted deposit with {response}")
 

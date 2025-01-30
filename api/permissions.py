@@ -1,5 +1,5 @@
 from rest_framework.permissions import BasePermission
-from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
+from rest_framework.exceptions import AuthenticationFailed, PermissionDenied, ValidationError
 from api.authentication import AWSSecretsAPIKeyAuthentication
 
 class HasCustomAPIKey(BasePermission):

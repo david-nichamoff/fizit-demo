@@ -1,39 +1,47 @@
 import logging
 import time
-from django.core.management.base import BaseCommand
-from api.models.event_model import Event
-from api.managers import Web3Manager, ConfigManager
-from eth_abi import decode
 from datetime import datetime, timezone
+from eth_abi import decode
 
 from web3 import Web3
 from web3.middleware import ExtraDataToPOAMiddleware
 
-from api.utilities.logging import  log_error, log_info, log_warning
+from django.core.management.base import BaseCommand
+
+from api.models.event_model import Event
+from api.web3 import Web3Manager
+from api.config import ConfigManager
+from api.registry import RegistryManager
+from api.utilities.logging import log_error, log_info, log_warning
 
 class Command(BaseCommand):
     help = 'Listen to contract events and update them in the database'
 
     def handle(self, *args, **kwargs):
+        self.logger = logging.getLogger(__name__)
         self.config_manager = ConfigManager()
-        self.config = self.config_manager.load_config()
         self.w3_manager = Web3Manager()
+        self.registry_manager = RegistryManager()
 
         # Web3 instances for both networks
         self.fizit_w3 = self.w3_manager.get_web3_instance(network="fizit")
         self.avalanche_w3 = self.w3_manager.get_web3_instance(network="avalanche")
-        self.avalanche_w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
 
-        self.fizit_contract = self.w3_manager.get_web3_contract(network="fizit")
-        self.logger = logging.getLogger(__name__)
+        if ExtraDataToPOAMiddleware not in self.avalanche_w3.middleware_onion:
+            self.avalanche_w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
+        else:
+            self.avalanche_w3.middleware_onion.replace(ExtraDataToPOAMiddleware, ExtraDataToPOAMiddleware)
+
+        # Load all contracts from config
+        self.contracts = self.load_contracts()
 
         while True:
             try:
-                # Create or recreate filters
-                fizit_filter = self.create_fizit_event_filter()
+                # Create filters dynamically per contract type
+                fizit_filters = self.create_fizit_event_filters()
                 avalanche_transfer_filter = self.create_avalanche_transfer_filter()
 
-                if not fizit_filter or not avalanche_transfer_filter:
+                if not fizit_filters or not avalanche_transfer_filter:
                     log_error(self.logger, "Failed to create one or more event filters. Retrying in 5 seconds...")
                     time.sleep(5)
                     continue
@@ -44,8 +52,10 @@ class Command(BaseCommand):
                     try:
                         time.sleep(2)  # Pause before processing events
 
-                        # Process events
-                        self.process_fizit_events(fizit_filter)
+                        # Process events per contract type
+                        for contract_type, contract_filter in fizit_filters.items():
+                            self.process_fizit_events(contract_filter, contract_type)
+
                         self.process_avalanche_transfer_events(avalanche_transfer_filter)
 
                     except Exception as e:
@@ -56,46 +66,66 @@ class Command(BaseCommand):
                 log_error(self.logger, f"Unexpected error: {str(e)}. Retrying in 5 seconds...")
                 time.sleep(5)  # Pause before retrying
 
-    def create_fizit_event_filter(self):
-        """Create a filter for contract events on the Fizit network."""
-        try:
-            event_signature = "ContractEvent(uint256,string,string)"
-            event_topic = Web3.keccak(text=event_signature).hex()
+    def load_contracts(self):
+        """Load all contract instances from configuration based on contract_type."""
+        contracts = {}
+        contract_types = self.registry_manager.get_contract_types()
 
-            # Ensure the event topic has the 0x prefix
-            if not event_topic.startswith("0x"):
-                event_topic = "0x" + event_topic
+        for contract_type in contract_types:
+            contract_address = self.config_manager.get_contract_address(contract_type)
 
-            return self.fizit_w3.eth.filter({
-                'fromBlock': 'latest',
-                'address': self.fizit_contract.address,
-                'topics': [event_topic]
-            })
-        except ValueError as e:
-            log_error(self.logger, f"Error creating Fizit event filter: {e}")
-            return None
+            if contract_address:
+                contract_instance = self.fizit_w3.eth.contract(
+                    address=Web3.to_checksum_address(contract_address),
+                    abi=self.config_manager.get_contract_abi(contract_type)  # Ensure ABI is loaded correctly
+                )
+                contracts[contract_type] = contract_instance
+            else:
+                log_warning(self.logger, f"Skipping contract {contract_type} (no address found)")
+
+        log_info(self.logger, f"Loaded {len(contracts)} contract instances: {list(contracts.keys())}")
+        return contracts
+
+    def create_fizit_event_filters(self):
+        """Create event filters for each contract type on the Fizit network."""
+        filters = {}
+        for contract_type, contract_instance in self.contracts.items():
+            try:
+                event_signature = "ContractEvent(uint256,string,string)"
+                event_topic = Web3.keccak(text=event_signature).hex()
+
+                if not event_topic.startswith("0x"):
+                    event_topic = "0x" + event_topic
+
+                filters[contract_type] = self.fizit_w3.eth.filter({
+                    'fromBlock': 'latest',
+                    'address': contract_instance.address,
+                    'topics': [event_topic]
+                })
+                log_info(self.logger, f"Created event filter for contract type '{contract_type}' at {contract_instance.address}")
+
+            except ValueError as e:
+                log_error(self.logger, f"Error creating event filter for '{contract_type}': {e}")
+
+        return filters
 
     def create_avalanche_transfer_filter(self):
-        """Create a filter for ERC-20 transfer events on the Avalanche network for specific party addresses."""
+        """Create a filter for ERC-20 transfer events on the Avalanche network."""
         try:
-            # Keccak hash of the ERC-20 Transfer event signature
             transfer_signature = Web3.keccak(text="Transfer(address,address,uint256)").hex()
             if not transfer_signature.startswith("0x"):
                 transfer_signature = f"0x{transfer_signature}"
 
-            # Retrieve party addresses from config
             party_addresses = [
                 Web3.to_checksum_address(addr["value"])
-                for addr in self.config_manager.get_config_value("party_addr")
+                for addr in self.config_manager.get_party_addresses()
             ]
 
-            # Get the token addresses and ensure they are in checksum format
             token_addresses = [
                 Web3.to_checksum_address(addr["value"])
-                for addr in self.config_manager.get_config_value("token_addr")
+                for addr in self.config_manager.get_token_addresses()
             ]
 
-            # Pad addresses to 32 bytes for topics
             padded_party_addresses = [
                 Web3.to_hex(Web3.to_bytes(hexstr=addr).rjust(32, b'\x00'))
                 for addr in party_addresses
@@ -106,8 +136,8 @@ class Command(BaseCommand):
                 'address': token_addresses if len(token_addresses) > 1 else token_addresses[0],
                 'topics': [
                     transfer_signature,
-                    padded_party_addresses,  # Filter for `from` addresses
-                    padded_party_addresses   # Filter for `to` addresses
+                    padded_party_addresses,
+                    padded_party_addresses
                 ]
             }
 
@@ -117,11 +147,11 @@ class Command(BaseCommand):
             log_error(self.logger, f"Error creating Avalanche transfer filter: {e}")
             return None
 
-    def process_fizit_events(self, fizit_filter):
-        """Process events from the Fizit network."""
-        for event in fizit_filter.get_new_entries():
+    def process_fizit_events(self, event_filter, contract_type):
+        """Process events for a specific contract type on the Fizit network."""
+        for event in event_filter.get_new_entries():
             try:
-                log_info(self.logger, f"Fizit event found: {event}")
+                log_info(self.logger, f"Fizit event found for {contract_type}: {event}")
 
                 tx_hash = event.get('transactionHash', b'').hex()
                 if tx_hash.startswith("0x"):
@@ -140,7 +170,7 @@ class Command(BaseCommand):
                 gas_used = receipt.get("gasUsed") if receipt else None
                 block_timestamp = self.fizit_w3.eth.get_block(block_number).timestamp
 
-                time.sleep(1)  # Make sure the database is updated
+                time.sleep(1)
 
                 existing_event = Event.objects.filter(tx_hash=tx_hash).first()
                 if existing_event:
@@ -152,13 +182,14 @@ class Command(BaseCommand):
                     existing_event.gas_used = gas_used
                     existing_event.status = "complete"
                     existing_event.network = "fizit"
+                    existing_event.contract_type = contract_type  # New field
                     existing_event.save()
-                    log_info(self.logger, f'Updated Fizit event: tx_hash={tx_hash}')
+                    log_info(self.logger, f'Updated Fizit event for {contract_type}: tx_hash={tx_hash}')
                 else:
                     log_warning(self.logger, f"No matching Event found for Fizit tx_hash={tx_hash}")
 
             except Exception as e:
-                log_error(self.logger, f"Error processing Fizit event: {str(e)}")
+                log_error(self.logger, f"Error processing Fizit event for {contract_type}: {str(e)}")
 
     def process_avalanche_transfer_events(self, transfer_filter):
         """Process ERC-20 Transfer events on the Avalanche network."""
@@ -170,33 +201,22 @@ class Command(BaseCommand):
                 if tx_hash.startswith("0x"):
                     tx_hash = tx_hash[2:]
 
-                log_info(self.logger, f"Tx hash: {tx_hash}")
-
                 token_addr = event.get('address', 'Unknown token address')
                 block_number = event.get('blockNumber', 'Unknown block')
 
-                # Decode the `from`, `to`, and `value` fields
                 from_addr = "0x" + event['topics'][1].hex()[-40:]
                 to_addr = "0x" + event['topics'][2].hex()[-40:]
 
-                log_info(self.logger, f"From address: {from_addr}")
-                log_info(self.logger, f"To address: {to_addr}")
+                value = int(event['data'].hex(), 16)
 
-                value = int(event['data'].hex(), 16)  # Decode `data` as a hex string and convert to int
-
-                log_info(self.logger, f"Amount: {value}")
-
-                # Get transaction receipt and block timestamp
                 receipt = self.avalanche_w3.eth.get_transaction_receipt(tx_hash)
                 gas_used = receipt.get("gasUsed") if receipt else None
                 block_timestamp = self.avalanche_w3.eth.get_block(block_number).timestamp
 
                 details = f"Transfer {value}, token: {token_addr}"
 
-                # Fetch the existing event based on tx_hash
                 existing_event = Event.objects.filter(tx_hash=tx_hash).first()
                 if existing_event:
-                    # Update the existing event
                     existing_event.contract_addr = token_addr
                     existing_event.event_type = "ERC-20 Transfer"
                     existing_event.details = details
@@ -207,7 +227,6 @@ class Command(BaseCommand):
                     existing_event.status = "complete"
                     existing_event.network = "avalanche"
                     existing_event.save()
-                    log_info(self.logger, f'Updated Avalanche transfer event: tx_hash={tx_hash}')
 
             except Exception as e:
                 log_error(self.logger, f"Error processing Avalanche transfer event: {str(e)}")
