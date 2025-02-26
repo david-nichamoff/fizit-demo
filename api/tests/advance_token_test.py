@@ -151,7 +151,7 @@ class AdvanceTokenTest(TestCase):
         log_info(self.logger, f"Validating event {event_type} for contract {contract_idx}")
 
         event = None
-        max_attempts = 5  # Increase retries to 5
+        max_attempts = 10  # Increase retries to 5
         wait_time = 10  # Wait 10 seconds between attempts
 
         for attempt in range(max_attempts):

@@ -34,9 +34,6 @@ class PartyOperations:
         Add parties to a contract.
         """
         headers_with_csrf = self._add_csrf_token(self.headers.copy())
-        log_info(logger, f"POST URL: {self.base_url}/api/contracts/{contract_type}/{contract_idx}/parties/")
-        log_info(logger, f"POST Payload: {json.dumps(parties_data, indent=2)}")
-        log_info(logger, f"POST Headers: {headers_with_csrf}")
         response = requests.post(
             f"{self.base_url}/api/contracts/{contract_type}/{contract_idx}/parties/",
             json=parties_data,
