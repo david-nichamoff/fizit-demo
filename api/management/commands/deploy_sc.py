@@ -20,7 +20,7 @@ class Command(BaseCommand):
             '--contract_type',
             type=str,
             required=True,
-            help='The type of contract to deploy (e.g., ticketing, advance, delivery)',
+            help='The type of contract to deploy (e.g., purchase, sale, advance)',
         )
 
     def handle(self, *args, **kwargs):

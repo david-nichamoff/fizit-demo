@@ -7,38 +7,36 @@ from rest_framework.exceptions import ValidationError
 
 from api.config import ConfigManager
 from api.web3 import Web3Manager
-from api.interfaces import TransactionAPI, PartyAPI
-from api.registry import RegistryManager
+from api.interfaces import PartyAPI
 from api.interfaces.account_api import AccountAPI
 from api.interfaces.recipient_api import RecipientAPI
 from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
 from api.utilities.general import find_match
 
-class AdvanceAPI(ResponseMixin):
+class BaseAdvanceAPI(ResponseMixin):
     _instance = None
 
     def __new__(cls, *args, **kwargs):
         """Ensure that the class is a singleton."""
         if not cls._instance:
-            cls._instance = super(AdvanceAPI, cls).__new__(cls, *args, **kwargs)
+            cls._instance = super(BaseAdvanceAPI, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self):
+    def __init__(self, registry_manager=None):
         """Initialize AdvanceAPI with necessary dependencies."""
         if not hasattr(self, "initialized"):
             self.config_manager = ConfigManager()
             self.w3_manager = Web3Manager()
             self.w3 = self.w3_manager.get_web3_instance()
 
-            self.transaction_api = TransactionAPI()
-            self.account_api = AccountAPI()
-            self.recipient_api = RecipientAPI()
+            self.account_api = AccountAPI(registry_manager)
+            self.recipient_api = RecipientAPI(registry_manager)
             self.party_api = PartyAPI()
 
             self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
             self.checksum_wallet_addr = self.w3_manager.get_checksum_address(self.wallet_addr)
-            self.registry_manager = RegistryManager()
+            self.registry_manager = registry_manager
 
             self.logger = logging.getLogger(__name__)
             self.initialized = True
@@ -46,7 +44,8 @@ class AdvanceAPI(ResponseMixin):
     def get_advances(self, contract_type, contract_idx):
 
         try:
-            response = self.transaction_api.get_transactions(contract_type, contract_idx)
+            transaction_api = self.registry_manager.get_transaction_api(contract_type)
+            response = transaction_api.get_transactions(contract_type, contract_idx)
             if response["status"] == status.HTTP_200_OK:
                 transactions = response["data"]
                 log_info(self.logger, f"Checking transactions for advances: {transactions}")
@@ -235,3 +234,13 @@ class AdvanceAPI(ResponseMixin):
             error_message = f"Error building advance dictionary: {str(e)}"
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e
+
+### These are for future use
+
+### **Subclass for Advance Contracts**
+class PurchaseAdvanceAPI(BaseAdvanceAPI):
+    pass
+
+### **Subclass for Advance Contracts**
+class AdvanceAdvanceAPI(BaseAdvanceAPI):
+    pass

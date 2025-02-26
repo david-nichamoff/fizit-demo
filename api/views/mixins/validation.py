@@ -225,21 +225,20 @@ class ValidationMixin:
             transact_max_dt = settlement.get("transact_max_dt")
             settle_due_dt = settlement.get("settle_due_dt")
 
-            # Ensure all required fields are present
-            if transact_min_dt is None or transact_max_dt is None or settle_due_dt is None:
-                raise ValidationError(f"Missing required fields in settlement at index {idx}.")
-
             # Ensure they are datetime objects (should already be converted by serializer)
-            if not all(isinstance(dt, datetime) for dt in [transact_min_dt, transact_max_dt, settle_due_dt]):
-                raise ValidationError(f"Invalid date types in settlement at index {idx}. Fields must be datetime objects.")
+            for field in ["transact_min_dt", "transact_max_dt", "settle_due_dt"]:
+                if field in settlement:
+                    if not isinstance(settlement[field], datetime):
+                        raise ValidationError(f"Invalid date types in settlement at index {idx}. Field {field} must be datetime object.")
 
             # Check constraints
-            if transact_max_dt > settle_due_dt:
-                raise ValidationError(f"Invalid settlement at index {idx}: transact_max_dt ({transact_max_dt}) must be <= settle_due_dt ({settle_due_dt}).")
+            if "transact_max_dt" in settlement:
+                if transact_max_dt > settle_due_dt:
+                    raise ValidationError(f"Invalid settlement at index {idx}: transact_max_dt ({transact_max_dt}) must be <= settle_due_dt ({settle_due_dt}).")
 
-            if transact_min_dt > transact_max_dt:
-                raise ValidationError(f"Invalid settlement at index {idx}: transact_min_dt ({transact_min_dt}) must be <= transact_max_dt ({transact_max_dt}).")
-
+            if "transact_min_dt" in settlement:
+                if transact_min_dt > transact_max_dt:
+                    raise ValidationError(f"Invalid settlement at index {idx}: transact_min_dt ({transact_min_dt}) must be <= transact_max_dt ({transact_max_dt}).")
 
     def _validate_transactions(self, transaction_list):
         """
@@ -301,31 +300,31 @@ class ValidationMixin:
             if not isinstance(contract[field], bool):
                 raise ValidationError(f"Invalid value for '{field}': '{contract[field]}'. Must be true or false.")
 
-        # Validate min/max threshold amounts
-        if Decimal(contract["min_threshold_amt"]) > Decimal(contract["max_threshold_amt"]):
-            raise ValidationError(
-                f"'min_threshold_amt' ({contract['min_threshold_amt']}) must be less than or equal to 'max_threshold_amt' ({contract['max_threshold_amt']})."
-            )
-
         # Validate contract_name and notes
-        for field in ["contract_name", "notes"]:
-            if not isinstance(contract[field], str) or not contract[field].strip():
-                raise ValidationError(f"Invalid value for '{field}': '{contract[field]}'. Must be a non-empty string.")
+        for field in ["contract_name"]:
+            if field in contract:
+                if not isinstance(contract[field], str) or not contract[field].strip():
+                    raise ValidationError(f"Invalid value for '{field}': '{contract[field]}'. Must be a non-empty string.")
+
+        # Validate min/max threshold amounts
+        for field in ["min_threshold_amt", "max_threshold_amt"]:
+            if field in contract:
+                if not isinstance(contract[field], str) or not is_valid_amount(contract[field], allow_negative=True):
+                    raise ValidationError(f"Invalid value for '{field}': '{contract[field]}'. Must be a valid amount.")
+                if Decimal(contract["min_threshold_amt"]) > Decimal(contract["max_threshold_amt"]):
+                    raise ValidationError(
+                        f"'min_threshold_amt' ({contract['min_threshold_amt']}) must be less than or equal to 'max_threshold_amt' ({contract['max_threshold_amt']})."
+                )
 
         # Validate funding_instr
-        if contract["funding_instr"]["bank"] not in ['mercury', 'token']:
-            raise ValidationError(f"Invalid bank: '{contract['funding_instr']['bank']}'. Valid banks: 'mercury', 'token'.")
-
-        # Validate amounts
-        for field in ["min_threshold_amt", "max_threshold_amt"]:
-            if not isinstance(contract[field], str) or not is_valid_amount(contract[field], allow_negative=True):
-                raise ValidationError(f"Invalid value for '{field}': '{contract[field]}'. Must be a valid amount.")
+        if contract["funding_instr"]["bank"] not in self.registry_manager.get_banks():
+            raise ValidationError(f"Invalid bank: '{contract['funding_instr']['bank']}'")
 
         # Validate funding_instr and deposit_instr if they exist
         for instr in ["funding_instr", "deposit_instr"]:
             if instr in contract:
-                if contract[instr]["bank"] not in ['mercury', 'token']:
-                    raise ValidationError(f"Invalid bank: '{contract[instr]['bank']}'. Valid banks: 'mercury', 'token'.")
+                if contract[instr]["bank"] not in self.registry_manager.get_banks():
+                    raise ValidationError(f"Invalid bank: '{contract[instr]['bank']}'")
 
         # Validate percentage fields
         for field in ["service_fee_pct", "service_fee_max", "advance_pct", "late_fee_pct"]:

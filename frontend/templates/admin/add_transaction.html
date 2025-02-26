@@ -4,8 +4,10 @@
 {% block extrahead %}
 <script>
     const contracts = {{ contracts|default:"[]"|safe }};
+    const contractTypes = {{ contract_types|default:"[]"|safe }};
+    let defaultContractType = "{{ default_contract_type|escapejs }}";
 </script>
-<script src="{% static 'js/add_transaction.js' %}?v1.1"></script>
+<script src="{% static 'js/add_transaction.js' %}?v1.6"></script>
 {% endblock %}
 
 {% block content %}
@@ -19,6 +21,20 @@
             {% csrf_token %}
 
             <fieldset class="module aligned">
+                <!-- Select Contract Type -->
+                <div class="form-row">
+                    <div class="flex-container">
+                        <label class="required" for="id_contract_type">Contract Type:</label>
+                        <select id="id_contract_type" name="contract_type">
+                            {% for contract_type in contract_types %}
+                                <option value="{{ contract_type }}" {% if contract_type == default_contract_type %}selected{% endif %}>
+                                    {{ contract_type|title }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
                 <!-- Select Contract -->
                 <div class="form-row">
                     <div class="flex-container">

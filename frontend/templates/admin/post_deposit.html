@@ -3,102 +3,91 @@
 
 {% block extrahead %}
 <script>
-    const settlements = {{ settlements|default:"[]"|safe }};
-    const deposits = {{ deposits|default:"[]"|safe }};
+    const contracts = {{ contracts|default:"[]"|safe }};
+    const contractTypes = {{ contract_types|default:"[]"|safe }};
+    const settlements = {{ settlements|default:"{}"|safe }};
+    let defaultContractType = "{{ default_contract_type|escapejs }}";
 </script>
-<script src="{% static 'js/post_deposit.js' %}?v1.3"></script>
+<script src="{% static 'js/post_deposit.js' %}?v1.15"></script>
 {% endblock %}
 
 {% block content %}
 <h1 class="title">Post Deposit</h1>
-
-<!-- Deposits Table -->
-{% if deposits %}
-<div class="module">
-    <table class="table table-striped results" id="deposits-table">
-        <thead>
-            <tr>
-                <th scope="col">Select</th>
-                <th scope="col">Counterparty</th>
-                <th scope="col">Amount</th>
-                <th scope="col">Date</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for deposit in deposits %}
-            <tr>
-                <td>
-                    <input type="radio" name="selected_deposit" 
-                           data-deposit-dt="{{ deposit.deposit_dt }}" 
-                           data-deposit-amt="{{ deposit.deposit_amt }}" 
-                           value="{{ deposit.tx_hash }}">
-                </td>
-                <td>{{ deposit.counterparty }}</td>
-                <td>{{ deposit.deposit_amt }}</td>
-                <td>{{ deposit.deposit_dt }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <div class="form-row">
-        <div class="help">Select a deposit to proceed</div>
-    </div>
-</div>
-{% endif %}
-
-<!-- Settlements Table -->
-{% if settlements %}
-<div class="module">
-    <table class="table table-striped results" id="settlements-table">
-        <thead>
-            <tr>
-                <th scope="col">Select</th>
-                <th scope="col">Settlement ID</th>
-                <th scope="col">Due Date</th>
-                <th scope="col">Expected Amount</th>
-                <th scope="col">Payment Date</th>
-                <th scope="col">Payment Amount</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for settlement in settlements %}
-            <tr>
-                <td>
-                    <input type="radio" name="selected_settlement" 
-                           data-settlement-id="{{ settlement.settle_idx }}" 
-                           value="{{ settlement.settle_idx }}">
-                </td>
-                <td>{{ settlement.settle_idx }}</td>
-                <td>{{ settlement.settle_due_dt }}</td>
-                <td>{{ settlement.settle_exp_amt }}</td>
-                <td>{{ settlement.settle_pay_dt }}</td>
-                <td>{{ settlement.settle_pay_amt }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <div class="form-row">
-        <div class="help">Select a settlement to proceed</div>
-    </div>
-</div>
-{% endif %}
-
-<!-- Post Deposit Form -->
 <form method="post" class="post-deposit-form">
     {% csrf_token %}
     <fieldset class="module aligned">
-        <input type="hidden" name="contract_idx" value="{{ selected_contract_idx }}">
-        <input type="hidden" name="deposit_dt" id="selected-deposit-dt">
-        <input type="hidden" name="deposit_amt" id="selected-deposit-amt">
-        <input type="hidden" name="settle_idx" id="selected-settlement-idx">
+        <!-- Select Contract Type -->
         <div class="form-row">
-            <label for="{{ post_deposit_form.dispute_reason.id_for_label }}">{{ post_deposit_form.dispute_reason.label }}</label>
-            {{ post_deposit_form.dispute_reason }}
+            <div class="flex-container">
+                <label class="required" for="id_contract_type">Contract Type:</label>
+                <select id="id_contract_type" name="contract_type">
+                    {% for contract_type in contract_types %}
+                        <option value="{{ contract_type }}" {% if contract_type == default_contract_type %}selected{% endif %}>
+                            {{ contract_type|title }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Select Contract -->
+        <div class="form-row">
+            <div class="flex-container">
+                <label class="required" for="{{ post_deposit_form.contract_idx.id_for_label }}">{{ post_deposit_form.contract_idx.label }}</label>
+                {{ post_deposit_form.contract_idx }}
+            </div>
+            <div class="help">{{ post_deposit_form.contract_idx.help_text }}</div>
+        </div>
+
+        <!-- Settlement Index -->
+        <div class="form-row">
+            <div class="flex-container">
+                <label class="required" for="{{ post_deposit_form.settle_idx.id_for_label }}">{{ post_deposit_form.settle_idx.label }}</label>
+                {{ post_deposit_form.settle_idx }}
+            </div>
+            <div class="help">{{ post_deposit_form.settle_idx.help_text }}</div>
+        </div>
+
+        <!-- Dispute Reason -->
+        <div class="form-row">
+            <div class="flex-container">
+                <label class="optional" for="{{ post_deposit_form.dispute_reason.id_for_label }}">{{ post_deposit_form.dispute_reason.label }}</label>
+                {{ post_deposit_form.dispute_reason }}
+            </div>
+            <div class="help">{{ post_deposit_form.dispute_reason.help_text }}</div>
+        </div>
+
+        <!-- Transaction Hash -->
+        <div class="form-row">
+            <div class="flex-container">
+                <label class="optional" for="{{ post_deposit_form.tx_hash.id_for_label }}">{{ post_deposit_form.tx_hash.label }}</label>
+                {{ post_deposit_form.tx_hash }}
+            </div>
+            <div class="help">{{ post_deposit_form.tx_hash.help_text }}</div>
+        </div>
+
+        <!-- Deposit Date -->
+        <div class="form-row">
+            <div class="flex-container">
+                <label class="optional" for="{{ post_deposit_form.deposit_dt.id_for_label }}">{{ post_deposit_form.deposit_dt.label }}</label>
+                {{ post_deposit_form.deposit_dt }}
+            </div>
+            <div class="help">{{ post_deposit_form.deposit_dt.help_text }}</div>
+        </div>
+
+        <!-- Deposit Amount -->
+        <div class="form-row">
+            <div class="flex-container">
+                <label class="optional" for="{{ post_deposit_form.deposit_amt.id_for_label }}">{{ post_deposit_form.deposit_amt.label }}</label>
+                {{ post_deposit_form.deposit_amt }}
+            </div>
+            <div class="help">{{ post_deposit_form.deposit_amt.help_text }}</div>
         </div>
     </fieldset>
 
     <div class="submit-row">
-        <input type="submit" name="post_deposit" value="Post Deposit" class="default" />
+        <input type="submit" value="Post Deposit" class="default" />
     </div>
 </form>
+
 {% endblock %}

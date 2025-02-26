@@ -10,7 +10,7 @@ from api.models import Event, SmartContract
 from frontend.views import erc20_balances_view, avax_balances_view, fizit_balances_view, mercury_balances_view
 from frontend.views import view_contract_view, list_contracts_view, add_contract_view
 from frontend.views import add_transaction_view, add_advance_view, add_residual_view
-from frontend.views import find_deposits_view, post_deposit_view
+from frontend.views import add_distribution_view, post_deposit_view, find_deposits_view
 from frontend.views import EventAdmin, ContractAdmin
 
 from api.utilities.logging import log_info, log_warning, log_error
@@ -44,6 +44,7 @@ class CustomAdminSite(AdminSite):
             path('find-deposits/', self.admin_view(self.find_deposits_view), name='find_deposits'),  
             path('post-deposit/', self.admin_view(self.post_deposit_view), name='post_deposit'),  
             path('add-residual/', self.admin_view(self.add_residual_view), name='add_residual'),  
+            path('add-distribution/', self.admin_view(self.add_distribution_view), name='add_distribution'),  
         ]
         return custom_urls + urls
 
@@ -87,6 +88,10 @@ class CustomAdminSite(AdminSite):
         context = self.each_context(request)
         return add_residual_view(request, extra_context=context)
 
+    def add_distribution_view(self, request):
+        context = self.each_context(request)
+        return add_distribution_view(request, extra_context=context)
+
     def find_deposits_view(self, request):
         context = self.each_context(request)
         return find_deposits_view(request, extra_context=context)
@@ -114,13 +119,15 @@ class CustomAdminSite(AdminSite):
             {
                 'section': 'Contracts',
                 'links': [
-                    {'name': 'Contracts', 'url': reverse('custom_admin:list_contracts')},
-                    {'name': 'Transactions', 'url': reverse('custom_admin:add_transaction')},
-                    {'name': 'Advances', 'url': reverse('custom_admin:add_advance')},
-                    {'name': 'Deposits', 'url': reverse('custom_admin:find_deposits')},
-                    {'name': 'Residuals', 'url': reverse('custom_admin:add_residual')},
+                    {'name': 'List Contracts', 'url': reverse('custom_admin:list_contracts')},
+                    {'name': 'Add Transactions', 'url': reverse('custom_admin:add_transaction')},
+                    {'name': 'Pay Advances', 'url': reverse('custom_admin:add_advance')},
+                    {'name': 'Find Deposits', 'url': reverse('custom_admin:find_deposits')},
+                    {'name': 'Post Deposit', 'url': reverse('custom_admin:post_deposit')},
+                    {'name': 'Pay Residuals', 'url': reverse('custom_admin:add_residual')},
+                    {'name': 'Pay Distributions', 'url': reverse('custom_admin:add_distribution')},
                 ],
-            },
+            }
         ]
 
         return context

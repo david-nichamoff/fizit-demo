@@ -5,7 +5,6 @@ from rest_framework.exceptions import ValidationError
 
 from api.web3 import Web3Manager
 from api.config import ConfigManager
-from api.registry import RegistryManager
 from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
 
@@ -15,15 +14,15 @@ class RecipientAPI(ResponseMixin):
     def __new__(cls, *args, **kwargs):
         """Ensure that the class is a singleton."""
         if not cls._instance:
-            cls._instance = super(RecipientAPI, cls).__new__(cls, *args, **kwargs)
+            cls._instance = super(RecipientAPI, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self):
+    def __init__(self, registry_manager=None):
         """Initialize the RecipientAPI class with configurations and logger."""
         if not hasattr(self, "initialized"):
             self.config_manager = ConfigManager()
             self.w3_manager = Web3Manager()
-            self.registry_manager = RegistryManager()
+            self.registry_manager = registry_manager
 
             self.logger = logging.getLogger(__name__)
             self.initialized = True  # Mark this instance as initialized

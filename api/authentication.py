@@ -2,10 +2,10 @@ import logging
 
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed, ValidationError
-
-from api.secrets.secrets_manager import SecretsManager  
+from drf_spectacular.extensions import OpenApiAuthenticationExtension
 
 from api.utilities.logging import  log_error, log_info, log_warning
+from api.secrets.secrets_manager import SecretsManager  
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -54,3 +54,13 @@ class AWSSecretsAPIKeyAuthentication(BaseAuthentication):
         which is used when an authentication failure occurs and a 401 response is returned.
         """
         return 'Api-Key'  # The client will know to use 'Api-Key {your_key}' in the Authorization header
+
+class NoAuthForSwaggerExtension(OpenApiAuthenticationExtension):
+    target_class = 'api.authentication.NoAuthForSwagger'  # This must match the import path
+    name = 'No Authentication'
+
+    def get_security_definition(self, auto_schema):
+        """
+        This disables security for Swagger UI and Redoc documentation.
+        """
+        return {}

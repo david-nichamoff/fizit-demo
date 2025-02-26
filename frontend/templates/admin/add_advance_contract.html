@@ -1,0 +1,144 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+<script>
+    const accounts = {{ accounts|default:"[]"|safe }};
+    const recipients = {{ recipients|default:"[]"|safe }};
+    const templates = {{ templates|default:'[]'|safe }};
+    const contractType = "{{ contract_type }}"; 
+</script>
+<script src="{% static 'js/add_contract.js' %}?v1.9"></script>
+{% endblock %}
+
+{% block content %}
+<h1 class="title">Add Advance Contract</h1>
+<form method="post" class="contract-form">
+    {% csrf_token %}
+
+    <fieldset class="module aligned">
+
+        <div class="form-row flex-container">
+            <label class="required" for="{{ contract_form.contract_name.id_for_label }}">{{ contract_form.contract_name.label }}</label>
+            {{ contract_form.contract_name }}
+        </div>
+
+        <div class="form-row">
+            <div class="flex-container">
+                <label class="required" for="{{ contract_form.service_fee_pct.id_for_label }}">{{ contract_form.service_fee_pct.label }}</label>
+                {{ contract_form.service_fee_pct }}
+            </div>
+            <div class="help">{{ contract_form.service_fee_pct.help_text }}</div>
+        </div>
+
+        <div class="form-row">
+            <div class="flex-container">
+                <label class="required" for="{{ contract_form.service_fee_amt.id_for_label }}">{{ contract_form.service_fee_amt.label }}</label>
+                {{ contract_form.service_fee_amt }}
+            </div>
+            <div class="help">{{ contract_form.service_fee_amt.help_text }}</div>
+        </div>
+
+        <div class="form-row">
+            <div class="flex-container">
+                <label class="required" for="{{ contract_form.advance_pct.id_for_label }}">{{ contract_form.advance_pct.label }}</label>
+                {{ contract_form.advance_pct }}
+            </div>
+            <div class="help">{{ contract_form.advance_pct.help_text }}</div>
+        </div>
+
+        <div class="form-row">
+            <div class="flex-container">
+                <label class="required" for="{{ contract_form.late_fee_pct.id_for_label }}">{{ contract_form.late_fee_pct.label }}</label>
+                {{ contract_form.late_fee_pct }}
+            </div>
+            <div class="help">{{ contract_form.late_fee_pct.help_text }}</div>
+        </div>
+
+        <div class="form-row flex-container">
+            <label for="id_library_template">Select template:</label>
+            <div class="field">
+                <select id="id_library_template" name="library_template">
+                    <option value="">Select a Template</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="flex-container">
+                <label class="required" for="{{ contract_form.transact_logic.id_for_label }}">{{ contract_form.transact_logic.label }}</label>
+                <div class="field">
+                    {{ contract_form.transact_logic }}
+                </div>
+            </div>
+            <div class="help">{{ contract_form.transact_logic.help_text }}</div>
+        </div>
+
+        <div class="form-row">
+            <div class="flex-container">
+                <label class="required" for="{{ contract_form.funding_method.id_for_label }}">{{ contract_form.funding_method.label }}</label>
+                {{ contract_form.funding_method }}
+            </div>
+            <div class="help">{{ contract_form.funding_method.help_text }}</div>
+        </div>
+
+        <div class="form-row flex-container funding-token-symbol-group hidden">
+            <label class="required" for="{{ contract_form.funding_token_symbol.id_for_label }}">{{ contract_form.funding_token_symbol.label }}</label>
+            {{ contract_form.funding_token_symbol }}
+        </div>
+
+        <div class="form-row flex-container funding-account-group hidden">
+            <label class="required" for="id_funding_account">Funding account:</label>
+            <select id="id_funding_account" name="funding_account">
+                <option value="">Select an Account</option>
+                {% for account in accounts %}
+                <option value="{{ account.id }}">{{ account.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-row flex-container funding-recipient-group hidden">
+            <label class="required" for="id_funding_recipient">Funding recipient:</label>
+            <select id="id_funding_recipient" name="funding_recipient">
+                <option value="">Select a Recipient</option>
+                {% for recipient in recipients %}
+                <option value="{{ recipient.id }}">{{ recipient.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-row">
+            <div class="flex-container">
+                <label class="required" for="{{ contract_form.deposit_method.id_for_label }}">{{ contract_form.deposit_method.label }}</label>
+                {{ contract_form.deposit_method }}
+            </div>
+            <div class="help">{{ contract_form.deposit_method.help_text }}</div>
+        </div>
+
+        <div class="form-row flex-container deposit-token-symbol-group hidden">
+            <label class="required" for="{{ contract_form.deposit_token_symbol.id_for_label }}">{{ contract_form.deposit_token_symbol.label }}</label>
+            {{ contract_form.deposit_token_symbol }}
+        </div>
+
+        <div class="form-row flex-container deposit-account-group hidden">
+            <label class="required" for="id_deposit_account">Deposit account:</label>
+            <select id="id_deposit_account" name="deposit_account">
+                <option value="">Select an Account</option>
+                {% for account in accounts %}
+                <option value="{{ account.id }}">{{ account.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+    </fieldset>
+
+    <!-- Hidden fields for funding and deposit instructions -->
+    <input type="hidden" id="id_funding_instr" name="funding_instr" value="{}">
+    <input type="hidden" id="id_deposit_instr" name="deposit_instr" value="{}">
+    <input type="hidden" name="contract_type" value="{{ contract_type }}">
+
+    <div class="submit-row">
+        <input type="submit" value="Add Contract" class="default" />
+    </div>
+</form>
+{% endblock %}

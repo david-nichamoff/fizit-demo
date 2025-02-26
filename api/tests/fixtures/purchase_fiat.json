@@ -1,0 +1,29 @@
+{
+    "contract_type": "purchase",
+    "contract": {
+        "extended_data": {"Contract #": 100},
+        "contract_name": "Purchase Contract",
+        "funding_instr": {"bank": "mercury", "account_id": "61396d72-e780-11ee-b69b-137ed758771c", "recipient_id": "627ecace-e780-11ee-b69b-f311fd81fcb4"},
+        "service_fee_pct": "0.0000",
+        "service_fee_amt": "0.00",
+        "transact_logic": { "*": [{ "var": "barrels" }, {"var": "price"}]},
+        "notes": "Valid purchase contract",
+        "is_active": true,
+        "is_quote": false
+    },
+    "parties": [
+        {"party_code": "Supplier_1", "party_type": "seller"},
+        {"party_code": "FIZIT", "party_type": "funder"}
+    ],
+    "transactions": [
+        {
+            "extended_data": {"transaction_id": "transaction number 1"},
+            "transact_dt": "2025-02-04T11:00:00",
+            "transact_data": {"barrels": 100, "price": 10.95 }
+        }
+    ],
+    "artifacts": [
+        "https://fizit-repository.s3.amazonaws.com/FIZIT+Executive+Summary.pdf",
+        "https://fizit-repository.s3.amazonaws.com/Fizit+Introduction+2023-12.pdf"
+    ]
+}

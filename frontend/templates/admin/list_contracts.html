@@ -9,15 +9,30 @@
         </div>
     {% else %}
         <!-- Header Section with Add Contract Button -->
+    <!-- Header Section with Multiple Add Contract Buttons -->
         <div class="breadcrumbs-module">
-            <h1 class="title">Select Contract to view</h1>
+            <h1 class="title">Select Contract to View</h1>
             <ul class="object-tools">
-                <li>
-                    <a href="{% url 'custom_admin:add_contract' %}" class="addlink">
-                        Add Contract
-                    </a>
-                </li>
+                {% for contract_type in contract_types %}
+                    <li>
+                        <a href="{% url 'custom_admin:add_contract' %}?contract_type={{ contract_type }}" class="addlink">
+                            Add {{ contract_type|capfirst }} Contract
+                        </a>
+                    </li>
+                {% endfor %}
             </ul>
+        </div>
+
+        <!-- Contract Type Filter -->
+        <div class="module">
+            <label for="contractTypeFilter">Filter by Contract Type:</label>
+            <select id="contractTypeFilter">
+                {% for contract_type in contract_types %}
+                    <option value="{{ contract_type }}" {% if contract_type == selected_contract_type %}selected{% endif %}>
+                        {{ contract_type|capfirst }}
+                    </option>
+                {% endfor %}
+            </select>
         </div>
 
         <!-- Contracts Table -->
@@ -25,7 +40,7 @@
             <table class="table table-striped results">
                 <thead>
                     <tr>
-                        <th scope="col" class="{% if ordering == 'contract_idx' or ordering == '-contract_idx' %}sorted{% endif %}">
+                        <th scope="col">
                             <a href="{{ sorting_links.contract_idx }}">
                                 Contract Index
                                 {% if ordering == 'contract_idx' %}
@@ -35,7 +50,7 @@
                                 {% endif %}
                             </a>
                         </th>
-                        <th scope="col" class="{% if ordering == 'contract_name' or ordering == '-contract_name' %}sorted{% endif %}">
+                        <th scope="col">
                             <a href="{{ sorting_links.contract_name }}">
                                 Contract Name
                                 {% if ordering == 'contract_name' %}
@@ -45,32 +60,22 @@
                                 {% endif %}
                             </a>
                         </th>
-                        <th scope="col" class="{% if ordering == 'contract_type' or ordering == '-contract_type' %}sorted{% endif %}">
-                            <a href="{{ sorting_links.contract_type }}">
-                                Contract Type
-                                {% if ordering == 'contract_type' %}
-                                    <span class="sorting-indicator">&#x25B2;</span>
-                                {% elif ordering == '-contract_type' %}
-                                    <span class="sorting-indicator">&#x25BC;</span>
-                                {% endif %}
-                            </a>
-                        </th>
-                        <th scope="col" class="{% if ordering == 'is_quote' or ordering == '-is_quote' %}sorted{% endif %}">
+                        <th scope="col">
                             <a href="{{ sorting_links.is_quote }}">
                                 Is Quote?
-                                {% if ordering == 'is_quote' %}
-                                    <span class="sorting-indicator">&#x25B2;</span>
-                                {% elif ordering == '-is_quote' %}
-                                    <span class="sorting-indicator">&#x25BC;</span>
-                                {% endif %}
                             </a>
                         </th>                        
-                        <th scope="col" class="{% if ordering == 'is_active' or ordering == '-is_active' %}sorted{% endif %}">
+                        <th scope="col">
                             <a href="{{ sorting_links.is_active }}">
                                 Is Active?
-                                {% if ordering == 'is_active' %}
+                            </a>
+                        </th>
+                        <th scope="col">
+                            <a href="{{ sorting_links.last_updated }}">
+                                Last Updated
+                                {% if ordering == 'last_updated' %}
                                     <span class="sorting-indicator">&#x25B2;</span>
-                                {% elif ordering == '-is_active' %}
+                                {% elif ordering == '-last_updated' %}
                                     <span class="sorting-indicator">&#x25BC;</span>
                                 {% endif %}
                             </a>
@@ -81,12 +86,11 @@
                     {% for contract in contracts %}
                     <tr>
                         <td>
-                            <a href="{% url 'custom_admin:view_contract' %}?contract_idx={{ contract.contract_idx }}">
+                            <a href="{% url 'custom_admin:view_contract' %}?contract_idx={{ contract.contract_idx }}&contract_type={{ contract.contract_type }}">
                                 {{ contract.contract_idx }}
                             </a>
                         </td>
                         <td>{{ contract.contract_name }}</td>
-                        <td>{{ contract.contract_type }}</td>
                         <td>
                             {% if contract.is_quote %}
                                 <img src="{% static 'admin/img/icon-yes.svg' %}" alt="True" class="icon-yes">
@@ -101,10 +105,11 @@
                                 <img src="{% static 'admin/img/icon-no.svg' %}" alt="False" class="icon-no">
                             {% endif %}
                         </td>
+                        <td>{{ contract.last_updated }}</td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="3" class="empty-result">No contracts available.</td>
+                        <td colspan="5" class="empty-result">No contracts available.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -112,4 +117,13 @@
         </div>
     {% endif %}
 </div>
+
+<!-- JavaScript to reload the page when the contract type filter changes -->
+<script>
+    document.getElementById("contractTypeFilter").addEventListener("change", function() {
+        const selectedType = this.value;
+        window.location.href = "?contract_type=" + selectedType;
+    });
+</script>
+
 {% endblock %}

@@ -1,0 +1,52 @@
+{
+    "contract_type": "sale",
+    "contract": {
+        "extended_data": {"Contract #": 100},
+        "contract_name": "Sale Contract",
+        "funding_instr": {"bank": "token", "token_symbol": "USDC" },
+        "deposit_instr": {"bank": "token", "token_symbol": "USDC" },        
+        "service_fee_pct": "0.0200",
+        "service_fee_amt": "10.00",
+        "late_fee_pct": "0.2200",
+        "transact_logic": { "*": [{ "var": "barrels" }, {"var": "price"}]},
+        "notes": "Valid sale contract",
+        "is_active": true,
+        "is_quote": false
+    },
+    "parties": [
+        {"party_code": "Refiner", "party_type": "buyer"},
+        {"party_code": "FIZIT", "party_type": "funder"},
+        {"party_code": "Client", "party_type": "client"}
+    ],
+    "settlements": [
+        {
+            "extended_data": {"settlement_id": "settlement number 1"},
+            "settle_due_dt": "2024-12-01T00:00:00",
+            "principal_amt": "0.75",
+            "settle_exp_amt": "1.00"
+        }
+    ],
+    "transactions": [
+        {
+            "extended_data": {"transaction_id": "transaction number 2"},
+            "transact_dt": "2024-12-01T00:00:00",
+            "transact_data": {"barrels": 1, "price": 0.35 }
+        }
+    ],
+    "artifacts": [
+        "https://fizit-repository.s3.amazonaws.com/FIZIT+Executive+Summary.pdf",
+        "https://fizit-repository.s3.amazonaws.com/Fizit+Introduction+2023-12.pdf"
+    ],
+    "params" : {
+        "start_date" : "2024-12-29T20:39:53Z",
+        "end_date" : "2025-01-02T20:39:53Z"   
+    },
+    "deposits" : {
+        "settle_idx": 0,
+        "dispute_reason": "delayed payment",
+        "tx_hash" : "3d2efe51c62d63bab13e987f7fbb1691dc022cd813e711d2aeb7744e0432e414",
+        "bank": "token",
+        "deposit_amt": 1.0,
+        "deposit_dt": "2025-01-01T13:53:10"
+    }
+}

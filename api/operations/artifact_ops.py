@@ -33,7 +33,7 @@ class ArtifactOperations:
         response = requests.post(
             f"{self.base_url}/api/contracts/{contract_type}/{contract_idx}/artifacts/",
             headers=headers_with_csrf,
-            json={"artifact_urls": artifact_urls},
+            json=artifact_urls,
             cookies={'csrftoken': self.csrf_token}
         )
         return self._process_response(response)

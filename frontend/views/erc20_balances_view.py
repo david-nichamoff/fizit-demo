@@ -1,8 +1,6 @@
 import logging
-
-from django.shortcuts import render
 from eth_utils import to_checksum_address
-
+from django.shortcuts import render
 from api.config import ConfigManager
 from api.web3 import Web3Manager
 from api.utilities.logging import log_info, log_warning, log_error
@@ -17,19 +15,16 @@ def erc20_balances_view(request, extra_context=None):
     """
     try:
         log_info(logger, "ERC-20 Balances view accessed")
-        
+
         # Initialize Config and Web3 managers
         config_manager = ConfigManager()
         web3_manager = Web3Manager()
-
-        # Load configurations
-        config = config_manager.load_config()
         w3 = web3_manager.get_web3_instance(network="avalanche")  # Adjust network if needed
 
-        # Token details
-        token_name = request.GET.get("token", "usdc").lower()
-        tokens = config_manager.get_config_value("token_addr")
-        token = next((t for t in tokens if t["key"] == token_name), None)
+        # Get requested token
+        token_name = request.GET.get("token", "USDC").lower()
+        token_list = config_manager.get_token_addresses()
+        token = next((t for t in token_list if t["key"].lower() == token_name), None)
 
         if not token:
             log_error(logger, f"Token '{token_name}' not found in configuration.")
@@ -40,13 +35,13 @@ def erc20_balances_view(request, extra_context=None):
                 status=404,
             )
 
-        token_address = token["value"]
+        token_address = to_checksum_address(token["value"])  # Ensure checksum format
         token_abi = _get_erc20_abi()
 
-        # Collect balances
+        # Collect balances for wallets and parties
         balances = {
-            "wallets": _get_balances(config_manager, "wallet_addr", "Wallet", token_name, token_address, token_abi, w3, logger),
-            "parties": _get_balances(config_manager, "party_addr", "Party", token_name, token_address, token_abi, w3, logger),
+            "wallets": _get_balances(config_manager.get_wallet_addresses(), "Wallet", token_name, token_address, token_abi, w3, logger),
+            "parties": _get_balances(config_manager.get_party_addresses(), "Party", token_name, token_address, token_abi, w3, logger),
         }
 
         if not balances["wallets"] and not balances["parties"]:
@@ -59,7 +54,6 @@ def erc20_balances_view(request, extra_context=None):
         if extra_context:
             context.update(extra_context)
 
-        # Render the template
         return render(request, "admin/erc20_balances.html", context)
 
     except Exception as e:
@@ -71,18 +65,18 @@ def erc20_balances_view(request, extra_context=None):
             status=500,
         )
 
-def _get_balances(config_manager, key, label, token_name, token_address, token_abi, w3, logger):
+def _get_balances(addresses, label, token_name, token_address, token_abi, w3, logger):
     """Helper to retrieve ERC-20 balances for wallets or parties."""
-    addresses = config_manager.get_config_value(key)
     results = []
 
     if not addresses:
-        log_warning(logger, f"No addresses found for key '{key}'.")
+        log_warning(logger, f"No addresses found for {label}s.")
         return results
 
     for item in addresses:
         item_label = item.get("key", "Unknown")
         item_addr = item.get("value")
+
         log_info(logger, f"Processing {label} - Label: {item_label}, Address: {item_addr}")
 
         if not item_addr or item_addr.lower() == ZERO_ADDRESS:
@@ -94,16 +88,16 @@ def _get_balances(config_manager, key, label, token_name, token_address, token_a
             log_info(logger, f"Checksum address: {checksum_item_addr}")
 
             # Fetch balance from ERC-20 contract
-            checksum_token_address = to_checksum_address(token_address)
-            token_contract = w3.eth.contract(address=checksum_token_address, abi=token_abi)
+            token_contract = w3.eth.contract(address=token_address, abi=token_abi)
             balance = token_contract.functions.balanceOf(checksum_item_addr).call()
             decimals = token_contract.functions.decimals().call()
             readable_balance = balance / (10 ** decimals)
-            log_info(logger, f"Balance for {item_label} ({checksum_item_addr}): {readable_balance}")
+
+            log_info(logger, f"{token_name.upper()} Balance for {item_label} ({checksum_item_addr}): {readable_balance}")
 
             results.append({"label": item_label, "address": checksum_item_addr, "balance": readable_balance})
         except Exception as e:
-            log_error(logger, f"Error checking balance for {item_label} ({item_addr}): {e}")
+            log_error(logger, f"Error checking {token_name.upper()} balance for {item_label} ({item_addr}): {e}")
             results.append({"label": item_label, "address": item_addr, "balance": "Error"})
 
     return results

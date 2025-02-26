@@ -24,7 +24,7 @@ class EventOperations:
         """
         return response.json() if response.content else None
 
-    def get_events(self, contract_type=None, contract_idx=None):
+    def get_events(self, contract_type=None, contract_idx=None, from_addr=None, to_addr=None):
         """
         Retrieve events filtered by contract_idx and/or contract_type.
         """
@@ -33,6 +33,10 @@ class EventOperations:
             params["contract_type"] = contract_type
         if contract_idx is not None:
             params["contract_idx"] = contract_idx
+        if from_addr is not None:
+            params["from_addr"] = from_addr
+        if to_addr is not None:
+            params["to_addr"] = to_addr
 
         url = f"{self.base_url}/api/events/"
 

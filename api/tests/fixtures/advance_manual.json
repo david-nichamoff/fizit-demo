@@ -1,0 +1,57 @@
+{
+    "contract_type": "advance",
+    "contract": {
+        "extended_data": {"Contract #": 100},
+        "contract_name": "Manual Payments",
+        "funding_instr": {"bank": "manual" },
+        "deposit_instr": {"bank": "manual" },
+        "service_fee_pct": "0.0500",
+        "service_fee_max": "0.0500",
+        "service_fee_amt": "0.00",
+        "advance_pct": "0.8000",
+        "late_fee_pct": "0.2200",
+        "transact_logic": {"var": "ticket_amt"},
+        "min_threshold_amt": "-100.00",
+        "max_threshold_amt": "1000.00",
+        "notes": "Manual Test",
+        "is_active": true,
+        "is_quote": false
+    },
+    "parties": [
+        {"party_code": "Supplier_1", "party_type": "seller"},  
+        {"party_code": "Refiner", "party_type" : "buyer"},
+        {"party_code": "FIZIT", "party_type": "funder"}
+    ],
+    "settlements": [
+        {
+            "extended_data": {"settlement_id" : "settlement number 1"},
+            "settle_due_dt": "2025-02-01T00:00:00",
+            "transact_min_dt": "2025-01-01T00:00:00",
+            "transact_max_dt": "2025-02-01T00:00:00"
+        }
+    ],
+    "transactions": [
+        {
+            "extended_data": {"transaction_id" : "transaction number 2"},
+            "transact_dt": "2025-01-03T00:00:00",
+            "transact_data": { "ticket_amt" : 600}
+        },
+        {
+            "extended_data": {"transaction_id" : "transaction number 1"},
+            "transact_dt": "2025-01-02T00:00:00",
+            "transact_data": { "ticket_amt" : 700}
+        }
+    ],
+    "artifacts": [
+        "https://fizit-repository.s3.amazonaws.com/FIZIT+Executive+Summary.pdf",
+        "https://fizit-repository.s3.amazonaws.com/Fizit+Introduction+2023-12.pdf"
+    ],
+    "deposits" : {
+            "settle_idx": 0,
+            "dispute_reason": "delayed service",
+            "tx_hash" : "3d2efe51c62d63bab13e987f7fbb1691dc022cd813e711d2aeb7744e0432e414",
+            "bank": "manual",
+            "deposit_amt": 1200,
+            "deposit_dt": "2025-01-01T13:53:10"
+    }
+}

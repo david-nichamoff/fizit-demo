@@ -1,9 +1,12 @@
 import os
 import json
 import logging
+
 from django.conf import settings
+from django.db import transaction
 
 from api.utilities.logging import log_error, log_info, log_warning
+from api.models import ContractSnapshot
 
 class ConfigManager:
     """Configuration Manager for loading environment-specific settings."""
@@ -112,6 +115,15 @@ class ConfigManager:
         """Retrieve a list of party Ethereum addresses."""
         return self._get_config_value("party_addr", [])
 
+    def get_party_codes(self):
+        """Retrieve a list of party codes."""
+        party_codes = self._get_config_value("party_addr", [])
+        return [party_code["key"] for party_code in party_codes if "key" in party_code]
+
+    def get_wallet_addresses(self):
+        """Retrieve a list of wallet Ethereum addresses."""
+        return self._get_config_value("wallet_addr", [])
+
     def get_chain_id(self, network):
         """Retrieve the chain ID for the given blockchain."""
         chains = self._get_config_value("chain", [])
@@ -131,36 +143,6 @@ class ConfigManager:
             if contract["key"] == contract_type:
                 return contract["value"]
         return None
-
-
-    def update_contract_address(self, contract_type, contract_address):
-        """Update the contract address for a specific contract type and write to config.json."""
-        if self._config_cache is None:
-            self._load_config()
-
-        # Find the contract_addr entry in the config
-        contract_entry = next((entry for entry in self._config_cache if entry["key"] == "contract_addr"), None)
-
-        if not contract_entry or "value" not in contract_entry:
-            log_error(self.logger, "Contract addresses section not found in configuration.")
-            raise ValueError("Contract addresses section not found in configuration.")
-
-        contracts = contract_entry["value"]
-
-        # Update the contract address if found
-        for contract in contracts:
-            if contract["key"] == contract_type:
-                old_address = contract["value"]
-                contract["value"] = contract_address
-                log_info(self.logger, f"Updated {contract_type} contract address from {old_address} to {contract_address}")
-                break
-        else:
-            # If contract_type is not found, raise an error
-            log_error(self.logger, f"Contract type '{contract_type}' not found in configuration.")
-            raise ValueError(f"Contract type '{contract_type}' not found in configuration.")
-
-        # Save the updated config back to file
-        self._write_config()
 
     def get_contract_abi(self, contract_type):
         """Retrieve the ABI for a given contract type from a fixed location."""
@@ -189,6 +171,11 @@ class ConfigManager:
         """Retrieve a list of token contract addresses."""
         return self._get_config_value("token_addr", [])
 
+    def get_token_list(self):
+        """Retrieve a list of available token symbols."""
+        tokens = self._get_config_value("token_addr", [])
+        return [token["key"] for token in tokens if "key" in token]
+
     def get_s3_bucket(self):
         """Retrieve the S3 bucket name."""
         return self._get_config_value("s3_bucket")
@@ -198,12 +185,12 @@ class ConfigManager:
         return self._get_config_value("contact_email_list", [])
 
     def update_contract_address(self, contract_type, contract_address):
-        """Update the contract address for a specific contract type and write to config.json."""
+        """Update the contract address for a specific contract type and also clear contract_snapshot."""
         if self._config_cache is None:
             self._load_config()
 
-        # Retrieve contract addresses as a dictionary (not a list!)
-        contracts = self._config_cache.get("contract_addr", {})
+        # Retrieve contract addresses as a dictionary
+        contracts = self._config_cache.get("contract_addr", [])
 
         if not isinstance(contracts, list):
             log_error(self.logger, "Contract addresses section is not a list in configuration.")
@@ -223,6 +210,16 @@ class ConfigManager:
         # Save the updated config back to file
         self._write_config()
 
+        # ✅ Delete all rows in contract_snapshot for the given contract_type
+        try:
+            with transaction.atomic():
+                deleted_count, _ = ContractSnapshot.objects.filter(contract_type=contract_type).delete()
+                log_info(self.logger, f"Deleted {deleted_count} ContractSnapshot records for contract_type: {contract_type}")
+
+        except Exception as e:
+            log_error(self.logger, f"Failed to delete ContractSnapshot records for {contract_type}: {e}")
+            raise RuntimeError(f"Failed to update contract snapshot: {e}")
+
     def _write_config(self):
         """Write the updated configuration back to `config.json` while maintaining its original list format."""
         try:
@@ -235,6 +232,7 @@ class ConfigManager:
             log_info(self.logger, f"Configuration successfully updated in {self.CONFIG_FILE_PATH}")
 
             # Reload the cache after writing
+            self._config_cache = None
             self._load_config()
 
         except Exception as e:

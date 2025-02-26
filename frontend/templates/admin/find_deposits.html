@@ -4,65 +4,100 @@
 {% block extrahead %}
 <script>
     const deposits = {{ deposits|default:"[]"|safe }};
+    const contracts = {{ contracts|default:"[]"|safe }};
+    const contractTypes = {{ contract_types|default:"[]"|safe }};
+    let defaultContractType = "{{ default_contract_type|escapejs }}";
 </script>
+
+<script src="{% static 'js/find_deposits.js' %}?v1.4"></script>
 {% endblock %}
 
 {% block content %}
-<h1 class="title">Find Deposits</h1>
+    <h1 class="title">Find Deposits</h1>
+    <form method="post" class="find-deposits-form" >
+        {% csrf_token %}
+        <fieldset class="module aligned">
+            <!-- Select Contract Type -->
+            <div class="form-row">
+                <div class="flex-container">
+                    <label class="required" for="id_contract_type">Contract Type:</label>
+                    <select id="id_contract_type" name="contract_type">
+                        {% for contract_type in contract_types %}
+                            <option value="{{ contract_type }}" {% if contract_type == default_contract_type %}selected{% endif %}>
+                                {{ contract_type|title }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
 
-<!-- Find Deposits Form -->
-<form method="post" class="deposit-form">
-    {% csrf_token %}
-    <fieldset class="module aligned">
-        <!-- Select Contract -->
-        <div class="form-row flex-container">
-            <label for="{{ find_deposits_form.contract_idx.id_for_label }}">{{ find_deposits_form.contract_idx.label }}</label>
-            {{ find_deposits_form.contract_idx }}
-        </div>
+            <!-- Select Contract -->
+            <div class="form-row">
+                <div class="flex-container">
+                    <label class="required" for="{{ find_deposits_form.contract_idx.id_for_label }}">{{ find_deposits_form.contract_idx.label }}</label>
+                    {{ find_deposits_form.contract_idx }}
+                </div>
+                <div class="help">{{ find_deposits_form.contract_idx.help_text }}</div>
+            </div>
 
-        <!-- Start and End Dates -->
-        <div class="form-row flex-container">
-            <label for="{{ find_deposits_form.start_date.id_for_label }}">{{ find_deposits_form.start_date.label }}</label>
-            {{ find_deposits_form.start_date }}
-        </div>
-        <div class="form-row flex-container">
-            <label for="{{ find_deposits_form.end_date.id_for_label }}">{{ find_deposits_form.end_date.label }}</label>
-            {{ find_deposits_form.end_date }}
-        </div>
-    </fieldset>
+            <!-- Start Date -->
+            <div class="form-row">
+                <div class="flex-container">
+                    <label class="required" for="{{ find_deposits_form.start_date.id_for_label }}">{{ find_deposits_form.start_date.label }}</label>
+                    {{ find_deposits_form.start_date }}
+                </div>
+                <div class="help">{{ find_deposits_form.start_date.help_text }}</div>
+            </div>
 
-    <div class="submit-row">
-        <input type="submit" name="find_deposits" value="Find Deposits" class="default" />
-    </div>
-</form>
+            <!-- End Date -->
+            <div class="form-row">
+                <div class="flex-container">
+                    <label class="required" for="{{ find_deposits_form.end_date.id_for_label }}">{{ find_deposits_form.end_date.label }}</label>
+                    {{ find_deposits_form.end_date }}
+                </div>
+                <div class="help">{{ find_deposits_form.end_date.help_text }}</div>
+            </div>
+        </fieldset>
+
+        <div class="submit-row">
+            <input type="hidden" name="find_deposits" value="1" />
+            <input type="submit" value="Find Deposits" class="default" />
+        </div>
+    </form>
+</div>
 
 <!-- Deposits Table -->
 {% if deposits %}
 <div class="module">
+    <h2 class="title">Deposits Found</h2>
     <table class="table table-striped results" id="deposits-table">
         <thead>
             <tr>
                 <th scope="col">Counterparty</th>
                 <th scope="col">Amount</th>
                 <th scope="col">Date</th>
+                <th scope="col">TX Hash</th>
             </tr>
         </thead>
         <tbody>
-            {% for deposit in deposits %}
-            <tr>
-                <td>{{ deposit.counterparty }}</td>
-                <td>{{ deposit.deposit_amt }}</td>
-                <td>{{ deposit.deposit_dt }}</td>
-            </tr>
-            {% endfor %}
+            {% if deposits %}
+                {% for deposit in deposits %}
+                <tr>
+                    <td>{{ deposit.counterparty }}</td>
+                    <td>{{ deposit.deposit_amt }}</td>
+                    <td>{{ deposit.deposit_dt }}</td>
+                    <td>{{ deposit.tx_hash }}</td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="3" class="no-deposits">No deposits found.</td>
+                </tr>
+            {% endif %}
         </tbody>
     </table>
-    <div class="submit-row">
-        <form method="get" action="{% url 'custom_admin:post_deposit' %}">
-            <input type="hidden" name="contract_idx" value="{{ selected_contract_idx }}" />
-            <input type="submit" value="Next: Post Deposit" class="default" />
-        </form>
-    </div>
 </div>
+{% else %}
+<p>No deposits found.</p>
 {% endif %}
 {% endblock %}

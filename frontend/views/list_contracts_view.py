@@ -1,14 +1,15 @@
 import logging
 import requests
+from datetime import datetime
 
 from rest_framework import status
-
 from django.shortcuts import render
 from django.contrib import messages
 
 from api.config import ConfigManager
 from api.secrets import SecretsManager
-from api.operations import ContractOperations
+from api.operations import ContractOperations, CsrfOperations
+from api.registry import RegistryManager
 from api.utilities.logging import log_info, log_warning, log_error
 
 logger = logging.getLogger(__name__)
@@ -18,37 +19,46 @@ def list_contracts_view(request, extra_context=None):
     Render the List Contracts page displaying all contracts in a grid.
     """
     try:
-        # Initialize Config and Secrets Managers
+        # Initialize Config, Secrets, and Registry Managers
         config_manager = ConfigManager()
         secrets_manager = SecretsManager()
+        registry_manager = RegistryManager()
 
         headers = {
-            "Authorization": f"Api-Key {keys['FIZIT_MASTER_KEY']}",
+            "Authorization": f"Api-Key {secrets_manager.get_master_key()}",
             "Content-Type": "application/json",
         }
 
-        contract_ops = ContractOperations(headers, config)
+        csrf_ops = CsrfOperations(headers, config_manager.get_base_url())
+        csrf_token = csrf_ops.get_csrf_token()
+        contract_ops = ContractOperations(headers, config_manager.get_base_url(), csrf_token)
+
+        # Get available contract types for filtering
+        contract_types = registry_manager.get_contract_types()
+        default_contract_type = registry_manager.get_default_contract_type()
+        selected_contract_type = request.GET.get("contract_type", default_contract_type)  
 
         try:
-            response = contract_ops.get_count()
-            contract_count = response.get("count")
+            # Fetch all contracts at once
+            contracts = contract_ops.list_contracts()
+            log_info(logger, f"Returned contracts {contracts}")
+
+            for contract in contracts:
+                if "last_updated" in contract:
+                    contract["last_updated"] = datetime.fromisoformat(contract["last_updated"].rstrip("Z")).strftime("%Y-%m-%d %I:%M %p")
+
+            # Apply filtering by contract type
+            contracts = [c for c in contracts if c.get("contract_type") == selected_contract_type]
         except Exception as e:
-            error_message = f"Failed to fetch count of contracts"
+            error_message = f"Failed to fetch contract list"
             log_error(logger, f"{error_message}: {e}")
             messages.error(request, f"{error_message}")
+            contracts = []
 
-        contracts = []
-        for contract_idx in range(contract_count):
-            try:
-                response = contract_ops.get_contract(contract_idx)
-                contracts.append(response)
-            except Exception as e:
-                error_message = f"Failed to fetch contract {contract_idx}"
-                log_error(logger, f"{error_message}: {e}")
-                messages.error(request, f"{error_message}")
+        log_info(logger, f"Contracts: {contracts}")
 
         # Handle sorting
-        ordering = request.GET.get("ordering", "contract_idx")  # Default to 'contract_idx'
+        ordering = request.GET.get("ordering", "contract_idx") 
         reverse = ordering.startswith("-")
         ordering_field = ordering.lstrip("-")
 
@@ -58,16 +68,18 @@ def list_contracts_view(request, extra_context=None):
 
         # Prepare sorting links for the template
         sorting_links = {
-            "contract_idx": f"?ordering={'-' if ordering == 'contract_idx' else ''}contract_idx",
-            "contract_name": f"?ordering={'-' if ordering == 'contract_name' else ''}contract_name",
-            "contract_type": f"?ordering={'-' if ordering == 'contract_type' else ''}contract_type",
-            "is_quote": f"?ordering={'-' if ordering == 'is_quote' else ''}is_quote",
-            "is_active": f"?ordering={'-' if ordering == 'is_active' else ''}is_active",
+            "contract_idx": f"?ordering={'-' if ordering == 'contract_idx' else ''}contract_idx&contract_type={selected_contract_type}",
+            "contract_name": f"?ordering={'-' if ordering == 'contract_name' else ''}contract_name&contract_type={selected_contract_type}",
+            "is_quote": f"?ordering={'-' if ordering == 'is_quote' else ''}is_quote&contract_type={selected_contract_type}",
+            "is_active": f"?ordering={'-' if ordering == 'is_active' else ''}is_active&contract_type={selected_contract_type}",
+            "last_updated": f"?ordering={'-' if ordering == 'last_updated' else ''}last_updated&contract_type={selected_contract_type}",
         }
 
         # Prepare context
         context = {
             "contracts": contracts,
+            "contract_types": contract_types,
+            "selected_contract_type": selected_contract_type,
             "ordering": ordering,
             "sorting_links": sorting_links,
         }
@@ -80,6 +92,6 @@ def list_contracts_view(request, extra_context=None):
         return render(request, "admin/list_contracts.html", context)
 
     except Exception as e:
-        error_message = f"Error in list_contract_view"
+        error_message = "Error in list_contracts_view"
         log_error(logger, f"{error_message}: {e}")
-        return render(request, "admin/list_contract.html", error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return render(request, "admin/list_contracts.html", {"error": error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

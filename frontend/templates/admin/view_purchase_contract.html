@@ -1,0 +1,219 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+    <script src="{% static 'js/view_contract.js' %}?v1.1"></script>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    {% if error %}
+        <div class="errornote">
+            <p>{{ error }}</p>
+        </div>
+    {% else %}
+        <h1 class="title">Contract Details for Purchase Contract: {{ contract_idx }}</h1>
+
+        <!-- Contract Form Section -->
+        <div class="module">
+            <form method="post" action="#">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="contract">
+                
+                <fieldset {% if not edit_mode %}disabled{% endif %} class="module aligned">
+                    <!-- Render each field individually -->
+                    <div class="form-row">
+                        <div class="flex-container">
+                            <label for="{{ contract_form.contract_name.id_for_label }}">{{ contract_form.contract_name.label }}</label>
+                            {{ contract_form.contract_name }}
+                        </div>
+                        <div class="help">{{ contract_form.contract_name.help_text }}</div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="flex-container">
+                            <label for="{{ contract_form.service_fee_pct.id_for_label }}">{{ contract_form.service_fee_pct.label }}</label>
+                            {{ contract_form.service_fee_pct }}
+                        </div>
+                        <div class="help">{{ contract_form.service_fee_pct.help_text }}</div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="flex-container">
+                            <label for="{{ contract_form.service_fee_amt.id_for_label }}">{{ contract_form.service_fee_amt.label }}</label>
+                            {{ contract_form.service_fee_amt }}
+                        </div>
+                        <div class="help">{{ contract_form.service_fee_amt.help_text }}</div>
+                    </div>
+                    <div class="form-row">
+                        <div class="flex-container">
+                            <label for="{{ contract_form.funding_instr.id_for_label }}">{{ contract_form.funding_instr.label }}</label>
+                            <div class="field">
+                                {{ contract_form.funding_instr }}
+                            </div>
+                        </div>
+                        <div class="help">{{ contract_form.funding_instr.help_text }}</div>
+                    </div>
+                    <div class="form-row">
+                        <div class="flex-container">
+                            <label for="{{ contract_form.transact_logic.id_for_label }}">{{ contract_form.transact_logic.label }}</label>
+                            <div class="field">
+                                {{ contract_form.transact_logic }}
+                            </div>
+                        </div>
+                        <div class="help">{{ contract_form.transact_logic.help_text }}</div>
+                    </div>
+
+                </fieldset>
+            </form>
+        </div>
+
+        <!-- Parties Section -->
+        <div class="module">
+            <div class="inline-group">
+                <!-- Existing Parties Table -->
+                <h3 class="subhead">Existing Parties</h3>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th scope="col">Party Code</th>
+                            <th scope="col">Party Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for party in parties %}
+                        <tr>
+                            <td>{{ party.party_code }}</td>
+                            <td>{{ party.party_type|title }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="2" class="empty-result">No parties available.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Add New Party Form -->
+            <div class="inline-group">
+                <h3 class="subhead">Add a New Party</h3>
+                <form method="post" action="#">
+                    {% csrf_token %}
+                    <input type="hidden" name="form_type" value="parties">
+                    
+                    <fieldset class="module aligned">
+                        <div class="form-row flex-container">
+                            <label class="required" for="{{ party_form.party_code.id_for_label }}">{{ party_form.party_code.label }}</label>
+                            {{ party_form.party_code }}
+                        </div>
+                        <div class="form-row flex-container">
+                            <label class="required" for="{{ party_form.party_type.id_for_label }}">{{ party_form.party_type.label }}</label>
+                            {{ party_form.party_type }}
+                        </div>
+                    </fieldset>
+                    <div class="submit-row">
+                        <input type="submit" value="Add Party" class="default" />
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Artifacts Section -->
+        <div class="module">
+            <div class="inline-group">
+                <!-- Existing Artifacts Table -->
+                <h3 class="subhead">Existing Artifacts</h3>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th scope="col">Index</th>
+                            <th scope="col">Title</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Added Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for artifact in artifacts %}
+                        <tr>
+                            <td>
+                                <a href="{{ artifact.presigned_url }}" target="_blank">{{ artifact.artifact_idx }}</a>
+                            </td>
+                            <td>{{ artifact.doc_title }}</td>
+                            <td>{{ artifact.doc_type }}</td>
+                            <td>{{ artifact.added_dt }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="empty-result">No artifacts available.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Add New Artifact Form -->
+            <div class="inline-group">
+                <h3 class="subhead">Add New Artifacts</h3>
+                <form method="post" action="#">
+                    {% csrf_token %}
+                    <input type="hidden" name="form_type" value="artifacts">
+
+                    <fieldset class="module aligned">
+                        <div class="form-row">
+                            <div class="flex-container">
+                                <label class="required" for="{{ artifact_form.artifact_url.id_for_label }}">{{ artifact_form.artifact_url.label }}</label>
+                                {{ artifact_form.artifact_url }}
+                            </div>
+                            <div class="help">Enter URLs, one per line.</div>
+                        </div>
+                    </fieldset>
+
+                    <div class="submit-row">
+                        <input type="submit" value="Add Artifacts" class="default" />
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Transactions Section -->
+        <div class="module">
+            <div class="inline-group">
+                <!-- Existing Transactions Table -->
+                <h3 class="subhead">Existing Transactions</h3>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th scope="col">Index</th>
+                            <th scope="col">Date</th>
+                            <th scope="col">Amount</th>
+                            <th scope="col">Advance Amount</th>
+                            <th scope="col">Advance Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td>{{ transaction.transact_idx }}</td>
+                            <td>{{ transaction.transact_dt }}</td>
+                            <td>
+                                <span class="help-tooltip" data-tooltip=
+                                    "Service fee: {{ transaction.service_fee_amt }}">
+                                    {{ transaction.transact_amt }}
+                                </span>
+                            </td>
+                            <td>{{ transaction.advance_pay_amt }}</td>
+                            <td>{{ transaction.advance_pay_dt }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="empty-result">No transactions available.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

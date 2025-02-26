@@ -1,0 +1,59 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+<script>
+    const distributionsList = {{ distributions|default:"{}"|safe }};
+    console.log("Grouped distributions:", distributionsList);
+</script>
+<script src="{% static 'js/add_distribution.js' %}?v3.3"></script>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    {% if error %}
+        <div class="errornote">
+            <p>{{ error }}</p>
+        </div>
+    {% else %}
+        <h1 class="title">View Distributions</h1>
+        <form method="post" class="distribution-form">
+            {% csrf_token %}
+            <div class="module">
+                <table class="table table-striped results" id="distributions-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Select</th>
+                            <th scope="col">Contract Type</th>
+                            <th scope="col">Contract Name</th>
+                            <th scope="col">Settlement</th>
+                            <th scope="col">Bank</th>
+                            <th scope="col">Amount</th>
+                            <th scope="col">TX Hash</th> <!-- Inline TX Hash Input -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated dynamically via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="submit-row">
+                <input type="submit" value="Post Distributions" class="default" disabled />
+            </div>
+        </form>
+    {% endif %}
+</div>
+
+<!-- Inline CSS to ensure input field matches row height -->
+<style>
+    .tx-hash-input {
+        width: 100%; /* Ensure input fields fit inside their column */
+        height: 18px; /* Adjust height to match table row height */
+        box-sizing: border-box; /* Prevents extra padding from affecting size */
+        font-size: inherit; /* Match other text size */
+        border: 0px solid #ccc; /* Match table styling */
+        padding: 5px;
+        text-align: left;
+    }
+</style>
+{% endblock %}

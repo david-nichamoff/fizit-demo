@@ -1,169 +1,44 @@
-from django import forms
-from api.config import ConfigManager
-
 import logging
 
-logger = logging.getLogger(__name__)
+from django import forms
+
+from api.config import ConfigManager
+from api.registry import RegistryManager
+from api.utilities.logging import log_info, log_error, log_warning
 
 class BaseContractForm(forms.Form):
+    """Base form for contracts with shared fields and dynamic configurations."""
+
     def __init__(self, *args, **kwargs):
         initial = kwargs.get("initial", {})
-
         super().__init__(*args, **kwargs)
-
-        # Load configuration data once
-        self.config = ConfigManager().load_config()
+        self.logger = logging.getLogger(__name__)
+        self.config_manager = ConfigManager()
+        self.registry_manager = RegistryManager()
 
         # Populate dynamic fields
         self._populate_dynamic_fields()
 
     def _populate_dynamic_fields(self):
-        """Dynamically populate fields based on configuration."""
-        if not self.config:
-            log_error(logger, "Failed to load configuration.")
-            return
 
         dynamic_field_choices = {
-            "funding_method": self.config.get("bank", []),
-            "deposit_method": self.config.get("bank", []),
-            "funding_token_symbol": [item["key"] for item in self.config.get("token_addr", [])],
-            "deposit_token_symbol": [item["key"] for item in self.config.get("token_addr", [])],
-            "contract_type": self.config.get("contract_type", []),
+            "funding_method": self.registry_manager.get_banks(),
+            "deposit_method": self.registry_manager.get_banks(),
+            "funding_token_symbol": self.config_manager.get_token_list(),
+            "deposit_token_symbol": self.config_manager.get_token_list(),
+            "contract_type": self.registry_manager.get_contract_types()
         }
 
         for field, choices in dynamic_field_choices.items():
             if field in self.fields:
                 self.fields[field].choices = [(value, value.capitalize()) for value in choices]
 
-class ContractForm(BaseContractForm):
-    # Define static fields
-    contract_name = forms.CharField(
-        max_length=255, 
-        required=True, 
-        label="Contract name:", 
-        initial="New Contract"
-    )
-
-    contract_type = forms.ChoiceField(
-        required=True,
-        widget=forms.Select(attrs={"id": "id_contract_type"}),
-        label="Contract type:"
-    )
-
-    service_fee_pct = forms.DecimalField(
-        required=True, 
-        initial=0.025,
-        widget=forms.NumberInput(attrs={"step": "0.001", "min": "0.0000", "max": "1.0000"}),
-        label="Service fee pct:",
-        help_text="Financing fee, entered as a percentage of the total value delivered"
-    )
-
-    service_fee_amt = forms.DecimalField(
-        required=True, 
-        initial=5.0000,
-        widget=forms.NumberInput(attrs={"step": "0.01", "min": "0.0000"}),
-        label="Service fee amt:",
-        help_text="Financing fee surcharge, entered as a dollar amount"
-    )
-
-    advance_pct = forms.DecimalField(
-        required=True, 
-        initial=0.8500,
-        widget=forms.NumberInput(attrs={"step": "0.01", "min": "0.0000", "max": "1.0000"}),
-        label="Advance pct:",
-        help_text="The percentage of total value delivered that will be advanced"
-    )
-    
-    late_fee_pct = forms.DecimalField(
-        required=True, 
-        initial=0.2200,
-        widget=forms.NumberInput(attrs={"step": "0.01", "min": "0.0000", "max": "1.0000"}),
-        label="Late fee pct:",
-        help_text="Entered as an annual rate, assessed daily"
-    )
-    
-    min_threshold_amt = forms.DecimalField(
-        required=True, 
-        initial=-1000,
-        widget=forms.NumberInput(attrs={"step": "0.01"}),
-        label="Minimum threshold amt:",
-        help_text="Minimum expected value delivered per transaction"
-    )
-    
-    max_threshold_amt = forms.DecimalField(
-        required=True, 
-        initial=10000,
-        widget=forms.NumberInput(attrs={"step": "0.01"}),
-        label="Maximum threshold amt:",
-        help_text="Maximum expected value delivered per transaction"
-    )
-
-    funding_instr = forms.JSONField(
-        widget=forms.HiddenInput(attrs={"id": "id_funding_instr"}),
-        required=False,
-        label="Funding instructions:",
-        initial = {"dummy": "value"} 
-    )
-
-    deposit_instr = forms.JSONField(
-        widget=forms.HiddenInput(attrs={"id": "id_deposit_instr"}),
-        required=False,
-        label="Deposit instructions:",
-        initial = {"dummy": "value"} 
-    )
-
-    transact_logic = forms.JSONField(
-        widget=forms.Textarea(attrs={"id": "id_transact_logic"}), 
-        required=True,
-        label="Transaction logic:",
-        help_text="The JSON logic used to price each transaction"
-    )
-
-    # Dynamic funding instructions fields
-    funding_method = forms.ChoiceField(
-        required=False,
-        choices=[],  # Dynamically populated
-        widget=forms.Select(attrs={"id": "id_funding_method"}),
-        help_text="The method of payment for advances and residuals"
-    )
-
-    funding_token_symbol = forms.ChoiceField(
-        required=False,
-        choices=[],  # Dynamically populated
-        widget=forms.Select(attrs={"id": "id_funding_token_symbol"}),
-    )
-
-    funding_account = forms.ChoiceField(
-        required=False,
-        choices=[],  # Dynamically populated via API
-        widget=forms.Select(attrs={"id": "id_funding_account"}),
-    )
-
-    funding_recipient = forms.ChoiceField(
-        required=False,
-        choices=[],  # Dynamically populated via API
-        widget=forms.Select(attrs={"id": "id_funding_recipient"}),
-    )
-
-    # Dynamic deposit instructions fields
-    deposit_method = forms.ChoiceField(
-        required=False,
-        choices=[],  # Dynamically populated
-        widget=forms.Select(attrs={"id": "id_deposit_method"}),
-        help_text="Method of payment for settlement deposits"
-    )
-
-    deposit_token_symbol = forms.ChoiceField(
-        required=False,
-        choices=[],  # Dynamically populated
-        widget=forms.Select(attrs={"id": "id_deposit_token_symbol"}),
-    )
-
-    deposit_account = forms.ChoiceField(
-        required=False,
-        choices=[],  # Dynamically populated via API
-        widget=forms.Select(attrs={"id": "id_deposit_account"}),
-    )
+        for field, choices in dynamic_field_choices.items():
+            if field in self.fields:
+                if field in ["funding_token_symbol", "deposit_token_symbol"]:  # Only modify token symbols
+                    self.fields[field].choices = [(value.upper(), value.upper()) for value in choices]
+                else:
+                    self.fields[field].choices = [(value, value) for value in choices]
 
     def clean(self):
         """
@@ -195,4 +70,161 @@ class ContractForm(BaseContractForm):
         if cleaned_data.get("deposit_instr") == {"dummy": "value"}:
             cleaned_data["deposit_instr"] = {}
 
-        
+        return cleaned_data
+
+# ===================================
+# Shared Fields for All Contract Forms
+# ===================================
+class ContractForm(BaseContractForm):
+    """Generic contract form with shared fields."""
+    contract_name = forms.CharField(
+        max_length=50,
+        required=True,
+        label="Contract name:",
+        initial="New Contract"
+    )
+
+    funding_instr = forms.JSONField(
+        widget=forms.Textarea(attrs={"id": "id_funding_instr"}),
+        required=False,
+        label="Funding instructions:",
+        initial={"dummy": "value"},
+        help_text="Fields used to define the account that will be funded"
+    )
+
+    service_fee_pct = forms.DecimalField(
+        required=True,
+        initial=0.025,
+        widget=forms.NumberInput(attrs={"step": "0.001", "min": "0.0000", "max": "1.0000"}),
+        label="Service fee pct:",
+        help_text="Financing fee, entered as a percentage of the total value delivered"
+    )
+
+    service_fee_amt = forms.DecimalField(
+        required=True,
+        initial=0.00,
+        widget=forms.NumberInput(attrs={"step": "0.01"}),
+        label="Service fee amount:",
+        help_text="Financing fee, entered as a fixed amount. The total fee can include both pct and fixed amounts"
+    )
+
+    transact_logic = forms.JSONField(
+        widget=forms.Textarea(attrs={"id": "id_transact_logic"}),
+        required=True,
+        label="Transaction logic:",
+        help_text="The JSON logic used to price each transaction"
+    )
+
+    funding_method = forms.ChoiceField(
+        required=False,
+        choices=[],
+        widget=forms.Select(attrs={"id": "id_funding_method"}),
+        help_text="The method of payment for advances and residuals"
+    )
+
+    funding_account = forms.ChoiceField(
+        required=False,
+        choices=[],  # Dynamically populated via API
+        widget=forms.Select(attrs={"id": "id_funding_account"}),
+    )
+
+    funding_recipient = forms.ChoiceField(
+        required=False,
+        choices=[],  # Dynamically populated via API
+        widget=forms.Select(attrs={"id": "id_funding_recipient"}),
+    )
+
+    funding_token_symbol = forms.ChoiceField(
+        required=False,
+        choices=[],  # Dynamically populated
+        widget=forms.Select(attrs={"id": "id_funding_token_symbol"}),
+    )
+
+# ==============================
+# Specific Contract Type Forms
+# ==============================
+
+class AdvanceContractForm(ContractForm):
+    deposit_instr = forms.JSONField(
+        widget=forms.Textarea(attrs={"id": "id_deposit_instr"}),
+        required=False,
+        label="Deposit instructions:",
+        initial={"dummy": "value"},
+        help_text="Fields used to define the account that will receive the deposit from the buyer"
+    )
+
+    advance_pct = forms.DecimalField(
+        required=True,
+        initial=0.8500,
+        widget=forms.NumberInput(attrs={"step": "0.01", "min": "0.0000", "max": "1.0000"}),
+        label="Advance pct:",
+        help_text="The percentage of total value delivered that will be advanced"
+    )
+
+    late_fee_pct = forms.DecimalField(
+        required=True,
+        initial=0.2200,
+        widget=forms.NumberInput(attrs={"step": "0.01", "min": "0.0000", "max": "1.0000"}),
+        label="Late fee pct:",
+        help_text="Entered as an annual rate, assessed daily"
+    )
+
+    deposit_method = forms.ChoiceField(
+        required=False,
+        choices=[],
+        widget=forms.Select(attrs={"id": "id_deposit_method"}),
+        help_text="Method of payment for settlement deposits"
+    )
+
+    deposit_account = forms.ChoiceField(
+        required=False,
+        choices=[],  # Dynamically populated via API
+        widget=forms.Select(attrs={"id": "id_deposit_account"}),
+    )
+
+    deposit_token_symbol = forms.ChoiceField(
+        required=False,
+        choices=[],  # Dynamically populated
+        widget=forms.Select(attrs={"id": "id_deposit_token_symbol"}),
+    )
+
+class SaleContractForm(ContractForm):
+    """Form specific to Sale Contracts."""
+    deposit_instr = forms.JSONField(
+        widget=forms.Textarea(attrs={"id": "id_deposit_instr"}),
+        required=False,
+        label="Deposit instructions:",
+        initial={"dummy": "value"},
+        help_text="Fields used to define the account that will receive the deposit from the buyer"
+    )
+
+    late_fee_pct = forms.DecimalField(
+        required=True,
+        initial=0.2200,
+        widget=forms.NumberInput(attrs={"step": "0.01", "min": "0.0000", "max": "1.0000"}),
+        label="Late fee pct:",
+        help_text="Entered as an annual rate, assessed daily"
+    )
+
+    deposit_method = forms.ChoiceField(
+        required=False,
+        choices=[],
+        widget=forms.Select(attrs={"id": "id_deposit_method"}),
+        help_text="Method of payment for settlement deposits"
+    )
+
+    deposit_account = forms.ChoiceField(
+        required=False,
+        choices=[],  # Dynamically populated via API
+        widget=forms.Select(attrs={"id": "id_deposit_account"}),
+    )
+
+    deposit_token_symbol = forms.ChoiceField(
+        required=False,
+        choices=[],  # Dynamically populated
+        widget=forms.Select(attrs={"id": "id_deposit_token_symbol"}),
+    )
+
+class PurchaseContractForm(ContractForm):
+    """Form specific to Purchase Contracts."""
+    pass

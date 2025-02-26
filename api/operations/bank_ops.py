@@ -95,3 +95,22 @@ class BankOperations:
             cookies={'csrftoken': self.csrf_token}
         )
         return self._process_response(response)
+
+    def get_distributions(self, contract_type, contract_idx):
+        """Retrieve distributions for a contract."""
+        response = requests.get(
+            f"{self.base_url}/api/contracts/{contract_type}/{contract_idx}/distributions/",
+            headers=self.headers
+        )
+        return self._process_response(response)
+
+    def post_distributions(self, contract_type, contract_idx, distributions):
+        """Add residuals for a contract."""
+        headers_with_csrf = self._add_csrf_token(self.headers.copy())
+        response = requests.post(
+            f"{self.base_url}/api/contracts/{contract_type}/{contract_idx}/distributions/",
+            headers=headers_with_csrf,
+            json=distributions,
+            cookies={'csrftoken': self.csrf_token}
+        )
+        return self._process_response(response)

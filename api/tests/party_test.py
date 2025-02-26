@@ -31,8 +31,8 @@ class PartyTest(TestCase):
 
     def test_party_operations(self):
         """Test party lifecycle: create contract, add parties, retrieve, and delete."""
-        fixtures_dir = os.path.join(os.path.dirname(__file__), "fixtures", "party")
-        filenames = self._get_json_files(fixtures_dir)
+        fixtures_dir = os.path.join(os.path.dirname(__file__), "fixtures")
+        filenames = ["advance_fiat.json", "purchase_fiat.json", "sale_fiat.json"]
 
         if not filenames:
             self.fail("No test files found in fixtures/party")
@@ -42,7 +42,7 @@ class PartyTest(TestCase):
             contract_data = self._load_json(file_path)
 
             contract_type = contract_data["contract_type"]
-            contract_body = contract_data["contract_data"]
+            contract_body = contract_data["contract"]
             party_list = contract_data["parties"]
 
             # Step 1: Create contract

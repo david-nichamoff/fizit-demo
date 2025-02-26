@@ -1,18 +1,16 @@
-from django import forms
-from api.config import ConfigManager
+import logging
 from datetime import datetime, timezone
 
-import logging
+from django import forms
 
-logger = logging.getLogger(__name__)
+from api.config import ConfigManager
 
 class BaseTransactionForm(forms.Form):
     def __init__(self, *args, **kwargs):
         initial = kwargs.pop("initial", {})
         super().__init__(*args, **kwargs)
-
-        # Load configuration data once
-        self.config = ConfigManager().load_config()
+        self.logger = logging.getLogger(__name__)
+        self.config_manager = ConfigManager()
 
 
 class TransactionForm(BaseTransactionForm):
@@ -21,7 +19,7 @@ class TransactionForm(BaseTransactionForm):
         required=True,
         choices=[],
         widget=forms.Select(attrs={'class': 'contract-select', 'id':'id_contract_idx'}),
-        label="Contract name:",
+        label="Contract Name:",
         help_text="Select the contract associated with this transaction."
     )
 
@@ -29,7 +27,7 @@ class TransactionForm(BaseTransactionForm):
         required=True,
         initial=lambda: datetime.now(timezone.utc).isoformat(),
         widget=forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'datetime-input'}),
-        label="Transaction date:",
+        label="Transaction Date:",
         help_text="Enter the date and time of the transaction in UTC (Coordinated Universal Time)."
     )
 
@@ -40,7 +38,7 @@ class TransactionForm(BaseTransactionForm):
             "style": "width: 100%; height: 75px;"
         }),
         initial={},
-        label="Transaction logic:",
+        label="Transaction Logic:",
         help_text="The transaction logic JSON for the selected contract (read-only)."
     )
 
@@ -51,7 +49,7 @@ class TransactionForm(BaseTransactionForm):
         }),
         initial={},
         required=True,
-        label="Transaction data:",
+        label="Transaction Data:",
         help_text="Update the variables associated with this reading."
     )
 

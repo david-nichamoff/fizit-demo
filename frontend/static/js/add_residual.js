@@ -1,111 +1,116 @@
 document.addEventListener("DOMContentLoaded", function () {
-    const contractDropdown = document.getElementById("id_contract_idx");
     const residualsTableBody = document.querySelector("#residuals-table tbody");
     const submitButton = document.querySelector(".submit-row input[type='submit']");
     const residualForm = document.querySelector(".residual-form");
 
-    // Function to update the residuals table and submit button
-    function updateResidualsTable(contractIdx) {
-        // Clear existing rows
+    function populateResidualsTable() {
         residualsTableBody.innerHTML = "";
-
-        // Find the residuals for the selected contract
-        const residuals = residualsByContract[contractIdx] || [];
-
-        console.log(`Loading ${residuals.length} residuals for contract ${contractIdx}`);
-
+    
+        let residuals = [];
+        for (const contractIdx in residualsList) {
+            residuals = residuals.concat(residualsList[contractIdx]);
+        }
+    
         if (residuals.length === 0) {
-            // Display a message when no residuals are available
             const emptyRow = document.createElement("tr");
-            emptyRow.innerHTML = `
-                <td colspan="5" class="empty-result">No residuals available for this contract.</td>
-            `;
+            emptyRow.innerHTML = `<td colspan="8" class="empty-result">No residuals available.</td>`;
             residualsTableBody.appendChild(emptyRow);
             submitButton.disabled = true;
         } else {
-            // Populate the table with residuals
             residuals.forEach((residual) => {
                 const tooltipContent = residual.bank === "mercury"
-                    ? `Account: ${residual.account_name || "N/A"} 
+                    ? `Account: ${residual.account_name || "N/A"}
                     Recipient: ${residual.recipient_name || "N/A"}`
                     : residual.bank === "token"
-                    ? `Funder: ${residual.funder_party_code || "N/A"} 
-                    Recipient: ${residual.recipient_party_code || "N/A"} 
-                    Token Symbol: ${residual.token_symbol || "N/A"}`
+                    ? `Funder: ${residual.funder_party_code || "N/A"}<br>Recipient: ${residual.recipient_party_code || "N/A"}<br>Token Symbol: ${residual.token_symbol || "N/A"}`
                     : "No additional details";
-
+            
+                const capitalizedContractType = residual.contract_type.charAt(0).toUpperCase() + residual.contract_type.slice(1);
+                const uniqueKey = `${residual.contract_type}_${residual.contract_name}_${residual.settle_idx}`;
+            
                 const row = document.createElement("tr");
                 row.innerHTML = `
                     <td>
-                        <input type="checkbox" class="residual-checkbox" value="${residual.transact_idx}" 
-                               data-residual='${JSON.stringify(residual)}' />
+                        <input type="checkbox" class="residual-checkbox" 
+                            value="${residual.settle_idx}" 
+                            data-unique-key="${uniqueKey}" 
+                            data-residual='${JSON.stringify(residual)}' />
                     </td>
-                    <td>${residual.bank}</td>
-                    <td>${residual.settle_idx}</td>
+                    <td>${capitalizedContractType}</td>
+                    <td>${residual.contract_name}</td>
+                    <td>${residual.settle_due_dt}</td>
+                    <td>
+                        <span class="help-tooltip" data-tooltip="${tooltipContent}">
+                            ${residual.bank}
+                        </span>
+                    </td>
                     <td>${residual.residual_calc_amt}</td>
+                    <td>
+                        ${residual.bank === "manual" 
+                            ? `<input type="text" class="tx-hash-input" placeholder="Enter TX Hash" 
+                                data-unique-key="${uniqueKey}" />`
+                            : ""}
+                    </td>
                 `;
                 residualsTableBody.appendChild(row);
             });
-
-            // Re-check if any residuals are selected
+    
             toggleSubmitButton();
-
-            // Enable tooltips
-            const tooltips = document.querySelectorAll(".help-tooltip");
-            tooltips.forEach((tooltip) => {
-                tooltip.addEventListener("mouseenter", function () {
-                    const tooltipContent = this.getAttribute("data-tooltip");
-                    const tooltipElement = document.createElement("div");
-                    tooltipElement.className = "tooltip";
-                    tooltipElement.innerHTML = tooltipContent; // Use innerHTML for HTML rendering
-                    document.body.appendChild(tooltipElement);
-
-                    const rect = this.getBoundingClientRect();
-                    tooltipElement.style.left = `${rect.left + window.scrollX}px`;
-                    tooltipElement.style.top = `${rect.top + window.scrollY - tooltipElement.offsetHeight - 10}px`;
-
-                    this.addEventListener("mouseleave", function () {
-                        tooltipElement.remove();
-                    });
-                });
-            });
         }
-    }
+    } 
 
-    // Handle contract selection change
-    contractDropdown.addEventListener("change", function () {
-        const selectedContractIdx = contractDropdown.value;
-        updateResidualsTable(selectedContractIdx);
-    });
-
-    // Ensure the submit includes complete residual data
     residualForm.addEventListener("submit", function (event) {
         const selectedCheckboxes = document.querySelectorAll(".residual-checkbox:checked");
         const residualsInput = document.createElement("input");
         residualsInput.type = "hidden";
         residualsInput.name = "residuals";
-        residualsInput.value = JSON.stringify(
-            Array.from(selectedCheckboxes).map((checkbox) => JSON.parse(checkbox.dataset.residual))
-        );
+    
+        const selectedResiduals = Array.from(selectedCheckboxes).map((checkbox) => {
+            let residualData = JSON.parse(checkbox.dataset.residual);
+            if (residualData.bank === "manual") {
+                const uniqueKey = `${residualData.contract_type}_${residualData.contract_name}_${residualData.settle_idx}`;
+                const txHashInput = document.querySelector(`.tx-hash-input[data-unique-key="${uniqueKey}"]`);
+                residualData.tx_hash = txHashInput ? txHashInput.value.trim() : "";
+            }
+            return residualData;
+        });
+
+        residualsInput.value = JSON.stringify(selectedResiduals);
         residualForm.appendChild(residualsInput);
+        console.log("Submitting residuals:", residualsInput.value);
     });
 
-    // Function to toggle the submit button based on selected checkboxes
     function toggleSubmitButton() {
         const selectedCheckboxes = document.querySelectorAll(".residual-checkbox:checked");
         submitButton.disabled = selectedCheckboxes.length === 0;
     }
 
-    // Add an event listener to handle checkbox changes
     residualsTableBody.addEventListener("change", function (event) {
         if (event.target.classList.contains("residual-checkbox")) {
             toggleSubmitButton();
         }
     });
 
-    // Load residuals for the first contract on page load
-    const firstContractIdx = contractDropdown.value;
-    if (firstContractIdx) {
-        updateResidualsTable(firstContractIdx);
-    }
+    // Tooltip handling (event delegation for efficiency)
+    residualsTableBody.addEventListener("mouseover", function (event) {
+        const tooltipTrigger = event.target.closest(".help-tooltip");
+        if (tooltipTrigger) {
+            const tooltipContent = tooltipTrigger.getAttribute("data-tooltip");
+            const tooltipElement = document.createElement("div");
+            tooltipElement.className = "tooltip";
+            tooltipElement.innerHTML = tooltipContent; // Use innerHTML for HTML rendering
+            document.body.appendChild(tooltipElement);
+
+            const rect = tooltipTrigger.getBoundingClientRect();
+            tooltipElement.style.left = `${rect.left + window.scrollX}px`;
+            tooltipElement.style.top = `${rect.top + window.scrollY - tooltipElement.offsetHeight - 10}px`;
+
+            tooltipTrigger.addEventListener("mouseleave", function () {
+                tooltipElement.remove();
+            });
+        }
+    });
+
+    // Load residuals immediately on page load
+    populateResidualsTable();
 });

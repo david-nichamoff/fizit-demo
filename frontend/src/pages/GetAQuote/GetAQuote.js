@@ -42,7 +42,7 @@ export const GetAQuote = () => {
     e.preventDefault();
     console.log("Form data being sent:", formData);
   
-    fetch("/api/contacts/", {
+    fetch("/api/send-email/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

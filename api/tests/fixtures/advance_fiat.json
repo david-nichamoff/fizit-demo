@@ -1,0 +1,63 @@
+{
+    "contract_type": "advance",
+    "contract": {
+        "extended_data": {"Contract #": 100},
+        "contract_name": "Advance Contract",
+        "funding_instr": {"bank": "mercury", "account_id": "61396d72-e780-11ee-b69b-137ed758771c", "recipient_id": "627ecace-e780-11ee-b69b-f311fd81fcb4"},
+        "deposit_instr": {"bank": "mercury", "account_id": "61396d72-e780-11ee-b69b-137ed758771c" },
+        "service_fee_pct": "0.0200",
+        "service_fee_max": "0.0500",
+        "service_fee_amt": "10.00",
+        "advance_pct": "0.8000",
+        "late_fee_pct": "0.0500",
+        "transact_logic": {"var": "ticket_amt"},
+        "min_threshold_amt": "50.00",
+        "max_threshold_amt": "10000.00",
+        "notes": "Valid advance contract",
+        "is_active": true,
+        "is_quote": false
+    },
+    "parties": [
+        {"party_code": "Supplier_1", "party_type": "seller"},
+        {"party_code": "Refiner", "party_type": "buyer"},
+        {"party_code": "FIZIT", "party_type": "funder"}
+    ],
+    "settlements": [
+        {
+            "extended_data": {"settlement_id": "settlement number 1"},
+            "settle_due_dt": "2024-03-01T00:00:00",
+            "transact_min_dt": "2024-02-01T00:00:00",
+            "transact_max_dt": "2024-03-01T00:00:00"
+        }
+    ],
+    "transactions": [
+        {
+            "extended_data": {"transaction_id": "transaction number 2"},
+            "transact_dt": "2024-02-16T00:00:00",
+            "transact_data": {"ticket_amt": 2600.00}
+        },
+        {
+            "extended_data": {"transaction_id": "transaction number 1"},
+            "transact_dt": "2024-02-15T00:00:00",
+            "transact_data": {"ticket_amt": 2500.00}
+        }
+    ],
+    "artifacts": [
+        "https://fizit-repository.s3.amazonaws.com/FIZIT+Executive+Summary.pdf",
+        "https://fizit-repository.s3.amazonaws.com/Fizit+Introduction+2023-12.pdf"
+    ],
+    "deposit_params" : {
+        "start_date" : "2024-02-01T20:39:53Z",
+        "end_date" : "2024-08-28T20:39:53Z"   
+    },
+    "deposits" : {
+        "settle_idx": 0,
+        "dispute_reason": "none",
+        "bank": "mercury",
+        "account_id": "61396d72-e780-11ee-b69b-137ed758771c",
+        "tx_hash": "62916e22-e780-11ee-b69b-2b4a3aa5b5d9",
+        "counterparty": "Frank Lloyd Wright, Inc.",
+        "deposit_amt": 5000.0,
+        "deposit_dt": "2024-03-21T12:41:45.690261Z"
+    }
+}

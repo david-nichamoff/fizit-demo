@@ -11,6 +11,7 @@ from api.serializers.recipient_serializer import RecipientSerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
 from api.interfaces import RecipientAPI
+from api.registry import RegistryManager
 from api.views.mixins.validation import ValidationMixin
 from api.views.mixins.permission import PermissionMixin
 from api.utilities.logging import log_error, log_info
@@ -24,7 +25,8 @@ class RecipientViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.recipient_api = RecipientAPI()
+        self.registry_manager = RegistryManager()
+        self.recipient_api = RecipientAPI(self.registry_manager)
         self.logger = logging.getLogger(__name__)
 
     @extend_schema(
@@ -34,7 +36,7 @@ class RecipientViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
                 name='bank',
                 description='Funding bank',
                 required=True,
-                default='mercury',
+                default='manual',
                 type=str
             )
         ],
@@ -43,16 +45,15 @@ class RecipientViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         description="Retrieve a list of all recipients."
     )
     def list(self, request):
-        """
-        Retrieve a list of recipients for the specified bank.
-        """
+        # Validate required query parameter
+        bank = request.query_params.get('bank')
         log_info(self.logger, f"Fetching recipients with query parameters: {request.query_params}")
-        try:
-            self._validate_master_key(request.auth)
 
-            # Validate required query parameter
-            bank = request.query_params.get('bank')
-            self._validate_query_param("bank", bank)
+        try:
+            if bank not in self.registry_manager.get_banks():
+                raise ValidationError("Invalid bank")
+
+            self._validate_master_key(request.auth)
 
             # Fetch recipients from RecipientAPI
             response = self.recipient_api.get_recipients(bank)

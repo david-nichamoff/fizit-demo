@@ -10,19 +10,21 @@ from api.serializers.account_serializer import AccountSerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
 from api.interfaces import AccountAPI
+from api.registry import RegistryManager
 from api.views.mixins.validation import ValidationMixin
+from api.views.mixins.permission import PermissionMixin
 from api.utilities.logging import log_error, log_info, log_warning
 
-class AccountViewSet(viewsets.ViewSet, ValidationMixin):
+class AccountViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
     authentication_classes = [AWSSecretsAPIKeyAuthentication]
     permission_classes = [HasCustomAPIKey]
 
     def __init__(self, **kwargs):
         """Initialize the view with AccountAPI instance and logger."""
         super().__init__(**kwargs)
-        print(f"DEBUG: AccountViewSet schema is {self.schema}")
-        self.account_api = AccountAPI()
+        self.registry_manager = RegistryManager()
         self.logger = logging.getLogger(__name__)
+        self.account_api = AccountAPI(registry_manager=self.registry_manager)
 
     @extend_schema(
         tags=["Accounts"],
@@ -32,7 +34,7 @@ class AccountViewSet(viewsets.ViewSet, ValidationMixin):
                 description="Funding bank",
                 required=True,
                 type=str,
-                default="mercury",
+                default="manual",
             )
         ],
         responses={status.HTTP_200_OK: AccountSerializer(many=True)},
@@ -40,22 +42,17 @@ class AccountViewSet(viewsets.ViewSet, ValidationMixin):
         description="Retrieve a list of all bank accounts and balances.",
     )
     def list(self, request):
-        """
-        List bank accounts for the given bank.
-        """
         bank = request.query_params.get("bank")
         log_info(self.logger, f"Received request to list accounts for bank: {bank}")
 
         try:
-            # Validate master key and contract_idx
+            if bank not in self.registry_manager.get_banks():
+                raise ValidationError("Invalid bank")
+
             self._validate_master_key(request.auth)
 
-            # Validate the 'bank' query parameter
-            self._validate_query_param("bank", bank, expected_values=["mercury"])
-
-            # Fetch accounts from the AccountAPI
+            log_info(self.logger, f"Getting accounts from api {self.account_api} from bank {bank}")
             response = self.account_api.get_accounts(bank)
-
             log_info(self.logger, f"Response from api: {response}")
 
             if response["status"] == status.HTTP_200_OK:

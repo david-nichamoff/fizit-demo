@@ -70,6 +70,7 @@ class Web3Manager():
         """Get the Web3 contract instance for the specified network and contract_type"""
         web3_instance = self.get_web3_instance(network)
         contract_address = self.config_manager.get_contract_address(contract_type)
+        log_info(self.logger, f"Found contract address at {contract_address}")
 
         if not contract_address:
             raise ValueError("Contract address is missing in configuration")
@@ -150,10 +151,16 @@ class Web3Manager():
                 },
             }
 
-            log_info(self.logger, f"Sending tx_data: {tx_data}")
+            log_warning(self.logger, f"Sending tx_data: {tx_data}")
+            signed_tx, error_code = self._sign_transaction(tx_data, wallet_addr)
 
-            signed_tx = self._sign_transaction(tx_data, wallet_addr)
-            return self._broadcast_transaction(web3_instance, signed_tx, wallet_addr, transaction, contract_type, contract_idx, network)
+            if signed_tx:
+                return self._broadcast_transaction(web3_instance, signed_tx, wallet_addr, transaction, contract_type, contract_idx, network)
+            elif error_code == 'MfaRequired':
+                # Simulate a successful response
+                return 'MfaRequired'
+            else:
+                raise RuntimeError(error_code)
 
         except Exception as e:
             log_error(self.logger, f"Error sending signed transaction: {e}")
@@ -188,7 +195,9 @@ class Web3Manager():
         org_id = self.config_manager.get_cs_org_id()
         encoded_org_id = urllib.parse.quote(org_id, safe='')
 
-        api_url = f"{cs_url}/v1/org/{encoded_org_id}/eth1/sign/{wallet_addr}"
+        # used lower() to workaround a Cubesigner bug where it was not allowing me to submit
+        # the transaction. remove the .lower() when this bug is resolved
+        api_url = f"{cs_url}/v1/org/{encoded_org_id}/eth1/sign/{wallet_addr.lower()}"
 
         headers = {
             "Content-Type": "application/json",
@@ -197,19 +206,18 @@ class Web3Manager():
         }
 
         response = requests.post(api_url, json=tx_data, headers=headers)
-        log_info(self.logger, f"Response from Cubist: {response.json()}")
+        log_warning(self.logger, f"Response from Cubist: {response.json()}")
 
         response.raise_for_status()
         signed_tx = response.json().get("rlp_signed_tx")
-
-        if not signed_tx:
-            raise ValueError("Signed transaction not found in response")
-        return signed_tx
+        error_code = response.json().get("error_code")
+        return signed_tx, error_code
 
     def _broadcast_transaction(self, web3_instance, signed_tx, wallet_addr, transaction, contract_type, contract_idx, network):
         """Broadcast the signed transaction to the network."""
         tx_hash = web3_instance.eth.send_raw_transaction(web3_instance.to_bytes(hexstr=signed_tx))
         tx_receipt = web3_instance.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+
         Event.objects.create(
             contract_idx=contract_idx,
             contract_type=contract_type,
@@ -221,8 +229,8 @@ class Web3Manager():
             details="Pending",
             status="pending",
         )
-        return tx_receipt
 
+        return tx_receipt
 
     def send_contract_deployment(self, bytecode, abi, wallet_addr, network="fizit"):
         web3_instance = self.get_web3_instance(network)

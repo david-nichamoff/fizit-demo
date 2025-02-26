@@ -1,0 +1,77 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+<script>
+    const settlements = {{ settlements|default:"[]"|safe }};
+    const contracts = {{ contracts|default:"[]"|safe }};
+    const contractTypes = {{ contract_types|default:"[]"|safe }};
+</script>
+<script src="{% static 'js/post_deposit.js' %}?v1.4"></script>
+{% endblock %}
+
+{% block content %}
+<h1 class="title">Post Deposit</h1>
+
+<!-- Deposit Form -->
+<form method="post" class="post-deposit-form">
+    {% csrf_token %}
+    <fieldset class="module aligned">
+
+        <!-- Select Contract Type -->
+        <div class="form-row">
+            <label for="{{ deposit_form.contract_type.id_for_label }}">{{ deposit_form.contract_type.label }}</label>
+            {{ deposit_form.contract_type }}
+            <div class="help">{{ deposit_form.contract_type.help_text }}</div>
+        </div>
+
+        <!-- Select Contract -->
+        <div class="form-row">
+            <label for="{{ deposit_form.contract_idx.id_for_label }}">{{ deposit_form.contract_idx.label }}</label>
+            {{ deposit_form.contract_idx }}
+            <div class="help">{{ deposit_form.contract_idx.help_text }}</div>
+        </div>
+
+        <!-- Select Settlement Period -->
+        <div class="form-row">
+            <label for="{{ deposit_form.settlement_period.id_for_label }}">{{ deposit_form.settlement_period.label }}</label>
+            {{ deposit_form.settlement_period }}
+            <div class="help">{{ deposit_form.settlement_period.help_text }}</div>
+        </div>
+
+        <!-- Dispute Reason -->
+        <div class="form-row">
+            <label for="{{ deposit_form.dispute_reason.id_for_label }}">{{ deposit_form.dispute_reason.label }}</label>
+            {{ deposit_form.dispute_reason }}
+            <div class="help">{{ deposit_form.dispute_reason.help_text }}</div>
+        </div>
+
+        <!-- Deposit Amount -->
+        <div class="form-row">
+            <label for="{{ deposit_form.deposit_amt.id_for_label }}">{{ deposit_form.deposit_amt.label }}</label>
+            {{ deposit_form.deposit_amt }}
+            <div class="help">{{ deposit_form.deposit_amt.help_text }}</div>
+        </div>
+
+        <!-- Deposit Date -->
+        <div class="form-row">
+            <label for="{{ deposit_form.deposit_dt.id_for_label }}">{{ deposit_form.deposit_dt.label }}</label>
+            {{ deposit_form.deposit_dt }}
+            <div class="help">{{ deposit_form.deposit_dt.help_text }}</div>
+        </div>
+
+        <!-- TX Hash -->
+        <div class="form-row">
+            <label for="{{ deposit_form.tx_hash.id_for_label }}">{{ deposit_form.tx_hash.label }}</label>
+            {{ deposit_form.tx_hash }}
+            <div class="help">{{ deposit_form.tx_hash.help_text }}</div>
+        </div>
+
+    </fieldset>
+
+    <div class="submit-row">
+        <input type="submit" value="Post Deposit" class="default" />
+    </div>
+</form>
+
+{% endblock %}

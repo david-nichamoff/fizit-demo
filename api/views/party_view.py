@@ -30,13 +30,99 @@ class PartyViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         self.party_api = PartyAPI()
         self.logger = logging.getLogger(__name__)
 
+### **Purchase Contracts**
+
     @extend_schema(
-        tags=["Parties"],
+        tags=["Purchase Contracts"],
         responses={status.HTTP_200_OK: PartySerializer(many=True)},
-        summary="List Parties",
-        description="Retrieve a list of parties associated with a contract."
+        summary="List Purchase Contract Parties",
+        description="Retrieve a list of parties associated with a purchase contract"
     )
-    def list(self, request, contract_type=None, contract_idx=None):
+    def list_purchase_parties(self, request, contract_idx=None):
+        return self._list_parties(request, contract_type="purchase", contract_idx=contract_idx)
+
+    @extend_schema(
+        tags=["Purchase Contracts"],
+        request=PartySerializer(many=True),
+        responses={status.HTTP_201_CREATED: dict},
+        summary="Create Purchase Contract Parties",
+        description="Add a list of parties to an existing purchase contract"
+    )
+    def create_purchase_parties(self, request, contract_idx=None):
+        return self._create_parties(request, contract_type="purchase", contract_idx=contract_idx)
+
+    @extend_schema(
+        tags=["Purchase Contracts"],
+        responses={status.HTTP_204_NO_CONTENT: None},
+        summary="Delete Purchase Contract Parties",
+        description="Delete all parties from a contract",
+    )
+    def destroy_purchase_parties(self, request, contract_idx=None):
+        return self._destroy_parties(request, contract_type="purchase", contract_idx=contract_idx)
+
+### **Sale Contracts**
+
+    @extend_schema(
+        tags=["Sale Contracts"],
+        responses={status.HTTP_200_OK: PartySerializer(many=True)},
+        summary="List Sale Contract Parties",
+        description="Retrieve a list of parties associated with a sale contract"
+    )
+    def list_sale_parties(self, request, contract_idx=None):
+        return self._list_parties(request, contract_type="sale", contract_idx=contract_idx)
+
+    @extend_schema(
+        tags=["Sale Contracts"],
+        request=PartySerializer(many=True),
+        responses={status.HTTP_201_CREATED: dict},
+        summary="Create Sale Contract Parties",
+        description="Add a list of parties to an existing sale contract"
+    )
+    def create_sale_parties(self, request, contract_idx=None):
+        return self._create_parties(request, contract_type="sale", contract_idx=contract_idx)
+
+    @extend_schema(
+        tags=["Sale Contracts"],
+        responses={status.HTTP_204_NO_CONTENT: None},
+        summary="Delete Sale Contract Parties",
+        description="Delete all parties from a contract",
+    )
+    def destroy_sale_parties(self, request, contract_idx=None):
+        return self._destroy_parties(request, contract_type="sale", contract_idx=contract_idx)
+
+### **Advance Contracts**
+
+    @extend_schema(
+        tags=["Advance Contracts"],
+        responses={status.HTTP_200_OK: PartySerializer(many=True)},
+        summary="List Advance Contract Parties",
+        description="Retrieve a list of parties associated with a advance contract"
+    )
+    def list_advance_parties(self, request, contract_idx=None):
+        return self._list_parties(request, contract_type="advance", contract_idx=contract_idx)
+
+    @extend_schema(
+        tags=["Advance Contracts"],
+        request=PartySerializer(many=True),
+        responses={status.HTTP_201_CREATED: dict},
+        summary="Create Advance Contract Parties",
+        description="Add a list of parties to an existing advance contract"
+    )
+    def create_advance_parties(self, request, contract_idx=None):
+        return self._create_parties(request, contract_type="advance", contract_idx=contract_idx)
+
+    @extend_schema(
+        tags=["Advance Contracts"],
+        responses={status.HTTP_204_NO_CONTENT: None},
+        summary="Delete Advance Contract Parties",
+        description="Delete all parties from a contract",
+    )
+    def destroy_advance_parties(self, request, contract_idx=None):
+        return self._destroy_parties(request, contract_type="advance", contract_idx=contract_idx)
+
+### **Core Functions**
+
+    def _list_parties(self, request, contract_type=None, contract_idx=None):
         """
         Retrieve a list of parties for a given contract.
         """
@@ -62,14 +148,7 @@ class PartyViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
             log_error(self.logger, f"Unexpected error: {str(e)}")
             return Response({"error": f"Unexpected error {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @extend_schema(
-        tags=["Parties"],
-        request=PartySerializer(many=True),
-        responses={status.HTTP_201_CREATED: dict},
-        summary="Create Parties",
-        description="Add a list of parties to an existing contract."
-    )
-    def create(self, request, contract_type=None, contract_idx=None):
+    def _create_parties(self, request, contract_type=None, contract_idx=None):
         log_info(self.logger, f"Attempting to add parties to {contract_type}:{contract_idx}")
 
         try:
@@ -100,14 +179,7 @@ class PartyViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
             log_error(self.logger, f"Unexpected error: {str(e)}")
             return Response({"error": f"Unexpected error {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @extend_schema(
-        tags=["Parties"],
-        responses={status.HTTP_204_NO_CONTENT: None},
-        summary="Delete All Parties",
-        description="Delete all parties from a contract",
-        operation_id="delete_all_parties"
-    )
-    def destroy(self, request, contract_type=None, contract_idx=None):
+    def _destroy_parties(self, request, contract_type=None, contract_idx=None):
         log_info(self.logger, f"Attempting to delete all parties for {contract_type}:{contract_idx}")
 
         try:

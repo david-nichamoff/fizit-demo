@@ -47,7 +47,6 @@ class Command(BaseCommand):
         """Initialize ConfigManager, SecretsManager, and request headers."""
         self.logger = logging.getLogger(__name__)
         self.config_manager = ConfigManager()
-        self.config = self.config_manager.load_config()
         self.secrets_manager = SecretsManager()
 
         # Prepare headers with the correct format
@@ -59,7 +58,7 @@ class Command(BaseCommand):
     def get_contract(self, contract_type, contract_idx):
         """Retrieve formatted contract data from the API."""
         response = requests.get(
-            f"{self.config['url']}/api/contracts/{contract_type}/{contract_idx}/",
+            f"{self.config_manager.get_base_url()}/api/contracts/{contract_type}/{contract_idx}/",
             headers=self.headers
         )
         response.raise_for_status()
@@ -68,7 +67,7 @@ class Command(BaseCommand):
     def get_settlements(self, contract_type, contract_idx):
         """Retrieve formatted settlements data from the API."""
         response = requests.get(
-            f"{self.config['url']}/api/contracts/{contract_type}/{contract_idx}/settlements/",
+            f"{self.config_manager.get_base_url()}/api/contracts/{contract_type}/{contract_idx}/settlements/",
             headers=self.headers
         )
         response.raise_for_status()
@@ -77,7 +76,8 @@ class Command(BaseCommand):
     def get_parties(self, contract_type, contract_idx):
         """Retrieve formatted parties data from the API."""
         response = requests.get(
-            f"{self.config['url']}/api/contracts/{contract_type}/{contract_idx}/parties/",
+            f"{self.config_manager.get_base_url()}/api/contracts/{contract_type}/{contract_idx}/parties/",
+
             headers=self.headers
         )
         response.raise_for_status()
@@ -86,7 +86,7 @@ class Command(BaseCommand):
     def get_transactions(self, contract_type, contract_idx):
         """Retrieve formatted transactions data from the API."""
         response = requests.get(
-            f"{self.config['url']}/api/contracts/{contract_type}/{contract_idx}/transactions/",
+            f"{self.config_manager.get_base_url()}/api/contracts/{contract_type}/{contract_idx}/transactions/",
             headers=self.headers
         )
         response.raise_for_status()
@@ -95,7 +95,7 @@ class Command(BaseCommand):
     def get_artifacts(self, contract_type, contract_idx):
         """Retrieve formatted artifacts data from the API."""
         response = requests.get(
-            f"{self.config['url']}/api/contracts/{contract_type}/{contract_idx}/artifacts/",
+            f"{self.config_manager.get_base_url()}/api/contracts/{contract_type}/{contract_idx}/artifacts/",
             headers=self.headers
         )
         response.raise_for_status()

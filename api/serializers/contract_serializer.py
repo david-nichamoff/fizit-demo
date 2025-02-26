@@ -8,9 +8,7 @@ class BaseContractSerializer(serializers.Serializer):
     service_fee_pct = serializers.CharField(max_length=10)
     service_fee_amt = serializers.CharField(max_length=10)
     transact_logic = serializers.JSONField()
-    min_threshold_amt = serializers.CharField(max_length=20)  
-    max_threshold_amt = serializers.CharField(max_length=20)  
-    notes = serializers.CharField(required=False)
+    notes = serializers.CharField(required=False, allow_blank=True)
     is_active = serializers.BooleanField(default=True)
     is_quote = serializers.BooleanField(default=False)
 
@@ -22,34 +20,53 @@ class BaseContractSerializer(serializers.Serializer):
         instance["service_fee_pct"] = validated_data.get("service_fee_pct", instance["service_fee_pct"])
         instance["service_fee_amt"] = validated_data.get("service_fee_amt", instance["service_fee_amt"])
         instance["transact_logic"] = validated_data.get("transact_logic", instance["transact_logic"])
-        instance["min_threshold_amt"] = validated_data.get("min_threshold_amt", instance["min_threshold_amt"])
-        instance["max_threshold_amt"] = validated_data.get("max_threshold_amt", instance["max_threshold_amt"])
         instance["notes"] = validated_data.get("notes", instance["notes"])
         instance["is_active"] = validated_data.get("is_active", instance["is_active"])
         instance["is_quote"] = validated_data.get("is_quote", instance["is_quote"])
         return instance
 
-
-class AdvanceContractSerializer(BaseContractSerializer):
-    """Serializer for Advance contracts, extending BaseContractSerializer."""
+class ListContractSerializer(BaseContractSerializer):
+    """ Used as a generic serializer for listing contracts """
     def update(self, instance, validated_data):
-        """Explicitly update each field for Advance contracts."""
+        """Explicitly update each field for purchase contracts."""
         instance = super().update(instance, validated_data)
         return instance
 
+class PurchaseContractSerializer(BaseContractSerializer):
+    """Serializer for purchase contracts, extending BaseContractSerializer."""
+    def update(self, instance, validated_data):
+        """Explicitly update each field for purchase contracts."""
+        instance = super().update(instance, validated_data)
+        return instance
 
-class TicketingContractSerializer(BaseContractSerializer):
-    """Serializer for Ticketing contracts, adding ticketing-specific fields."""
+class SaleContractSerializer(BaseContractSerializer):
+    """Serializer for sale contracts, extending BaseContractSerializer."""
+    deposit_instr = serializers.JSONField()
+    late_fee_pct = serializers.CharField(max_length=10)
+
+    def update(self, instance, validated_data):
+        """Explicitly update each field for sale contracts."""
+        instance = super().update(instance, validated_data)
+        instance["deposit_instr"] = validated_data.get("deposit_instr", instance["deposit_instr"])
+        instance["late_fee_pct"] = validated_data.get("late_fee_pct", instance["late_fee_pct"])
+        return instance
+
+class AdvanceContractSerializer(BaseContractSerializer):
+    """Serializer for advance contracts, adding advance-specific fields."""
     deposit_instr = serializers.JSONField()
     service_fee_max = serializers.CharField(max_length=10)
     advance_pct = serializers.CharField(max_length=10)
     late_fee_pct = serializers.CharField(max_length=10)
+    min_threshold_amt = serializers.CharField(required=False, max_length=20)  
+    max_threshold_amt = serializers.CharField(required=False, max_length=20)  
 
     def update(self, instance, validated_data):
-        """Explicitly update each field for Ticketing contracts."""
+        """Explicitly update each field for advance contracts."""
         instance = super().update(instance, validated_data)
         instance["deposit_instr"] = validated_data.get("deposit_instr", instance["deposit_instr"])
         instance["service_fee_max"] = validated_data.get("service_fee_max", instance["service_fee_max"])
         instance["advance_pct"] = validated_data.get("advance_pct", instance["advance_pct"])
         instance["late_fee_pct"] = validated_data.get("late_fee_pct", instance["late_fee_pct"])
+        instance["min_threshold_amt"] = validated_data.get("min_threshold_amt", instance["min_threshold_amt"])
+        instance["max_threshold_amt"] = validated_data.get("max_threshold_amt", instance["max_threshold_amt"])
         return instance

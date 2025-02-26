@@ -1,0 +1,29 @@
+{
+    "contract_type": "purchase",
+    "contract": {
+        "extended_data": {"Contract #": 100},
+        "contract_name": "USDC Test",
+        "funding_instr": {"bank": "token", "token_symbol": "USDC" },
+        "service_fee_pct": "0.0000",
+        "service_fee_amt": "0.00",
+        "transact_logic": { "*": [{ "var": "barrels" }, {"var": "price"}]},
+        "notes": "USDC Test",
+        "is_active": true,
+        "is_quote": false
+    },
+    "parties": [
+        {"party_code": "Supplier_1", "party_type": "seller"},
+        {"party_code": "FIZIT", "party_type": "funder"}
+    ],
+    "transactions": [
+        {
+            "extended_data": {"transaction_id" : "transaction number 1"},
+            "transact_dt": "2025-01-02T00:00:00",
+            "transact_data": {"barrels": 1, "price": 0.25 }
+        }
+    ],
+    "artifacts": [
+        "https://fizit-repository.s3.amazonaws.com/FIZIT+Executive+Summary.pdf",
+        "https://fizit-repository.s3.amazonaws.com/Fizit+Introduction+2023-12.pdf"
+    ]
+}

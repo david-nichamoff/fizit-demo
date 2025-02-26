@@ -1,23 +1,19 @@
-from django import forms
-from api.config import ConfigManager
+import logging
 from datetime import datetime, timezone
 
-import logging
+from django import forms
 
-logger = logging.getLogger(__name__)
+from api.config import ConfigManager
 
 class BaseSettlementForm(forms.Form):
     def __init__(self, *args, **kwargs):
         initial = kwargs.get("initial", {})
-
         super().__init__(*args, **kwargs)
-
-        # Load configuration data once
-        self.config = ConfigManager().load_config()
+        self.logger = logging.getLogger(__name__)
+        self.config_manager = ConfigManager()
 
 
 class SettlementForm(BaseSettlementForm):
-    # Define static fields
     settle_due_dt = forms.DateTimeField(
         required=True,
         initial=lambda: datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat(),
@@ -26,6 +22,7 @@ class SettlementForm(BaseSettlementForm):
         label="Settlement due date:"
     )
 
+class AdvanceSettlementForm(SettlementForm):
     transact_min_dt = forms.DateTimeField(
         required=True,
         initial=lambda: datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat(),
@@ -40,4 +37,21 @@ class SettlementForm(BaseSettlementForm):
         widget=forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'datetime-input'}),
         help_text="Enter the maximum date & time (exclusive) for transactions in UTC (Coordinated Universal Time)",
         label="Transaction max date:"
+    )
+
+class SaleSettlementForm(SettlementForm):
+    principal_amt = forms.DecimalField(
+        required=True,
+        initial=0.00,
+        widget=forms.NumberInput(attrs={"step": "0.01"}),
+        label="Principal amount:",
+        help_text="The purchase price of the commodity, for calculation of distribution amounts"
+    )
+
+    settle_exp_amt = forms.DecimalField(
+        required=True,
+        initial=0.00,
+        widget=forms.NumberInput(attrs={"step": "0.01"}),
+        label="Expected settlement amount:",
+        help_text="The sale price of the commodity, for calculation of distribution amounts"
     )

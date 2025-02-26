@@ -91,11 +91,14 @@ class TokenAdapter(ResponseMixin):
                 transaction, funder_addr, contract_type, contract_idx, network="avalanche"
             )
 
-            if tx_receipt["status"] == 1:
+            if tx_receipt == 'MfaRequired':
+                return 'MfaRequired'
+
+            if tx_receipt.get(["status"]) == 1:
                 log_info(self.logger,  f"Token payment successful. TX hash: {tx_receipt['transactionHash'].hex()}")
                 return tx_receipt['transactionHash'].hex()
             else:
-                error_message = f"Token payment failed. TX hash: {tx_receipt['transactionHash'].hex()}"
+                error_message = f"Token payment failed"
                 log_error(self.logger, error_message)
                 raise RuntimeError
 

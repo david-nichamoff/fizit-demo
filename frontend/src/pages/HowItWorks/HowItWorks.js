@@ -59,7 +59,7 @@ export const HowItWorks = () => {
                 Combining IoT and Electronic Smart Contracts, FIZIT converts proof of delivery into proof of value and calculates the payment due.  This electronic tie virtually eliminates the checking and cross-checking in today’s invoice and payment processes.  
                   <br />
                   <br />
-                FIZIT employs the same approach and technologies the world’s largest corporations have used to streamline processes, increase speed, and reduce errors .  Automated transactions, such as these have proved to be 98% accurate with the 2% resoled in the field before the back office even knows about it.  
+                FIZIT employs the same approach and technologies the world’s largest corporations have used to streamline processes, increase speed, and reduce errors .  Automated transactions, such as these have proved to be 98% accurate with the 2% resolved in the field before the back office even knows about it.  
                 </p>
               </div>
             </div>

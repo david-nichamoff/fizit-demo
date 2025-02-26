@@ -1,5 +1,7 @@
 import logging
 
+from web3 import Web3
+
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from rest_framework import viewsets, status
@@ -8,6 +10,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from api.serializers.event_serializer import EventSerializer
 from api.models import Event
+from api.registry import RegistryManager
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
 from api.views.mixins.validation import ValidationMixin
@@ -23,12 +26,13 @@ class EventViewSet(viewsets.ViewSet, ValidationMixin):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.logger = logging.getLogger(__name__)
+        self.registry_manager = RegistryManager()
 
     @extend_schema(
         tags=["Events"],
         parameters=[
-            OpenApiParameter(name='contract_idx', description='Contract index for filtering events', required=False, type=int),
-            OpenApiParameter(name='contract_type', description='Contract type for filtering events', required=False, type=str),
+            OpenApiParameter(name='contract_idx', description='Contract index for filtering events', required=True, type=int),
+            OpenApiParameter(name='contract_type', description='Contract type for filtering events', required=True, type=str),
             OpenApiParameter(name='from_addr', description='Source address for filtering events', required=False, type=str),
             OpenApiParameter(name='to_addr', description='Destination address for filtering events', required=False, type=str),
         ],
@@ -45,6 +49,7 @@ class EventViewSet(viewsets.ViewSet, ValidationMixin):
         try:
             # Filter events
             queryset = self._filter_queryset(request.query_params)
+
             serializer = EventSerializer(queryset, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -61,11 +66,19 @@ class EventViewSet(viewsets.ViewSet, ValidationMixin):
         """
         queryset = Event.objects.all()
 
-        if contract_idx := query_params.get('contract_idx'):
+        contract_type = query_params.get('contract_type')
+        contract_idx = query_params.get('contract_idx')
+
+        if contract_idx:
+            contract_idx = int(contract_idx)
+            contract_api = self.registry_manager.get_contract_api(contract_type)
+            self._validate_contract_idx(contract_idx, contract_type, contract_api)
             queryset = queryset.filter(contract_idx=contract_idx)
 
-        if contract_type := query_params.get('contract_type'):
+        if contract_type:
+            self._validate_contract_type(contract_type, self.registry_manager)
             queryset = queryset.filter(contract_type=contract_type)
+
 
         if from_addr := query_params.get('from_addr'):
             queryset = queryset.filter(from_addr=from_addr)

@@ -1,29 +1,28 @@
-from django import forms
-from api.config import ConfigManager
 import logging
 
-logger = logging.getLogger(__name__)
+from django import forms
+
+from api.config import ConfigManager
 
 class BaseArtifactForm(forms.Form):
     def __init__(self, *args, **kwargs):
         initial = kwargs.get("initial", {})
         super().__init__(*args, **kwargs)
-
-        # Load configuration data once
-        self.config = ConfigManager().load_config()
+        self.logger = logging.getLogger(__name__)
+        self.config_manager = ConfigManager()
 
 
 class ArtifactForm(BaseArtifactForm):
     # New field for artifact URLs
-    artifact_urls = forms.CharField(
+    artifact_url = forms.CharField(
         widget=forms.Textarea(attrs={
             'placeholder': 'https://example.com/artifact1.pdf',
-            'rows': 5,
+            'rows': 1,
             'cols': 50,
-            'id': 'artifact_urls',
+            'id': 'artifact_url',
         }),
-        label="Artifact URLs:",
-        help_text="Enter URLs, one per line."
+        label="Artifact URL:",
+        help_text="Enter URL of the artifact to store with this contract:"
     )
     
     def clean(self):

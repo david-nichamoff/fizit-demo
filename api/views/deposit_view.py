@@ -1,5 +1,4 @@
 import logging
-
 from datetime import datetime, timedelta
 
 from rest_framework.response import Response
@@ -11,114 +10,194 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from api.serializers.deposit_serializer import DepositSerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-from api.interfaces import DepositAPI
 from api.registry import RegistryManager
 from api.views.mixins.validation import ValidationMixin
 from api.views.mixins.permission import PermissionMixin
 from api.utilities.logging import log_info, log_warning, log_error
-from api.utilities.validation import is_valid_integer
 
 
 class DepositViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
     """
-    A ViewSet for managing deposit-related operations.
+    A ViewSet for managing deposit-related operations for different contract types.
     """
     authentication_classes = [AWSSecretsAPIKeyAuthentication]
     permission_classes = [HasCustomAPIKey]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.deposit_api = DepositAPI()
         self.registry_manager = RegistryManager()
         self.logger = logging.getLogger(__name__)
 
+### **Purchase Contract Deposits**
+
     @extend_schema(
-        tags=["Deposits"],
+        tags=["Purchase Contracts"],
         parameters=[
             OpenApiParameter(
                 name='start_date',
-                description='Start date for filtering deposits in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)',
+                description='Start date for filtering deposits (ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ)',
                 required=True,
                 type=str,
-                default=(datetime.now() - timedelta(days=30)).strftime('%Y-%m-%dT%H:%M:%SZ')
+                default=(datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%dT%H:%M:%SZ')
             ),
             OpenApiParameter(
                 name='end_date',
-                description='End date for filtering deposits in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)',
+                description='End date for filtering deposits (ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ)',
                 required=True,
                 type=str,
-                default=datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
+                default=datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
             ),
         ],
         responses={status.HTTP_200_OK: DepositSerializer(many=True)},
-        summary="List Deposits",
-        description="Retrieve a list of potential bank deposits for a contract."
+        summary="List Purchase Contract Deposits",
+        description="Retrieve a list of deposits associated with a purchase contract."
     )
-    def list(self, request, contract_type=None, contract_idx=None):
-        """Retrieve a list of deposits for a specific contract."""
+    def list_purchase_deposits(self, request, contract_idx=None):
+        return self._list_deposits(request, "purchase", contract_idx)
+
+    @extend_schema(
+        tags=["Purchase Contracts"],
+        request=DepositSerializer,
+        responses={status.HTTP_201_CREATED: dict},
+        summary="Add Purchase Contract Deposit",
+        description="Add a deposit to a purchase contract."
+    )
+    def create_purchase_deposits(self, request, contract_idx=None):
+        return self._create_deposit(request, "purchase", contract_idx)
+
+
+### **Sale Contract Deposits**
+
+    @extend_schema(
+        tags=["Sale Contracts"],
+        parameters=[
+            OpenApiParameter(
+                name='start_date',
+                description='Start date for filtering deposits (ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ)',
+                required=True,
+                type=str,
+                default=(datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%dT%H:%M:%SZ')
+            ),
+            OpenApiParameter(
+                name='end_date',
+                description='End date for filtering deposits (ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ)',
+                required=True,
+                type=str,
+                default=datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+            ),
+        ],
+        responses={status.HTTP_200_OK: DepositSerializer(many=True)},
+        summary="List Sale Contract Deposits",
+        description="Retrieve a list of deposits associated with a sale contract."
+    )
+    def list_sale_deposits(self, request, contract_idx=None):
+        return self._list_deposits(request, "sale", contract_idx)
+
+    @extend_schema(
+        tags=["Sale Contracts"],
+        request=DepositSerializer,
+        responses={status.HTTP_201_CREATED: dict},
+        summary="Add Sale Contract Deposit",
+        description="Add a deposit to a sale contract."
+    )
+    def create_sale_deposits(self, request, contract_idx=None):
+        return self._create_deposit(request, "sale", contract_idx)
+
+
+### **Advance Contract Deposits**
+
+    @extend_schema(
+        tags=["Advance Contracts"],
+        parameters=[
+            OpenApiParameter(
+                name='start_date',
+                description='Start date for filtering deposits (ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ)',
+                required=True,
+                type=str,
+                default=(datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%dT%H:%M:%SZ')
+            ),
+            OpenApiParameter(
+                name='end_date',
+                description='End date for filtering deposits (ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ)',
+                required=True,
+                type=str,
+                default=datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+            ),
+        ],
+        responses={status.HTTP_200_OK: DepositSerializer(many=True)},
+        summary="List Advance Contract Deposits",
+        description="Retrieve a list of deposits associated with an advance contract."
+    )
+    def list_advance_deposits(self, request, contract_idx=None):
+        return self._list_deposits(request, "advance", contract_idx)
+
+    @extend_schema(
+        tags=["Advance Contracts"],
+        request=DepositSerializer,
+        responses={status.HTTP_201_CREATED: dict},
+        summary="Add Advance Contract Deposit",
+        description="Add a deposit to an advance contract."
+    )
+    def create_advance_deposits(self, request, contract_idx=None):
+        return self._create_deposit(request, "advance", contract_idx)
+
+
+### **Core Functions**
+
+    def _list_deposits(self, request, contract_type, contract_idx):
         log_info(self.logger, f"Retrieving deposits for {contract_type}:{contract_idx}")
 
         try:
-            contract_api = self.registry_manager.get_contract_api(contract_type)
             self._validate_contract_type(contract_type, self.registry_manager)
+            contract_api = self.registry_manager.get_contract_api(contract_type)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
-            # Parse and validate date range
-            start_date, end_date = self.parse_date_range(request)
-            response = self.deposit_api.get_deposits(start_date, end_date, contract_type, int(contract_idx))
+            start_date, end_date = self._parse_date_range(request)
+            deposit_api = self.registry_manager.get_deposit_api(contract_type)
+            response = deposit_api.get_deposits(start_date, end_date, contract_type, int(contract_idx))
 
             if response["status"] == status.HTTP_200_OK:
-                return Response(response["data"], status=status.HTTP_200_OK)
+                serializer = DepositSerializer(response["data"], many=True)
+                return Response(serializer.data, status=status.HTTP_200_OK)
             else:
-                return Response({"error" : response["message"]}, response["status"])
+                return Response({"error": response["message"]}, status=response["status"])
 
         except ValidationError as e:
-            log_error(self.logger, f"Validation error: {str(e)}")
-            return Response({"error": f"Validation error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+            log_error(self.logger, f"Validation error: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            log_error(self.logger, f"Unexpected error: {str(e)}")
-            return Response({"error": f"Unexpected error {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            log_error(self.logger, f"Unexpected error: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @extend_schema(
-        tags=["Deposits"],
-        request=DepositSerializer,
-        responses={status.HTTP_201_CREATED: dict},
-        summary="Add Settlement Deposit",
-        description="Add a bank deposit to a settlement period."
-    )
-    def create(self, request, contract_type=None, contract_idx=None):
-        """Add deposit to a settlement for a specific contract."""
+    def _create_deposit(self, request, contract_type, contract_idx):
         log_info(self.logger, f"Attempting to add deposit for {contract_type}:{contract_idx}")
 
         try:
-            # Validate master key and contract_idx
             self._validate_master_key(request.auth)
-            contract_api = self.registry_manager.get_contract_api(contract_type)
             self._validate_contract_type(contract_type, self.registry_manager)
+            contract_api = self.registry_manager.get_contract_api(contract_type)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
-            # Validate request data
-            validated_data = self._validate_request_data(DepositSerializer, request.data, many=False)
-            response = self.deposit_api.add_deposit(contract_type, int(contract_idx), validated_data)
-
-            log_info(self.logger, f"Posted deposit with {response}")
+            validated_data = self._validate_request_data(DepositSerializer, request.data)
+            deposit_api = self.registry_manager.get_deposit_api(contract_type)
+            response = deposit_api.add_deposit(contract_type, int(contract_idx), validated_data)
 
             if response["status"] == status.HTTP_201_CREATED:
                 return Response(response["data"], status=status.HTTP_201_CREATED)
             else:
-                return Response({"error" : response["message"]}, response["status"])
+                return Response({"error": response["message"]}, status=response["status"])
 
         except PermissionDenied as pd:
             log_warning(self.logger, f"Permission denied for contract {contract_idx}: {pd}")
             return Response({"error": str(pd)}, status=status.HTTP_403_FORBIDDEN)
         except ValidationError as e:
-            log_error(self.logger, f"Validation error: {str(e)}")
-            return Response({"error": f"Validation error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+            log_error(self.logger, f"Validation error: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            log_error(self.logger, f"Unexpected error: {str(e)}")
-            return Response({"error": f"Unexpected error {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            log_error(self.logger, f"Unexpected error: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def parse_date_range(self, request):
+    def _parse_date_range(self, request):
         """
         Parse and validate start_date and end_date from query parameters.
         """
@@ -126,7 +205,6 @@ class DepositViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
             start_date = datetime.fromisoformat(request.query_params.get('start_date'))
             end_date = datetime.fromisoformat(request.query_params.get('end_date'))
 
-            # Validate date range
             if start_date >= end_date:
                 raise ValidationError("start_date must be earlier than end_date.")
 

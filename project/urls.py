@@ -8,19 +8,18 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.permissions import AllowAny
 from api.authentication import NoAuthForSwagger
 
-from frontend.admin.custom_admin_site import custom_admin_site 
+from frontend.admin.custom_admin_site import custom_admin_site
 
 urlpatterns = [
-    path('admin/', custom_admin_site.urls),  
-    #path('admin/', admin.site.urls),  
-    path('api/', include('api.urls')), 
+    path('admin/', custom_admin_site.urls),
+    path('api/', include('api.urls')),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
     path('api/schema/', csrf_exempt(SpectacularAPIView.as_view(
-        authentication_classes=[NoAuthForSwagger], 
+        authentication_classes=[NoAuthForSwagger],
         permission_classes=[AllowAny]
     )), name='schema'),
-    
+
     path('api/schema/swagger-ui/', csrf_exempt(SpectacularSwaggerView.as_view(
         url_name='schema',
         authentication_classes=[NoAuthForSwagger],  # Use no authentication for Swagger UI
@@ -33,5 +32,5 @@ urlpatterns = [
         permission_classes=[AllowAny]
     )), name='redoc'),
 
-    path("", include("frontend.urls")),  
+    path("", include("frontend.urls")),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

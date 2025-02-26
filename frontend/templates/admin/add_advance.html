@@ -3,12 +3,10 @@
 
 {% block extrahead %}
 <script>
-    const contracts = {{ contracts|default:"[]"|safe }};
-    const advancesByContract = {{ advances_by_contract|default:"{}"|safe }};
-    console.log("Contracts data:", contracts);
-    console.log("Grouped advances:", advancesByContract);
+    const advancesList = {{ advances|default:"{}"|safe }};
+    console.log("Grouped advances:", advancesList);
 </script>
-<script src="{% static 'js/add_advance.js' %}?v1.0"></script>
+<script src="{% static 'js/add_advance.js' %}?v2.8"></script>
 {% endblock %}
 
 {% block content %}
@@ -18,43 +16,45 @@
             <p>{{ error }}</p>
         </div>
     {% else %}
-        <h1 class="title">View Advances by Contract</h1>
-
+        <h1 class="title">View Advances</h1>
         <form method="post" class="advance-form">
             {% csrf_token %}
-            <fieldset class="module aligned">
-                <!-- Select Contract -->
-                <div class="form-row">
-                    <div class="flex-container">
-                        <label class="required" for="id_contract_idx">{{ advance_form.contract_idx.label }}</label>
-                        {{ advance_form.contract_idx }}
-                    </div>
-                    <div class="help">{{ advance_form.contract_idx.help_text }}</div>
-                </div>
-            </fieldset>
-
             <div class="module">
                 <table class="table table-striped results" id="advances-table">
                     <thead>
                         <tr>
                             <th scope="col">Select</th>
+                            <th scope="col">Contract Type</th>
+                            <th scope="col">Contract Name</th>
                             <th scope="col">Index</th>
                             <th scope="col">Bank</th>
                             <th scope="col">Date</th>
                             <th scope="col">Amount</th>
+                            <th scope="col">TX Hash</th> <!-- Inline TX Hash Input -->
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td colspan="5" class="empty-result">Please select a contract.</td>
-                        </tr>
+                        <!-- Populated dynamically via JavaScript -->
                     </tbody>
                 </table>
             </div>
             <div class="submit-row">
-                <input type="submit" value="Post Advances" class="default" />
+                <input type="submit" value="Post Advances" class="default" disabled />
             </div>
         </form>
     {% endif %}
 </div>
+
+<!-- Inline CSS to ensure input field matches row height -->
+<style>
+    .tx-hash-input {
+        width: 100%; /* Ensure input fields fit inside their column */
+        height: 15px; /* Adjust height to match table row height */
+        box-sizing: border-box; /* Prevents extra padding from affecting size */
+        font-size: inherit; /* Match other text size */
+        border: 0px solid #ccc; /* Match table styling */
+        padding: 0px;
+        text-align: left;
+    }
+</style>
 {% endblock %}

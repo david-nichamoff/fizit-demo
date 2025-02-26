@@ -1,15 +1,24 @@
 [
     {
-        "contract_type": "advance",
+        "contract_type": "purchase",
         "logics": [
             {
                 "transact_logic": { "*": [{ "var": "barrels" }, {"var": "price"}]},
-                "description": "Standard advance contract"
+                "description": "Standard purchase contract"
             }
         ]
     },
     {
-        "contract_type": "ticketing",
+        "contract_type": "sale",
+        "logics": [
+            {
+                "transact_logic": { "*": [{ "var": "barrels" }, {"var": "price"}]},
+                "description": "Standard sale contract"
+            }
+        ]
+    },
+    {
+        "contract_type": "advance",
         "logics": [
             {
                 "transact_logic": { "var": "ticket_amt" },

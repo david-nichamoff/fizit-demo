@@ -4,30 +4,28 @@ from decimal import Decimal
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
-from api.adapters.bank import MercuryAdapter, TokenAdapter
 from api.web3 import Web3Manager
 from api.config import ConfigManager
-from api.registry import RegistryManager
 from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
 
-class DepositAPI(ResponseMixin):
+class BaseDepositAPI(ResponseMixin):
     _instance = None
 
     def __new__(cls, *args, **kwargs):
         """Ensure the class is a singleton."""
         if not cls._instance:
-            cls._instance = super(DepositAPI, cls).__new__(cls, *args, **kwargs)
+            cls._instance = super(BaseDepositAPI, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self):
+    def __init__(self, registry_manager=None):
         """Initialize the class with config, Web3, and logger."""
         if not hasattr(self, "initialized"):
             self.logger = logging.getLogger(__name__)
             self.config_manager = ConfigManager()
             self.w3_manager = Web3Manager()
             self.w3 = self.w3_manager.get_web3_instance()
-            self.registry_manager = RegistryManager()
+            self.registry_manager = registry_manager
             self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
             self.initialized = True
 
@@ -83,6 +81,34 @@ class DepositAPI(ResponseMixin):
             error_message = f"Error adding deposits for {contract_type}:{contract_idx}: {str(e)}"
             return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+    def _convert_to_midnight_timestamp(self, deposit_dt):
+        """Convert a datetime to a timestamp at midnight UTC."""
+        try:
+            settlement_date = deposit_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+            return int(settlement_date.timestamp())
+        except Exception as e:
+            error_message = f"Invalid date format for deposit date: {deposit_dt}"
+            log_error(self.logger, error_message)
+            raise ValidationError(error_message) from e
+
+
+
+    def _send_transaction(self, transaction, contract_type, contract_idx):
+        """Send a signed transaction to the blockchain."""
+        try:
+            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, "fizit")
+
+            if tx_receipt["status"] != 1:
+                raise RuntimeError(f"Transaction failed with status: {tx_receipt['status']}")
+
+        except Exception as e:
+            error_message = f"Error sending transaction for {contract_type}:{contract_idx}: {str(e)}"
+            log_error(self.logger, error_message)
+            raise RuntimeError(error_message) from e
+
+### **Subclass for Advance Contracts**
+class AdvanceDepositAPI(BaseDepositAPI):
     def _process_deposit(self, contract_type, contract_idx, deposit):
         """Process a single deposit."""
         try:
@@ -100,16 +126,6 @@ class DepositAPI(ResponseMixin):
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e
 
-    def _convert_to_midnight_timestamp(self, deposit_dt):
-        """Convert a datetime to a timestamp at midnight UTC."""
-        try:
-            settlement_date = deposit_dt.replace(hour=0, minute=0, second=0, microsecond=0)
-            return int(settlement_date.timestamp())
-        except Exception as e:
-            error_message = f"Invalid date format for deposit date: {deposit_dt}"
-            log_error(self.logger, error_message)
-            raise ValidationError(error_message) from e
-
     def _build_transaction(self, contract_type, contract_idx, settle_idx, settlement_timestamp, payment_amt, tx_hash, dispute_reason):
 
         try:
@@ -122,15 +138,34 @@ class DepositAPI(ResponseMixin):
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e
 
-    def _send_transaction(self, transaction, contract_type, contract_idx):
-        """Send a signed transaction to the blockchain."""
-        try:
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, "fizit")
 
-            if tx_receipt["status"] != 1:
-                raise RuntimeError(f"Transaction failed with status: {tx_receipt['status']}")
+### **Subclass for Sale Contracts**
+class SaleDepositAPI(BaseDepositAPI):
+    def _process_deposit(self, contract_type, contract_idx, deposit):
+        """Process a single deposit."""
+        try:
+            payment_amt = int(Decimal(deposit["deposit_amt"]) * 100)
+            settlement_timestamp = self._convert_to_midnight_timestamp(deposit["deposit_dt"])
+            settle_idx = deposit["settle_idx"]
+            dispute_reason = deposit.get("dispute_reason", "")
+            tx_hash = deposit.get("tx_hash", "")
+
+            transaction = self._build_transaction(contract_type, contract_idx, settle_idx, settlement_timestamp, payment_amt, tx_hash)
+            self._send_transaction(transaction, contract_type, contract_idx)
 
         except Exception as e:
-            error_message = f"Error sending transaction for {contract_type}:{contract_idx}: {str(e)}"
+            error_message = f"Error processing deposit {deposit.get('tx_hash')} for {contract_type}:{contract_idx}: {str(e)}"
+            log_error(self.logger, error_message)
+            raise RuntimeError(error_message) from e
+
+    def _build_transaction(self, contract_type, contract_idx, settle_idx, settlement_timestamp, payment_amt, tx_hash):
+
+        try:
+            w3_contract = self.w3_manager.get_web3_contract(contract_type)
+            return w3_contract.functions.postSettlement(
+                contract_idx, settle_idx, settlement_timestamp, payment_amt, tx_hash
+            ).build_transaction()
+        except Exception as e:
+            error_message = f"Error building transaction for {contract_type}:{contract_idx}: {str(e)}"
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e

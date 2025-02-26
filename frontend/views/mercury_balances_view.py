@@ -1,13 +1,10 @@
 import logging
-import requests
-
 from rest_framework import status
 from django.shortcuts import render
 
 from api.config import ConfigManager
 from api.secrets import SecretsManager
 from api.operations import BankOperations
-
 from api.utilities.logging import log_info, log_warning, log_error
 
 logger = logging.getLogger(__name__)
@@ -23,13 +20,8 @@ def mercury_balances_view(request, extra_context=None):
         config_manager = ConfigManager()
         secrets_manager = SecretsManager()
 
-        headers = {
-            'Authorization': f"Api-Key {keys['FIZIT_MASTER_KEY']}",
-            'Content-Type': 'application/json',
-        }
-
         # Fetch the API key from secrets
-        api_key = keys.get("FIZIT_MASTER_KEY")
+        api_key = secrets_manager.get_master_key()
         if not api_key:
             log_error(logger, "API key not found in secrets.")
             return render(
@@ -39,19 +31,28 @@ def mercury_balances_view(request, extra_context=None):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        bank_ops = BankOperations(headers, config) 
+        headers = {
+            'Authorization': f"Api-Key {api_key}",
+            'Content-Type': 'application/json',
+        }
+
+        # Initialize BankOperations
+        bank_ops = BankOperations(headers, config_manager.get_base_url())  
+
+        # Fetch Mercury accounts
         accounts = bank_ops.get_accounts("mercury")
 
         if "error" in accounts:
-            log_error(logger, f"API request failed with error {accounts["error"]}")
+            error_msg = accounts["error"]
+            log_error(logger, f"API request failed with error: {error_msg}")
             return render(
                 request,
                 "admin/mercury_balances.html",
-                {"error": f"Failed to fetch accounts. Status code: {accounts["error"]}"},
+                {"error": f"Failed to fetch accounts. Error: {error_msg}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        # Parse the response data
+        # Ensure response is a list
         if not isinstance(accounts, list):
             log_error(logger, "Unexpected response format from accounts API.")
             return render(
@@ -68,7 +69,6 @@ def mercury_balances_view(request, extra_context=None):
         if extra_context:
             context.update(extra_context)
 
-        # Render the template
         return render(request, "admin/mercury_balances.html", context)
 
     except Exception as e:

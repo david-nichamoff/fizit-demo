@@ -7,10 +7,11 @@ from rest_framework.exceptions import ValidationError
 
 from api.web3 import Web3Manager
 from api.config import ConfigManager
-from api.interfaces.encryption_api import get_encryptor, get_decryptor
 from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
 from api.utilities.validation import is_valid_amount, is_valid_percentage, is_valid_json
+from api.interfaces.encryption_api import get_encryptor, get_decryptor
+from api.models.contract_snapshot_model import ContractSnapshot 
 
 class BaseContractAPI(ResponseMixin):
     _instances = {}
@@ -21,7 +22,7 @@ class BaseContractAPI(ResponseMixin):
             cls._instances[cls] = super(BaseContractAPI, cls).__new__(cls)
         return cls._instances[cls]
 
-    def __init__(self):
+    def __init__(self, registry_manager=None):
         """Initialize ContractAPI with necessary dependencies."""
         if not hasattr(self, "initialized"):
             self.config_manager = ConfigManager()
@@ -42,6 +43,7 @@ class BaseContractAPI(ResponseMixin):
     def get_contract(self, contract_type, contract_idx, api_key=None, parties=[]):
         """Retrieve a specific contract."""
         try:
+            log_info(self.logger, f"Retrieving contract {contract_type}:{contract_idx} for parties {parties}")
             decryptor = get_decryptor(api_key, parties)
             w3_contract = self.w3_manager.get_web3_contract(contract_type)
             raw_contract = w3_contract.functions.getContract(contract_idx).call()
@@ -59,14 +61,18 @@ class BaseContractAPI(ResponseMixin):
                 raise RuntimeError("Error retrieving count of contracts")
 
             contract_idx = response["data"]["count"]
-            log_info(self.logger, f"Adding {contract_type}:{contract_idx}")
-
+            log_info(self.logger, f"Building contract {contract_dict}")
             contract = self._build_contract(contract_dict)
+            log_info(self.logger, f"Built contract {contract}")
+
+            log_info(self.logger, f"Adding {contract_type}:{contract_idx} with data {contract}")
             w3_contract = self.w3_manager.get_web3_contract(contract_type)
+
             transaction = w3_contract.functions.addContract(contract).build_transaction()
             tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, "fizit")
 
             if tx_receipt["status"] == 1:
+                self._update_contract_snapshot(contract_type, contract_idx, contract_dict)  # ✅ Sync snapshot
                 return self._format_success({"contract_idx": contract_idx}, f"Contract {contract_type}:{contract_idx} created", status.HTTP_201_CREATED)
             else:
                 raise RuntimeError("Error adding contract")
@@ -84,6 +90,7 @@ class BaseContractAPI(ResponseMixin):
             tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, "fizit")
     
             if tx_receipt["status"] == 1:
+                self._update_contract_snapshot(contract_type, contract_idx, contract_dict)  # ✅ Sync snapshot
                 return self._format_success({"contract_idx": contract_idx}, f"Contract {contract_type}:{contract_idx} updated", status.HTTP_200_OK)
             else:
                 raise RuntimeError("Error adding contract")
@@ -99,6 +106,7 @@ class BaseContractAPI(ResponseMixin):
             tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, "fizit")
 
             if tx_receipt["status"] == 1:
+                self._delete_contract_snapshot(contract_type, contract_idx)  # ✅ Remove from snapshot
                 return self._format_success( {"contract_idx":contract_idx}, f"Contract {contract_type}:{contract_idx} deleted", status.HTTP_204_NO_CONTENT)
             else:
                 raise RuntimeError(f"Transaction failed for {contract_type}:{contract_idx}.")
@@ -109,22 +117,49 @@ class BaseContractAPI(ResponseMixin):
             return self._format_error(f"Error deleting {contract_type}:{contract_idx}: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-### **Subclass for Advance Contracts**
-class AdvanceContractAPI(BaseContractAPI):
+    def _update_contract_snapshot(self, contract_type, contract_idx, contract_data):
+        """Update or create an entry in the contract snapshot table."""
+        try:
+            ContractSnapshot.objects.update_or_create(
+                contract_idx=contract_idx,
+                contract_type=contract_type,
+                defaults={
+                    "contract_name": contract_data.get("contract_name"),
+                    "transact_logic": contract_data.get("transact_logic"),
+                    "is_active": contract_data.get("is_active"),
+                    "is_quote": contract_data.get("is_quote"),
+                }
+            )
+            log_info(self.logger, f"Updated contract snapshot: {contract_type}:{contract_idx}")
+        except Exception as e:
+            log_error(self.logger, f"Error updating contract snapshot: {contract_type}:{contract_idx}: {str(e)}")
+
+    def _delete_contract_snapshot(self, contract_type, contract_idx):
+        """Delete contract from the snapshot table."""
+        try:
+            ContractSnapshot.objects.filter(contract_idx=contract_idx, contract_type=contract_type).delete()
+            log_info(self.logger, f"Deleted contract snapshot: {contract_idx}")
+        except Exception as e:
+            log_error(self.logger, f"Error deleting contract snapshot: {contract_idx}: {str(e)}")
+
+
+### **Subclass for Purchase Contracts**
+class PurchaseContractAPI(BaseContractAPI):
     def _decrypt_fields(self, contract_idx, raw_contract, decryptor):
         """Decrypt sensitive fields of a contract."""
         try:
             parsed_contract = self._parse_contract(contract_idx, raw_contract)
+
             parsed_contract["extended_data"] = decryptor.decrypt(raw_contract[0])
-            parsed_contract["transact_logic"] = decryptor.decrypt(raw_contract[3])
+            parsed_contract["transact_logic"] = decryptor.decrypt(raw_contract[5])
             return parsed_contract
         except Exception as e:
-            raise RuntimeError(f"Decryption failed for advance:{contract_idx}: {str(e)}") from e
+            raise RuntimeError(f"Decryption failed for purchase:{contract_idx}: {str(e)}") from e
 
     def _parse_contract(self, contract_idx, raw_contract):
-        """Parse raw contract data specific to Advance contracts."""
+        """Parse raw contract data specific to purchase contracts."""
         return {
-            "contract_type": "advance",
+            "contract_type": "purchase",
             "contract_idx": contract_idx,
             "extended_data": raw_contract[0],
             "contract_name": raw_contract[1],
@@ -132,15 +167,14 @@ class AdvanceContractAPI(BaseContractAPI):
             "service_fee_pct": f"{Decimal(raw_contract[3]) / 10000:.4f}",
             "service_fee_amt": f"{Decimal(raw_contract[4]) / 100:.2f}",
             "transact_logic": raw_contract[5],
-            "min_threshold_amt": f"{Decimal(raw_contract[6]) / 100:.2f}",
-            "max_threshold_amt": f"{Decimal(raw_contract[7]) / 100:.2f}",
-            "notes": raw_contract[8],
-            "is_active": raw_contract[9],
-            "is_quote": raw_contract[10],
+            "notes": raw_contract[6],
+            "is_active": raw_contract[7],
+            "is_quote": raw_contract[8],
         }
 
     def _build_contract(self, contract_dict):
-        """Build contract data for Advance contract."""
+        """Build contract data for purchase contract."""
+
         encryptor = get_encryptor()
         return [
             encryptor.encrypt(contract_dict["extended_data"]),
@@ -149,16 +183,62 @@ class AdvanceContractAPI(BaseContractAPI):
             int(Decimal(contract_dict["service_fee_pct"]) * 10000),
             int(Decimal(contract_dict["service_fee_amt"]) * 100),
             encryptor.encrypt(contract_dict["transact_logic"]),
-            int(Decimal(contract_dict["min_threshold_amt"]) * 100),
-            int(Decimal(contract_dict["max_threshold_amt"]) * 100),
-            contract_dict["notes"],
+            contract_dict.get("notes", ""),
+            contract_dict["is_active"],
+            contract_dict["is_quote"],
+        ]
+
+class SaleContractAPI(BaseContractAPI):
+    def _decrypt_fields(self, contract_idx, raw_contract, decryptor):
+        """Decrypt sensitive fields of a contract."""
+        try:
+            parsed_contract = self._parse_contract(contract_idx, raw_contract)
+
+            parsed_contract["extended_data"] = decryptor.decrypt(raw_contract[0])
+            parsed_contract["transact_logic"] = decryptor.decrypt(raw_contract[7])
+            return parsed_contract
+        except Exception as e:
+            raise RuntimeError(f"Decryption failed for purchase:{contract_idx}: {str(e)}") from e
+
+    def _parse_contract(self, contract_idx, raw_contract):
+        """Parse raw contract data specific to purchase contracts."""
+        return {
+            "contract_type": "sale",
+            "contract_idx": contract_idx,
+            "extended_data": raw_contract[0],
+            "contract_name": raw_contract[1],
+            "funding_instr": json.loads(raw_contract[2]),
+            "deposit_instr": json.loads(raw_contract[3]),
+            "service_fee_pct": f"{Decimal(raw_contract[4]) / 10000:.4f}",
+            "service_fee_amt": f"{Decimal(raw_contract[5]) / 100:.2f}",
+            "late_fee_pct": f"{Decimal(raw_contract[6]) / 10000:.4f}",
+            "transact_logic": raw_contract[7],
+            "notes": raw_contract[8],
+            "is_active": raw_contract[9],
+            "is_quote": raw_contract[10],
+        }
+
+    def _build_contract(self, contract_dict):
+        """Build contract data for purchase contract."""
+
+        encryptor = get_encryptor()
+        return [
+            encryptor.encrypt(contract_dict["extended_data"]),
+            contract_dict["contract_name"],
+            json.dumps(contract_dict["funding_instr"]),
+            json.dumps(contract_dict["deposit_instr"]),
+            int(Decimal(contract_dict["service_fee_pct"]) * 10000),
+            int(Decimal(contract_dict["service_fee_amt"]) * 100),
+            int(Decimal(contract_dict["late_fee_pct"]) * 10000),
+            encryptor.encrypt(contract_dict["transact_logic"]),
+            contract_dict.get("notes", ""),
             contract_dict["is_active"],
             contract_dict["is_quote"],
         ]
 
 
-### **Subclass for Ticketing Contracts**
-class TicketingContractAPI(BaseContractAPI):
+### **Subclass for Advance Contracts**
+class AdvanceContractAPI(BaseContractAPI):
     def _decrypt_fields(self, contract_idx, raw_contract, decryptor):
         """Decrypt sensitive fields of a contract."""
         try:
@@ -167,11 +247,12 @@ class TicketingContractAPI(BaseContractAPI):
             parsed_contract["transact_logic"] = decryptor.decrypt(raw_contract[9])
             return parsed_contract
         except Exception as e:
-            raise RuntimeError(f"Decryption failed for ticketing:{contract_idx}: {str(e)}") from e
+            raise RuntimeError(f"Decryption failed for advance:{contract_idx}: {str(e)}") from e
 
     def _parse_contract(self, contract_idx, raw_contract):
-        """Parse raw contract data specific to Ticketing contracts."""
+        """Parse raw contract data specific to advance contracts."""
         return {
+            "contract_type": "advance",
             "contract_idx": contract_idx,
             "extended_data": raw_contract[0],
             "contract_name": raw_contract[1],
@@ -191,7 +272,7 @@ class TicketingContractAPI(BaseContractAPI):
         }
 
     def _build_contract(self, contract_dict):
-        """Build contract data for Ticketing contract."""
+        """Build contract data for advance contract."""
         encryptor = get_encryptor()
         return [
             encryptor.encrypt(contract_dict["extended_data"]),
@@ -204,9 +285,10 @@ class TicketingContractAPI(BaseContractAPI):
             int(Decimal(contract_dict["advance_pct"]) * 10000),
             int(Decimal(contract_dict["late_fee_pct"]) * 10000),
             encryptor.encrypt(contract_dict["transact_logic"]),
-            int(Decimal(contract_dict["min_threshold_amt"]) * 100),
-            int(Decimal(contract_dict["max_threshold_amt"]) * 100),
-            contract_dict["notes"],
+            int(Decimal(str(contract_dict.get("min_threshold_amt", "0"))) * 100),
+            int(Decimal(str(contract_dict.get("max_threshold_amt", "0"))) * 100),
+            contract_dict.get("notes", ""),
             contract_dict["is_active"],
             contract_dict["is_quote"],
         ]
+

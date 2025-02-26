@@ -12,6 +12,8 @@ from api.views.mixins.validation import ValidationMixin
 from api.views.mixins.permission import PermissionMixin
 from api.registry import RegistryManager
 from api.interfaces import PartyAPI
+from api.serializers import ListContractSerializer, PurchaseContractSerializer, SaleContractSerializer, AdvanceContractSerializer
+from api.models import ContractSnapshot 
 from api.utilities.logging import log_info, log_error, log_warning
 
 class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
@@ -26,28 +28,203 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         self.party_api = PartyAPI()
         self.registry_manager = RegistryManager()
         self.logger = logging.getLogger(__name__)
-    
+
     @extend_schema(
         tags=["Contracts"],
-        request=None,
-        responses={status.HTTP_201_CREATED: int},
-        summary="Create Contract",
-        description="Create a new contract."
+        parameters=[],
+        responses={status.HTTP_200_OK: ListContractSerializer(many=True)},  # Use generic serializer
+        summary="List Contracts",
+        description="Retrieve a list of all contracts stored in the database.",
     )
-    def create(self, request, contract_type=None):
+    def list_contracts(self, request):
+        """Retrieve a list of contracts from the database instead of querying the blockchain."""
+        log_info(self.logger, "Fetching contract list from ContractSnapshot")
+
+        try:
+            contracts = ContractSnapshot.objects.all()
+
+            # Apply optional filters if needed
+            contract_type = request.query_params.get("contract_type")
+            is_active = request.query_params.get("is_active")
+
+            if contract_type:
+                contracts = contracts.filter(contract_type=contract_type)
+
+            if is_active is not None:
+                contracts = contracts.filter(is_active=is_active.lower() == "true")
+
+            contract_data = list(contracts.values())
+
+            return Response(contract_data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            log_error(self.logger, f"Error retrieving contract list: {e}")
+            return Response({"error": f"Unexpected error {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+### **Purchase Contracts**
+    
+    @extend_schema(
+        tags=["Purchase Contracts"],
+        request=PurchaseContractSerializer(many=False),
+        responses={status.HTTP_201_CREATED: int},
+        summary="Create Purchase Contract",
+        description="Create a new purchase contract"
+    )
+    def create_purchase_contract(self, request):
+        return self._create_contract(request, contract_type="purchase")
+
+    @extend_schema(
+        tags=["Purchase Contracts"],
+        responses={status.HTTP_200_OK: None},
+        summary="Retrieve Purchase Contract",
+        description="Retrieve details of a specific purchase contract"
+    )
+    def retrieve_purchase_contract(self, request, contract_idx=None):
+        log_info(self.logger, "test")
+        return self._retrieve_contract(request, contract_type="purchase", contract_idx=contract_idx)
+
+    @extend_schema(
+        tags=["Purchase Contracts"],        
+        request=PurchaseContractSerializer(many=False),
+        responses={status.HTTP_200_OK: int},
+        summary="Update Purchase Contract",
+        description="Update specific fields of an existing purchase contract"
+    )
+    def update_purchase_contract(self, request, contract_idx=None):
+        return self._update_contract(request, contract_type="purchase", contract_idx=contract_idx)
+
+    @extend_schema(
+        tags=["Purchase Contracts"],
+        responses={status.HTTP_204_NO_CONTENT: None},
+        summary="Delete Purchase Contract",
+        description="Delete a specific purchase contract"
+    )
+    def destroy_purchase_contract(self, request, contract_idx=None):
+        return self._destroy_contract(request, contract_type="purchase", contract_idx=contract_idx)
+
+    @extend_schema(
+        tags=["Purchase Contracts"],
+        summary="Count Purchase Contracts",
+        description="retrieve the total number of purchase contracts",
+        responses={status.HTTP_200_OK: int}
+    )
+    def count_purchase_contract(self, request):
+        return self._count_contract(request, contract_type="purchase")
+
+ 
+### **Sale Contracts**
+
+    @extend_schema(
+        tags=["Sale Contracts"],
+        request=SaleContractSerializer(many=False),
+        responses={status.HTTP_201_CREATED: int},
+        summary="Create Sale Contract",
+        description="Create a new sale contract."
+    )
+    def create_sale_contract(self, request):
+        return self._create_contract(request, contract_type="sale")
+
+    @extend_schema(
+        tags=["Sale Contracts"],
+        responses={status.HTTP_200_OK: None},
+        summary="Retrieve Sale Contract",
+        description="Retrieve details of a specific sale contract"
+    )
+    def retrieve_sale_contract(self, request, contract_idx=None):
+        return self._retrieve_contract(request, contract_type="sale", contract_idx=contract_idx)
+
+    @extend_schema(
+        tags=["Sale Contracts"],        
+        request=SaleContractSerializer(many=False),
+        responses={status.HTTP_200_OK: int},
+        summary="Update Sale Contract",
+        description="Update specific fields of an existing sale contract"
+    )
+    def update_sale_contract(self, request, contract_idx=None):
+        return self._update_contract(request, contract_type="sale", contract_idx=contract_idx)
+
+    @extend_schema(
+        tags=["Sale Contracts"],
+        responses={status.HTTP_204_NO_CONTENT: None},
+        summary="Delete Sale Contract",
+        description="Delete a specific sale contract"
+    )
+    def destroy_sale_contract(self, request, contract_idx=None):
+        return self._destroy_contract(request, contract_type="sale", contract_idx=contract_idx)
+
+    @extend_schema(
+        tags=["Sale Contracts"],
+        summary="Count Sale Contracts",
+        description="Retrieve the total number of sales contracts",
+        responses={status.HTTP_200_OK: int}
+    )
+    def count_sale_contract(self, request):
+        return self._count_contract(request, contract_type="sale")
+
+### **Advance Contracts**
+
+    @extend_schema(
+        tags=["Advance Contracts"],
+        request=AdvanceContractSerializer(many=False),
+        responses={status.HTTP_201_CREATED: int},
+        summary="Create Advance Contract",
+        description="Create a new advance contract"
+    )
+    def create_advance_contract(self, request):
+        return self._create_contract(request, contract_type="advance")
+
+    @extend_schema(
+        tags=["Advance Contracts"],
+        responses={status.HTTP_200_OK: None},
+        summary="Retrieve Advance Contract",
+        description="Retrieve details of a specific advance contract"
+    )
+    def retrieve_advance_contract(self, request, contract_idx=None):
+        return self._retrieve_contract(request, contract_type="advance", contract_idx=contract_idx)
+
+    @extend_schema(
+        tags=["Advance Contracts"],        
+        request=AdvanceContractSerializer(many=False),
+        responses={status.HTTP_200_OK: int},
+        summary="Update Advance Contract",
+        description="Update specific fields of an existing advance contract"
+    )
+    def update_advance_contract(self, request, contract_idx=None):
+        return self._update_contract(request, contract_type="advance", contract_idx=contract_idx)
+
+    @extend_schema(
+        tags=["Advance Contracts"],
+        responses={status.HTTP_204_NO_CONTENT: None},
+        summary="Delete Advance Contract",
+        description="Delete a specific advance contract"
+    )
+    def destroy_advance_contract(self, request, contract_idx=None):
+        return self._destroy_contract(request, contract_type="advance", contract_idx=contract_idx)
+
+    @extend_schema(
+        tags=["Advance Contracts"],
+        summary="Count Advance Contracts",
+        description="Retrieve the total number of advances contracts",
+        responses={status.HTTP_200_OK: int}
+    )
+    def count_advance_contract(self, request, contract_idx=None):
+        return self._count_contract(request, contract_type="advance")
+
+### **Core Functions**
+
+    def _create_contract(self, request, contract_type=None):
         log_info(self.logger, "Attempting to create a new contract.")
 
         try:
             self._validate_master_key(request.auth)
             self._validate_contract_type(contract_type, self.registry_manager)
-            log_info(self.logger, "Validation of contract type successful")
-
             serializer_class = self.registry_manager.get_contract_serializer(contract_type)
             log_info(self.logger, f"Using serializer class {serializer_class}")
 
             validated_data = self._validate_request_data(serializer_class, request.data)
-            log_info(self.logger, f"Sending validated data {validated_data}")
+            log_info(self.logger, f"Sending data for validation {contract_type}: {validated_data}")
             self._validate_contract(validated_data)
+            log_info(self.logger, "Contract validated")
 
             contract_api = self.registry_manager.get_contract_api(contract_type)
             response = contract_api.add_contract(contract_type, validated_data)
@@ -67,13 +244,7 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
             log_error(self.logger, f"Unexpected error: {str(e)}")
             return Response({"error": f"Unexpected error {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @extend_schema(
-        tags=["Contracts"],
-        responses={status.HTTP_200_OK: None},
-        summary="Retrieve Contract",
-        description="Retrieve details of a specific contract."
-    )
-    def retrieve(self, request, contract_type=None, contract_idx=None):
+    def _retrieve_contract(self, request, contract_type=None, contract_idx=None):
         log_info(self.logger, f"Fetching {contract_type}:{contract_idx}")
 
         try:
@@ -98,14 +269,7 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
             log_error(self.logger, f"Unexpected error: {str(e)}")
             return Response({"error": f"Unexpected error {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @extend_schema(
-        tags=["Contracts"],
-        request=None,
-        responses={status.HTTP_200_OK: int},
-        summary="Update Contract",
-        description="Update specific fields of an existing contract."
-    )
-    def update(self, request, contract_type=None, contract_idx=None):
+    def _update_contract(self, request, contract_type=None, contract_idx=None):
         log_info(self.logger, f"Updating {contract_type}:{contract_idx}")
 
         try:
@@ -156,7 +320,7 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         summary="Delete Contract",
         description="Delete a specific contract."
     )
-    def destroy(self, request, contract_type=None, contract_idx=None):
+    def _destroy_contract(self, request, contract_type=None, contract_idx=None):
         log_info(self.logger, f"Deleting {contract_type}:{contract_idx}.")
 
         try:
@@ -189,14 +353,13 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         description="Retrieve the total number of contracts.",
         responses={status.HTTP_200_OK: int}
     )
-    def count(self, request, contract_type=None):
+    def _count_contract(self, request, contract_type=None):
         log_info(self.logger, f"Fetching contract count for {contract_type}")
 
         try:
             self._validate_contract_type(contract_type, self.registry_manager)
             contract_api = self.registry_manager.get_contract_api(contract_type) 
             log_info(self.logger, f"Contract api: {contract_api}")
-
             response = contract_api.get_contract_count(contract_type)
 
             if response["status"] == status.HTTP_200_OK:

@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Loaded accounts:', accounts);
     console.log('Loaded recipients:', recipients);
     console.log('Loaded templates:', templates);
+    console.log('Loaded contract type:', contractType);
 
     // Fields and DOM elements
     const fundingMethodField = document.getElementById('id_funding_method');
@@ -100,18 +101,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const initializeTemplateLogic = () => {
         console.log('Initializing template logic...');
         transactLogicField.value = ''; // Ensure Transaction Logic starts empty
-
-        if (contractTypeField.value) loadTemplates(contractTypeField.value);
-
-        contractTypeField.addEventListener('change', () => {
-            transactLogicField.value = ''; // Clear Transaction Logic field
-            loadTemplates(contractTypeField.value);
-        });
-
-        libraryTemplateField.addEventListener('change', () => {
-            const selectedTemplate = libraryTemplateField.value;
-            transactLogicField.value = selectedTemplate ? JSON.stringify(JSON.parse(selectedTemplate), null, 2) : '';
-        });
+    
+        if (contractType) {  
+            console.log(`Contract Type: ${contractType}`);
+            loadTemplates(contractType);
+        } else {
+            console.warn('Contract Type not found! Skipping template initialization.');
+        }
+    
+        if (libraryTemplateField) {
+            libraryTemplateField.addEventListener('change', () => {
+                const selectedTemplate = libraryTemplateField.value;
+                transactLogicField.value = selectedTemplate ? JSON.stringify(JSON.parse(selectedTemplate), null, 2) : '';
+            });
+        }
     };
 
     // Event listeners for field visibility

@@ -7,10 +7,9 @@ from django.contrib import messages
 from api.config import ConfigManager
 from api.library import LibraryManager 
 from api.secrets import SecretsManager
-from api.operations import ContractOperations, BankOperations
+from api.registry import RegistryManager
+from api.operations import ContractOperations, BankOperations, CsrfOperations
 from api.utilities.logging import log_info, log_warning, log_error
-
-from frontend.forms import ContractForm
 
 logger = logging.getLogger(__name__)
 
@@ -18,41 +17,50 @@ logger = logging.getLogger(__name__)
 def initialize_backend_services():
     secrets_manager = SecretsManager()
     config_manager = ConfigManager()
+    registry_manager = RegistryManager()
+
     headers = {
-        'Authorization': f"Api-Key {keys['FIZIT_MASTER_KEY']}",
+        'Authorization': f"Api-Key {secrets_manager.get_master_key()}",
         'Content-Type': 'application/json',
     }
-    config = config_manager.load_config()
-    return headers, config
+    
+    csrf_ops = CsrfOperations(headers, config_manager.get_base_url())
+    csrf_token = csrf_ops.get_csrf_token()
+
+    return headers, registry_manager, config_manager, csrf_token
 
 # Helper function to generate instruction data
-def generate_instruction_data(method, token_symbol=None, account_id=None, recipient_id=None):
-    if method == 'token':
-        return {"bank": "token", "token_symbol": token_symbol}
-    elif method == 'mercury':
-        data = {"bank": "mercury", "account_id": account_id}
-        if recipient_id:
-            data["recipient_id"] = recipient_id
-        return data
-    return {}
+#def generate_instruction_data(method, token_symbol=None, account_id=None, recipient_id=None):
+#    if method == 'token':
+#        return {"bank": "token", "token_symbol": token_symbol}
+#    elif method == 'mercury':
+#        data = {"bank": "mercury", "account_id": account_id}
+#        if recipient_id:
+#            data["recipient_id"] = recipient_id
+#        return data
+#    return {}
 
 # Helper function to fetch accounts and recipients
-def fetch_bank_data(headers, config):
+def fetch_bank_data(headers, config_manager, registry_manager, csrf_token  ):
 
-    bank_ops = BankOperations(headers, config)
-    accounts_response = bank_ops.get_accounts(bank='mercury')
-    recipients_response = bank_ops.get_recipients(bank='mercury')
+    bank_ops = BankOperations(headers, config_manager.get_base_url(), csrf_token)
+    accounts = []
+    recipients = []
 
-    accounts = process_bank_data(accounts_response, 'account_id', 'account_name')
-    recipients = process_bank_data(recipients_response, 'recipient_id', 'recipient_name')
+    for bank in registry_manager.get_banks():
+        accounts_response = bank_ops.get_accounts(bank=bank)
+        recipients_response = bank_ops.get_recipients(bank=bank)
+
+        accounts.extend(process_bank_data(accounts_response, bank, 'account_id', 'account_name'))
+        recipients.extend(process_bank_data(recipients_response, bank, 'recipient_id', 'recipient_name'))
 
     return accounts, recipients
 
 # Centralized API fetch logic
-def process_bank_data(items, item_id_key, item_name_key):
+def process_bank_data(items, bank, item_id_key, item_name_key):
     try:
         return [
-            {'id': item[item_id_key], 'name': item[item_name_key]}
+            {'bank': bank, 'id': item[item_id_key], 'name': item[item_name_key]}
             for item in items if item_id_key in item and item_name_key in item
         ]
     except requests.exceptions.RequestException as e:
@@ -60,10 +68,10 @@ def process_bank_data(items, item_id_key, item_name_key):
         return []
 
 # Fetch templates for contract types and transaction logic
-def fetch_contract_templates(headers, config):
+def fetch_contract_templates(headers, config_manager, registry_manager):
 
     library_manager = LibraryManager()
-    contract_types = config.get("contract_type", [])
+    contract_types = registry_manager.get_contract_types()
     all_templates = []
 
     for contract_type in contract_types:
@@ -80,32 +88,49 @@ def fetch_contract_templates(headers, config):
 
 # Main view
 def add_contract_view(request, extra_context=None):
-    headers, config = initialize_backend_services()
+    headers, registry_manager, config_manager, csrf_token = initialize_backend_services()
+    logger.info(f"Request method: {request.method}")
+    logger.info(f"request.GET: {request.GET}")
+    logger.info(f"request.POST: {request.POST}")
+
+    # Extract contract_type from GET or POST
+    contract_type = request.GET.get("contract_type") or request.POST.get("contract_type")
+    log_info(logger, f"Selected contract_type: {contract_type}")
 
     # Fetch accounts, recipients, and templates
-    accounts, recipients = fetch_bank_data(headers, config)
-    templates = fetch_contract_templates(headers, config)
+    accounts, recipients = fetch_bank_data(headers, config_manager, registry_manager, csrf_token)
+
+    templates = fetch_contract_templates(headers, config_manager, registry_manager)
+    log_info(logger, f"Templates received: {templates}")
 
     # Prepare account and recipient choices
     account_choices = [(account['id'], account['name']) for account in accounts]
     recipient_choices = [(recipient['id'], recipient['name']) for recipient in recipients]
 
-    # Initialize form for POST or GET
+    # Retrieve the correct contract form and template from the registry
+    contract_form_class = registry_manager.get_contract_form(contract_type)
+    contract_template = registry_manager.get_contract_template(contract_type)
+
     if request.method == 'POST':
-        contract_form = ContractForm(request.POST)
-    else:
-        contract_form = ContractForm()
+        contract_form = contract_form_class(request.POST)
 
-    # Set dynamic choices explicitly
-    contract_form.fields['funding_account'].choices = account_choices
-    contract_form.fields['deposit_account'].choices = account_choices
-    contract_form.fields['funding_recipient'].choices = recipient_choices
+        if registry_manager.get_advance_api(contract_type) or registry_manager.get_distribution_api(contract_type):
+            contract_form.fields['funding_account'].choices = account_choices
+            contract_form.fields['funding_recipient'].choices = recipient_choices
 
-    if request.method == 'POST' and contract_form.is_valid():
-        return handle_post_request(request, headers, config, contract_form)
+        if registry_manager.get_deposit_api(contract_type):
+            contract_form.fields['deposit_account'].choices = account_choices
+
+        if contract_form.is_valid():
+            return handle_post_request(request, headers, registry_manager, config_manager, contract_type, csrf_token, contract_form)
+        else:
+            log_error(logger, f"Contract form errors: {contract_form.errors}")
+
+    contract_form = contract_form_class()
 
     # Prepare context for rendering
     context = {
+        'contract_type': contract_type,
         'contract_form': contract_form,
         'accounts': accounts,
         'recipients': recipients,
@@ -113,34 +138,47 @@ def add_contract_view(request, extra_context=None):
         **(extra_context or {}),
     }
 
-    return render(request, 'admin/add_contract.html', context)
+    return render(request, contract_template, context)
 
 # Handle POST request
-def handle_post_request(request, headers, config, contract_form):
-    log_info(logger, f"Contract form errors:  {contract_form.errors}")
-
+def handle_post_request(request, headers, registry_manager, config_manager, contract_type, csrf_token, contract_form):
     contract_data = contract_form.cleaned_data
-
     log_info(logger, f"contract_data: {contract_data}")
 
     # Generate funding and deposit instructions
-    contract_data["funding_instr"] = generate_instruction_data(
-    method=contract_data.get("funding_method"),
-            token_symbol=contract_data.get("funding_token_symbol"),
-            account_id=contract_data.get("funding_account"),
-            recipient_id=contract_data.get("funding_recipient")
+    #contract_data["funding_instr"] = generate_instruction_data(
+    #method=contract_data.get("funding_method"),
+    #        token_symbol=contract_data.get("funding_token_symbol"),
+    #        account_id=contract_data.get("funding_account"),
+    #        recipient_id=contract_data.get("funding_recipient")
+    #)
+#
+#    contract_data["deposit_instr"] = generate_instruction_data(
+#        method=contract_data.get("deposit_method"),
+#        token_symbol=contract_data.get("deposit_token_symbol"),
+#        account_id=contract_data.get("deposit_account")
+#    )
+#
+
+    contract_data["funding_instr"] = registry_manager.generate_instruction_data("funding",
+        bank=contract_data.get("funding_method"),
+        funding_account=contract_data.get("funding_account"),
+        funding_recipient=contract_data.get("funding_recipient"),
+        funding_token_symbol=contract_data.get("funding_token_symbol"),
+        advance_amt=contract_data.get("advance_amt"),
+        residual_calc_amt=contract_data.get("residual_calc_amt")
     )
 
-    contract_data["deposit_instr"] = generate_instruction_data(
-        method=contract_data.get("deposit_method"),
-        token_symbol=contract_data.get("deposit_token_symbol"),
-        account_id=contract_data.get("deposit_account")
+    contract_data["deposit_instr"] = registry_manager.generate_instruction_data("deposit",
+        bank=contract_data.get("deposit_method"),
+        deposit_account=contract_data.get("deposit_account"),
+        deposit_token_symbol=contract_data.get("deposit_token_symbol"),
+        distribution_calc_amt=contract_data.get("distribution_calc_amt")
     )
 
     # Add additional data for the contract
     contract_data.update({
         "service_fee_max": contract_data.get("service_fee_pct", 0.025),
-        "notes": "Default notes",
         "extended_data": {},
         "is_active": True,
         "is_quote": False,
@@ -148,17 +186,17 @@ def handle_post_request(request, headers, config, contract_form):
 
     # Submit contract data
     try:
-        contract = ContractOperations(headers, config).post_contract(contract_data)
+        base_url = config_manager.get_base_url()
+        contract_ops = ContractOperations(headers, base_url, csrf_token)
+        contract = contract_ops.post_contract(contract_type, contract_data)
 
         if "error" in contract:
-            raise Exception
-        else:
-            contract_idx = contract["contract_idx"]
+            raise Exception(contract["error"])
 
+        contract_idx = contract["contract_idx"]
         messages.success(request, f"Contract {contract_idx} added successfully!")
-        return redirect(f"/admin/view-contract/?contract_idx={contract_idx}")
+        return redirect(f"/admin/view-contract/?contract_idx={contract_idx}&contract_type={contract_type}")
     except Exception as e:
         log_error(logger, f"Contract submission failed: {e}")
         messages.error(request, "Failed to add contract. Please try again.")
-
-    return redirect(request.path)
+        return redirect(f"/admin/add-contract/?contract_type={contract_type}")

@@ -25,12 +25,11 @@ class Command(BaseCommand):
 
         # Web3 instances for both networks
         self.fizit_w3 = self.w3_manager.get_web3_instance(network="fizit")
-        self.avalanche_w3 = self.w3_manager.get_web3_instance(network="avalanche")
+        # self.avalanche_w3 = self.w3_manager.get_web3_instance(network="avalanche")
 
-        if ExtraDataToPOAMiddleware not in self.avalanche_w3.middleware_onion:
-            self.avalanche_w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
-        else:
-            self.avalanche_w3.middleware_onion.replace(ExtraDataToPOAMiddleware, ExtraDataToPOAMiddleware)
+        # Ensure PoA middleware is applied before making any calls
+        # self.avalanche_w3.middleware_onion.clear()  # Reset middleware stack to avoid duplicates
+        # self.avalanche_w3.middleware_onion.add(ExtraDataToPOAMiddleware)
 
         # Load all contracts from config
         self.contracts = self.load_contracts()
@@ -39,9 +38,10 @@ class Command(BaseCommand):
             try:
                 # Create filters dynamically per contract type
                 fizit_filters = self.create_fizit_event_filters()
-                avalanche_transfer_filter = self.create_avalanche_transfer_filter()
+                # avalanche_transfer_filter = self.create_avalanche_transfer_filter()
 
-                if not fizit_filters or not avalanche_transfer_filter:
+                # if not fizit_filters or not avalanche_transfer_filter:
+                if not fizit_filters:
                     log_error(self.logger, "Failed to create one or more event filters. Retrying in 5 seconds...")
                     time.sleep(5)
                     continue
@@ -56,7 +56,7 @@ class Command(BaseCommand):
                         for contract_type, contract_filter in fizit_filters.items():
                             self.process_fizit_events(contract_filter, contract_type)
 
-                        self.process_avalanche_transfer_events(avalanche_transfer_filter)
+                        # self.process_avalanche_transfer_events(avalanche_transfer_filter)
 
                     except Exception as e:
                         log_error(self.logger, f"Error processing events: {str(e)}")
@@ -204,14 +204,17 @@ class Command(BaseCommand):
                 token_addr = event.get('address', 'Unknown token address')
                 block_number = event.get('blockNumber', 'Unknown block')
 
-                from_addr = "0x" + event['topics'][1].hex()[-40:]
-                to_addr = "0x" + event['topics'][2].hex()[-40:]
+                from_addr = Web3.to_checksum_address("0x" + event['topics'][1].hex()[-40:])
+                to_addr = Web3.to_checksum_address("0x" + event['topics'][2].hex()[-40:])
 
                 value = int(event['data'].hex(), 16)
 
                 receipt = self.avalanche_w3.eth.get_transaction_receipt(tx_hash)
                 gas_used = receipt.get("gasUsed") if receipt else None
-                block_timestamp = self.avalanche_w3.eth.get_block(block_number).timestamp
+
+                block_data = self.avalanche_w3.eth.get_block(block_number)
+                # Handle both object and dictionary formats
+                block_timestamp = block_data.get("timestamp") or block_data.get("time")
 
                 details = f"Transfer {value}, token: {token_addr}"
 

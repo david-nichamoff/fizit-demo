@@ -1,10 +1,6 @@
-from .contract_form import ContractForm
+from .contract_form import AdvanceContractForm, PurchaseContractForm, SaleContractForm
 from .party_form import PartyForm
-from .settlement_form import SettlementForm
+from .settlement_form import AdvanceSettlementForm, SaleSettlementForm
 from .artifact_form import ArtifactForm
 from .transaction_form import TransactionForm
-from .advance_form import AdvanceForm
-from .deposit_form import DepositForm
-from .find_deposits_form import FindDepositsForm
-from .post_deposit_form import PostDepositForm
-from .residual_form import ResidualForm
+from .deposit_form import FindDepositsForm, PostDepositForm

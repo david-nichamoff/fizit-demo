@@ -28,9 +28,8 @@ class DeleteContractTest(TestCase):
 
     def test_soft_delete_contracts(self):
         """Test soft deletion of multiple contracts (is_active should switch to False)."""
-        fixtures_dir = os.path.join(os.path.dirname(__file__), "fixtures", "delete_contract")
-        filenames = self._get_json_files(fixtures_dir)
-
+        fixtures_dir = os.path.join(os.path.dirname(__file__), "fixtures")
+        filenames = ["advance_fiat.json", "purchase_fiat.json", "sale_fiat.json"]
         log_info(self.logger, f"Testing contract deletion for files: {filenames}")
 
         contract_records = []
@@ -41,7 +40,7 @@ class DeleteContractTest(TestCase):
             contract_data = self._load_json(file_path)
 
             contract_type = contract_data["contract_type"]
-            contract_body = contract_data["contract_data"]
+            contract_body = contract_data["contract"]
 
             create_response = self.contract_ops.post_contract(contract_type, contract_body)
 

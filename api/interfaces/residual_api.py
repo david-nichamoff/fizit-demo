@@ -7,29 +7,26 @@ from rest_framework.exceptions import ValidationError
 
 from api.web3 import Web3Manager
 from api.config import ConfigManager
-from api.registry import RegistryManager
-from api.interfaces import SettlementAPI, PartyAPI
-from api.adapters.bank import MercuryAdapter, TokenAdapter
+from api.interfaces import PartyAPI
 from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
 
-class ResidualAPI(ResponseMixin):
+class BaseResidualAPI(ResponseMixin):
     _instance = None
 
     def __new__(cls, *args, **kwargs):
         """Ensure that the class is a singleton."""
         if not cls._instance:
-            cls._instance = super(ResidualAPI, cls).__new__(cls, *args, **kwargs)
+            cls._instance = super(BaseResidualAPI, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self):
+    def __init__(self, registry_manager=None):
         """Initialize ResidualAPI with necessary dependencies."""
         if not hasattr(self, "initialized"):
             self.config_manager = ConfigManager()
             self.w3_manager = Web3Manager()
-            self.settlement_api = SettlementAPI()
             self.party_api = PartyAPI()
-            self.registry_manager = RegistryManager()
+            self.registry_manager = registry_manager
             self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
             self.logger = logging.getLogger(__name__)
             self.initialized = True
@@ -37,7 +34,8 @@ class ResidualAPI(ResponseMixin):
     def get_residuals(self, contract_type, contract_idx):
         """Retrieve residuals for a given contract."""
         try:
-            response = self.settlement_api.get_settlements(contract_type, contract_idx)
+            settlement_api = self.registry_manager.get_settlement_api(contract_type)
+            response = settlement_api.get_settlements(contract_type, contract_idx)
             if response["status"] == status.HTTP_200_OK:
                 settlements = response["data"]
                 log_info(self.logger, f"Checking settlements for residuals: {settlements}")
@@ -108,7 +106,9 @@ class ResidualAPI(ResponseMixin):
             residual_dict = {
                 "contract_type": contract_type,
                 "contract_idx": contract["contract_idx"],
+                "contract_name" : contract["contract_name"],
                 "settle_idx": settle["settle_idx"],
+                "settle_due_dt": settle["settle_due_dt"],
                 "bank": contract["funding_instr"]["bank"],
                 "recipient_addr": recipient_addr,
                 "funder_addr": funder_addr,
@@ -172,3 +172,17 @@ class ResidualAPI(ResponseMixin):
             error_message = f"Blockchain transaction_failed"
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e
+
+### These are for future use
+
+### **Subclass for Advance Contracts**
+class PurchaseResidualAPI(BaseResidualAPI):
+    pass
+
+### **Subclass for Advance Contracts**
+class SaleResidualAPI(BaseResidualAPI):
+    pass
+
+### **Subclass for Advance Contracts**
+class AdvanceResidualAPI(BaseResidualAPI):
+    pass

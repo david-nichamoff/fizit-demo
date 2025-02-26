@@ -1,37 +1,102 @@
 document.addEventListener("DOMContentLoaded", function () {
-    const depositRadios = document.querySelectorAll("input[name='selected_deposit']");
-    const settlementRadios = document.querySelectorAll("input[name='selected_settlement']");
-    const depositDtInput = document.getElementById("selected-deposit-dt");
-    const depositAmtInput = document.getElementById("selected-deposit-amt");
-    const settlementIdxInput = document.getElementById("selected-settlement-idx");
+    console.log("Loaded contracts:", contracts);
+    console.log("Loaded contract types:", contractTypes);
+    console.log("Loaded settlements:", settlements);
 
-    depositRadios.forEach((radio) => {
-        radio.addEventListener("change", () => {
-            try {
-                depositDtInput.value = radio.getAttribute("data-deposit-dt");
-                depositAmtInput.value = radio.getAttribute("data-deposit-amt");
+    const contractTypeDropdown = document.getElementById("id_contract_type");
+    const contractDropdown = document.getElementById("id_contract_idx");
+    const settlementDropdown = document.getElementById("id_settle_idx");
+    const depositForm = document.querySelector(".post-deposit-form");
 
-                console.log("Selected deposit details:", {
-                    deposit_dt: depositDtInput.value,
-                    deposit_amt: depositAmtInput.value,
-                });
-            } catch (error) {
-                console.error("Error selecting deposit:", error);
-            }
+    function filterContracts() {
+        const selectedType = contractTypeDropdown.value.trim().toLowerCase(); // Normalize case
+        console.log(`Filtering contracts for type: ${selectedType}`);
+
+        const filteredContracts = contracts.filter(contract => 
+            contract.contract_type.trim().toLowerCase() === selectedType
+        );
+
+        console.log("Filtered contracts:", filteredContracts);
+
+        contractDropdown.innerHTML = "";
+
+        if (filteredContracts.length === 0) {
+            contractDropdown.innerHTML = `<option value="">No contracts available</option>`;
+            return;
+        }
+
+        filteredContracts.forEach(contract => {
+            const option = document.createElement("option");
+            option.value = contract.contract_idx;
+            option.textContent = `${contract.contract_name}`;
+            contractDropdown.appendChild(option);
         });
+
+        if (filteredContracts.length > 0) {
+            contractDropdown.value = filteredContracts[0].contract_idx;
+            contractDropdown.dispatchEvent(new Event("change")); 
+        }
+    }
+
+    function filterSettlements() {
+        const selectedType = contractTypeDropdown.value.trim();
+        const selectedContract = contractDropdown.value.trim();
+        
+        console.log(`Filtering settlements for type: ${selectedType}, contract: ${selectedContract}`);
+        
+        settlementDropdown.innerHTML = "";
+    
+        if (!selectedType || !selectedContract) {
+            settlementDropdown.innerHTML = `<option value="">Select a contract first</option>`;
+            return;
+        }
+    
+        // Use "sale_1" key format instead of tuples
+        const key = `${selectedType}_${selectedContract}`;
+    
+        console.log("Generated key for settlements:", key);
+        console.log("Available settlement keys:", Object.keys(settlements));
+    
+        if (!(key in settlements)) {
+            settlementDropdown.innerHTML = `<option value="">No settlements available</option>`;
+            return;
+        }
+    
+        const availableSettlements = settlements[key];
+    
+        console.log("Available settlements:", availableSettlements);
+    
+        availableSettlements.forEach(settlement => {
+            const option = document.createElement("option");
+            option.value = settlement.settle_idx;
+            option.textContent = `Due: ${settlement.settle_due_dt}`;
+            settlementDropdown.appendChild(option);
+        });
+    
+        settlementDropdown.value = availableSettlements.length > 0 ? availableSettlements[0].settle_idx : "";
+    }
+
+    // Ensure correct default contract type is selected
+    contractTypeDropdown.value = defaultContractType;
+    filterContracts();
+    filterSettlements();
+
+    contractTypeDropdown.addEventListener("change", function () {
+        filterContracts();
+        filterSettlements();
     });
 
-    settlementRadios.forEach((radio) => {
-        radio.addEventListener("change", () => {
-            try {
-                settlementIdxInput.value = radio.getAttribute("data-settlement-id");
+    contractDropdown.addEventListener("change", filterSettlements);
 
-                console.log("Selected settlement details:", {
-                    settlement_idx: settlementIdxInput.value,
-                });
-            } catch (error) {
-                console.error("Error selecting settlement:", error);
-            }
-        });
+    // Log form submission event
+    depositForm.addEventListener("submit", function (event) {
+        console.log("Post Deposit Form Submitted!");
+        console.log("Form data:", new FormData(depositForm));
+
+        // Ensure form validation passes
+        if (!depositForm.checkValidity()) {
+            console.log("Form validation failed.");
+            event.preventDefault();
+        }
     });
 });

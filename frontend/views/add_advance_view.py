@@ -9,10 +9,9 @@ from django.shortcuts import render, redirect
 
 from api.config import ConfigManager
 from api.secrets import SecretsManager
+from api.registry import RegistryManager
 from api.operations import CsrfOperations, BankOperations, ContractOperations
 from api.utilities.logging import log_info, log_warning, log_error
-
-from frontend.forms import AdvanceForm
 
 logger = logging.getLogger(__name__)
 
@@ -20,92 +19,71 @@ logger = logging.getLogger(__name__)
 def initialize_backend_services():
     secrets_manager = SecretsManager()
     config_manager = ConfigManager()
+    registry_manager = RegistryManager()
+
     headers = {
-        'Authorization': f"Api-Key {keys['FIZIT_MASTER_KEY']}",
+        'Authorization': f"Api-Key {secrets_manager.get_master_key()}",
         'Content-Type': 'application/json',
     }
-    return headers, config
 
-# Fetch total contract count and fetch each contract one by one
-def fetch_all_contracts(headers, config):
+    csrf_ops = CsrfOperations(headers, config_manager.get_base_url())
+    csrf_token = csrf_ops.get_csrf_token()
 
-    contract_ops = ContractOperations(headers, config)
+    return headers, registry_manager, config_manager, csrf_token
 
-    # Get the total contract count
-    try:
-        count_response = contract_ops.get_count()
-    except Exception as e:
-        log_error(logger, f"Failed to fetch contract count: {e}")
-        return []
+def fetch_all_advances(headers, base_url, registry_manager, csrf_token):
+    bank_ops = BankOperations(headers, base_url, csrf_token)
+    contract_ops = ContractOperations(headers, base_url, csrf_token)
 
-    contract_count = count_response['count']
+    contract_types = registry_manager.get_contract_types()
+    advances=[]
 
-    # Fetch contracts one by one
-    contracts = []
-    for contract_idx in range(0, contract_count):
-        try:
-            contract = contract_ops.get_contract(contract_idx)
-            contracts.append(contract)
-        except Exception as e:
-            log_error(logger, f"Failed to fetch contract {contract_idx}: {e}")
+    for contract_type in contract_types:
+        if registry_manager.get_advance_api(contract_type):
+            log_info(logger, f"Retrieving advances for contract_type {contract_type}")
 
-    return contracts
+            try:
+                count_response = contract_ops.get_count(contract_type)
+            except requests.RequestException as e:
+                log_error(logger, f"Failed to fetch contract count: {e}")
+                return []
 
-def fetch_all_advances(headers, config):
-    bank_ops = BankOperations(headers, config)
-    contract_ops = ContractOperations(headers, config)
+            contract_count = count_response['count']
 
-    # Get the total contract count
-    try:
-        count_response = contract_ops.get_count()
-    except requests.RequestException as e:
-        log_error(logger, f"Failed to fetch contract count: {e}")
-        return []
-
-    contract_count = count_response['count']
-
-    # Fetch advances one by one
-    advances = []
-    for contract_idx in range(0, contract_count):
-        
-        try:
-            advance = bank_ops.get_advances(contract_idx)
-            advances.extend(advance)
-
-        except requests.RequestException as e:
-            log_warning(logger, f"Failed to fetch advances for contract {contract_idx}: {e}")
+            # Fetch advances one by one
+            for contract_idx in range(0, contract_count):
+            #for contract_idx in range(4, 10):
+                try:
+                    advance = bank_ops.get_advances(contract_type, contract_idx)
+                    advances.extend(advance)
+                except requests.RequestException as e:
+                    log_warning(logger, f"Failed to fetch advances for contract {contract_type}:{contract_idx}: {e}")
 
     return advances
 
-def handle_post_request(request, headers, config):
-
-    csrf_ops = CsrfOperations(headers, config)
-    csrf_token = csrf_ops.get_csrf_token()
-
-    bank_ops = BankOperations(headers, config, csrf_token)
+def handle_post_request(request, headers, base_url, csrf_token):
+    bank_ops = BankOperations(headers, base_url, csrf_token)
 
     try:
         # Retrieve selected advances from the form
-        contract_idx = request.POST.get("contract_idx")
         advances_json = request.POST.get("advances")
-
-        if not contract_idx or not advances_json:
-            messages.error(request, "No contract or advances selected.")
-            return redirect(request.path)
-
         advances_to_post = json.loads(advances_json)
+        log_info(logger, f"Post response: advances: {advances_to_post}")
 
         if not advances_to_post:
             messages.error(request, "No valid advances found for posting.")
             return redirect(request.path)
 
-        add_advance_response = bank_ops.post_advances(contract_idx, advances_to_post)
+        for advance in advances_to_post:
+            response = bank_ops.post_advances(advance["contract_type"], advance["contract_idx"], [advance])
+            log_info(logger, f"Response from post: {response}")
 
-        if "error" not in add_advance_response:
-            messages.success(request, "Advances posted successfully.")
-        else:
-            log_error(logger, f"Failed to post advances: {add_advance_response.json()}")
-            messages.error(request, f"Failed to post advances: {add_advance_response.json().get('error', 'Unknown error')}")
+            if "error" in response:
+                log_error(logger, f"Failed to post advances: {response}")
+                messages.error(request, f"Failed to post advances")
+                return redirect(request.path)
+
+        messages.success(request, "Advances posted successfully.")
 
     except Exception as e:
         logger.exception(f"Unexpected error while posting advances: {e}")
@@ -113,49 +91,25 @@ def handle_post_request(request, headers, config):
 
     return redirect(request.path)
 
-def group_advances_by_contract(advances):
-    """Group advances by contract_idx using a standard dictionary."""
-    grouped_advances = {}
-    for advance in advances:
-        contract_idx = advance["contract_idx"]
-        if contract_idx not in grouped_advances:
-            grouped_advances[contract_idx] = []  # Initialize an empty list for the contract
-        grouped_advances[contract_idx].append(advance)
-    return grouped_advances  # Return a plain dictionary
-
 # Main view
 def add_advance_view(request, extra_context=None):
-    headers, config = initialize_backend_services()
+    headers, registry_manager, config_manager, csrf_token = initialize_backend_services()
+    base_url = config_manager.get_base_url()
+
+    # Extract contract_type from the GET parameters
+    contract_type = request.GET.get("contract_type")
+    log_info(logger, f"Selected contract_type: {contract_type}")
 
     if request.method == 'POST':
         # Delegate to the POST handler
-        return handle_post_request(request, headers, config)
+        return handle_post_request(request, headers, base_url, csrf_token)
 
     # Fetch all contracts with prepopulated transact_data
-    advances = fetch_all_advances(headers, config)
-
-    # Group advances by contract_idx for the dropdown and table
-    grouped_advances = group_advances_by_contract(advances)
-
-    # Fetch all contracts with prepopulated transact_data
-    raw_contracts = fetch_all_contracts(headers, config)
-
-    contracts = [
-        {
-            "contract_idx": contract["contract_idx"],
-            "contract_name": contract["contract_name"],
-        }
-
-        for contract in raw_contracts
-    ]
-
-    # Initialize the form with contract data
-    advance_form = AdvanceForm(contracts=contracts)
+    advances = fetch_all_advances(headers, base_url, registry_manager, csrf_token)
+    log_info(logger, f"Retrieved advances {advances}")
 
     context = {
-        "advance_form": advance_form,
-        "contracts": contracts,  # Used for the contract dropdown
-        "advances_by_contract": grouped_advances,  # Used for populating tables dynamically
+        "advances": advances 
     }
 
     if extra_context:

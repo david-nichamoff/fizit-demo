@@ -31,32 +31,37 @@ class ArtifactTest(TestCase):
         self.artifact_ops = ArtifactOperations(self.headers, self.base_url, self.csrf_token)
 
     def test_artifact_operations(self):
-        """Test artifact lifecycle: create contract, add artifacts, retrieve, and delete."""
-        fixtures_dir = os.path.join(os.path.dirname(__file__), "fixtures", "artifact")
-        filenames = self._get_json_files(fixtures_dir)
+        """Test artifact lifecycle for advance, purchase, and sale contracts."""
+        # Define the specific fixture files to load
+        fixture_files = [
+            os.path.join(os.path.dirname(__file__), 'fixtures', 'advance_fiat.json'),
+            os.path.join(os.path.dirname(__file__), 'fixtures', 'purchase_fiat.json'),
+            os.path.join(os.path.dirname(__file__), 'fixtures', 'sale_fiat.json')
+        ]
 
-        if not filenames:
-            self.fail("No test files found in fixtures/artifact")
+        for file_path in fixture_files:
+            if not os.path.exists(file_path):
+                self.fail(f"Test file not found: {file_path}")
 
-        for filename in filenames:
-            file_path = os.path.join(fixtures_dir, filename)
             contract_data = self._load_json(file_path)
 
             contract_type = contract_data["contract_type"]
-            contract_body = contract_data["contract_data"]
+            contract_body = contract_data["contract"]
             artifact_list = contract_data["artifacts"]
+
+            log_info(self.logger, f"Adding artifact list {artifact_list}")
 
             # Step 1: Create contract
             create_response = self.contract_ops.post_contract(contract_type, contract_body)
 
             if "error" in create_response:
-                self.fail(f"Failed to create contract from {filename}: {create_response}")
+                self.fail(f"Failed to create contract from {file_path}: {create_response}")
 
             self.assertIn("contract_idx", create_response, "Response must contain 'contract_idx'")
             contract_idx = create_response["contract_idx"]
             self.assertIsInstance(contract_idx, int, "Contract index must be an integer")
 
-            log_info(self.logger, f"Created contract {contract_type}:{contract_idx} from {filename}")
+            log_info(self.logger, f"Created contract {contract_type}:{contract_idx} from {file_path}")
 
             time.sleep(5)
 
@@ -64,9 +69,9 @@ class ArtifactTest(TestCase):
             add_response = self.artifact_ops.post_artifacts(contract_type, contract_idx, artifact_list)
 
             if "error" in add_response:
-                self.fail(f"Failed to add artifacts from {filename}: {add_response}")
+                self.fail(f"Failed to add artifacts from {file_path}: {add_response}")
 
-            log_info(self.logger, f"Added {artifact_list} to {contract_type}:{contract_idx} from {filename}")
+            log_info(self.logger, f"Added artifacts to {contract_type}:{contract_idx} from {file_path}")
 
             time.sleep(5)
 
@@ -75,9 +80,9 @@ class ArtifactTest(TestCase):
             log_info(self.logger, f"Retrieved artifacts from {contract_type}:{contract_idx}: {retrieved_artifacts}")
 
             if "error" in retrieved_artifacts:
-                self.fail(f"Failed to retrieve artifacts from {filename}: {retrieved_artifacts}")
+                self.fail(f"Failed to retrieve artifacts from {file_path}: {retrieved_artifacts}")
 
-            self.assertEqual(len(retrieved_artifacts), len(artifact_list), f"Mismatch in artifact count for {filename}")
+            self.assertEqual(len(retrieved_artifacts), len(artifact_list), f"Mismatch in artifact count for {file_path}")
 
             retrieved_artifact_urls = [artifact['s3_object_key'].split('/')[-1] for artifact in retrieved_artifacts]
             expected_artifact_filenames = [url.split('/')[-1] for url in artifact_list]
@@ -88,15 +93,15 @@ class ArtifactTest(TestCase):
                 "Retrieved artifacts do not match the added artifacts."
             )
 
-            log_info(self.logger, f"Retrieved artifacts match expected values for {contract_type}:{contract_idx} from {filename}")
+            log_info(self.logger, f"Retrieved artifacts match expected values for {contract_type}:{contract_idx} from {file_path}")
 
             # Step 4: Delete artifacts
             delete_response = self.artifact_ops.delete_artifacts(contract_type, contract_idx)
 
             if delete_response:
-                self.fail(f"Failed to delete artifacts from {filename}: {delete_response}")
+                self.fail(f"Failed to delete artifacts from {file_path}: {delete_response}")
 
-            log_info(self.logger, f"Deleted artifacts from {contract_type}:{contract_idx} from {filename}")
+            log_info(self.logger, f"Deleted artifacts from {contract_type}:{contract_idx} from {file_path}")
 
             time.sleep(5)
 
@@ -104,16 +109,11 @@ class ArtifactTest(TestCase):
             get_response_after_delete = self.artifact_ops.get_artifacts(contract_type, contract_idx)
 
             if "error" in get_response_after_delete:
-                self.fail(f"Failed to retrieve artifacts after deletion for {filename}: {get_response_after_delete}")
+                self.fail(f"Failed to retrieve artifacts after deletion for {file_path}: {get_response_after_delete}")
 
-            self.assertEqual(len(get_response_after_delete), 0, f"Artifacts should be empty after deletion for {filename}")
+            self.assertEqual(len(get_response_after_delete), 0, f"Artifacts should be empty after deletion for {file_path}")
 
-            log_info(self.logger, f"Verified artifacts were deleted for {contract_type}:{contract_idx} from {filename}")
-
-    @staticmethod
-    def _get_json_files(directory):
-        """Retrieve all JSON files from a directory."""
-        return [f for f in os.listdir(directory) if f.endswith(".json")]
+            log_info(self.logger, f"Verified artifacts were deleted for {contract_type}:{contract_idx} from {file_path}")
 
     @staticmethod
     def _load_json(filepath):
