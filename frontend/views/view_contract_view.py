@@ -186,6 +186,7 @@ def _update_parties(request, registry_manager, contract_type, contract_idx, head
         party_ops = PartyOperations(headers, base_url, csrf_token)
 
         try:
+            log_info(logger, f"Posting: {contract_type}, {contract_idx}, {payload}")
             response = party_ops.post_parties(contract_type, contract_idx, payload)
             if response["count"] > 0:
                 messages.success(request, "Party added successfully.")

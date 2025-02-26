@@ -1,7 +1,13 @@
+import logging
 import requests
 import time
+import json
+
 from rest_framework import status
 
+from api.utilities.logging import log_error, log_info, log_warning
+
+logger = logging.getLogger(__name__)
 
 class PartyOperations:
     def __init__(self, headers, base_url, csrf_token=None):
@@ -28,6 +34,9 @@ class PartyOperations:
         Add parties to a contract.
         """
         headers_with_csrf = self._add_csrf_token(self.headers.copy())
+        log_info(logger, f"POST URL: {self.base_url}/api/contracts/{contract_type}/{contract_idx}/parties/")
+        log_info(logger, f"POST Payload: {json.dumps(parties_data, indent=2)}")
+        log_info(logger, f"POST Headers: {headers_with_csrf}")
         response = requests.post(
             f"{self.base_url}/api/contracts/{contract_type}/{contract_idx}/parties/",
             json=parties_data,
