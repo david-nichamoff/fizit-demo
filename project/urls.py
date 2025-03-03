@@ -1,9 +1,10 @@
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.contrib import admin
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponsePermanentRedirect
 
 from rest_framework.permissions import AllowAny
 from api.authentication import NoAuthForSwagger
@@ -11,6 +12,8 @@ from api.authentication import NoAuthForSwagger
 from frontend.admin.custom_admin_site import custom_admin_site
 
 urlpatterns = [
+    re_path(r'^admin$', lambda request: HttpResponsePermanentRedirect('/admin/')),
+
     path('admin/', custom_admin_site.urls),
     path('api/', include('api.urls')),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
