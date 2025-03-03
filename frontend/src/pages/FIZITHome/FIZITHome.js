@@ -74,11 +74,11 @@ const styles = {
     display: "inline-block",
     backgroundColor: "#222", // Dark background like a scoreboard
     color: "#FFD700", // Gold/yellow numbers for contrast
-    padding: "20px 40px",
+    padding: "20px 30px",
     marginTop: "20px",
     borderRadius: "8px",
     fontFamily: "'Orbitron', sans-serif", // Optional: Add digital-style font
-    fontSize: "4rem", // Large number size
+    fontSize: "3rem", // Large number size
     fontWeight: "bold",
     letterSpacing: "5px",
     boxShadow: "0px 4px 8px rgba(0,0,0,0.3)", // Slight shadow for depth
