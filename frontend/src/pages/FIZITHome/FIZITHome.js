@@ -40,9 +40,10 @@ const FIZITHome = () => {
         Transaction Volume
       </p>
 
-      <p style={styles.contact}>
-        <a href="mailto:info@fizit.biz">Contact Us</a>
-      </p>
+      <a href="mailto:info@fizit.biz" style={styles.contactButton}>
+        Contact Us
+      </a>
+
       <div style={styles.footer}>&copy; {new Date().getFullYear()} FIZIT, Inc. All rights reserved.</div>
     </div>
   );
@@ -83,12 +84,22 @@ const styles = {
     letterSpacing: "5px",
     boxShadow: "0px 4px 8px rgba(0,0,0,0.3)", // Slight shadow for depth
   },
-  contact: {
-    marginTop: "60px",
-    fontSize: "1.1rem",
+  contactButton: {
+    display: "inline-block",
+    marginTop: "40px",
+    padding: "12px 24px",
+    fontSize: "1.2rem",
+    fontWeight: "bold",
+    color: "#fff",
+    backgroundColor: "rgba(107, 72, 255, 1)",
+    border: "none",
+    borderRadius: "8px",
+    textDecoration: "none",
+    transition: "background-color 0.3s",
+    cursor: "pointer",
   },
   footer: {
-    marginTop: "10px",
+    marginTop: "20px",
     fontSize: "0.9rem",
     color: "#777",
   },
