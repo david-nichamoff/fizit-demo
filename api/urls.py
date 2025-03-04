@@ -13,6 +13,7 @@ from api.views import (
     DistributionViewSet,
     DepositViewSet,
     EventViewSet,
+    StatsView,
     get_csrf_token
 )
 
@@ -55,4 +56,6 @@ urlpatterns = [
     path('events/', EventViewSet.as_view({'get': 'list'}), name='event-list'),
     path('contracts/', ContractViewSet.as_view({'get': 'list_contracts'}), name='list-contracts'),
     path('get-csrf-token/', get_csrf_token, name='get_csrf_token'),
+    path('stats/', StatsView.as_view(), name='stats'),
+
 ]

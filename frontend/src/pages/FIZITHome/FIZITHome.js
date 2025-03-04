@@ -1,55 +1,75 @@
 import React, { useEffect, useState } from "react";
-import fizitLogo from "../../../static/assets/logo/fizit_full_color.png"; // Adjust path if necessary
+import fizitLogo from "../../../static/assets/logo/fizit_full_color.png"; 
 
+const API_URL = "/api/stats/"; 
 
 const FIZITHome = () => {
-  const [transactionCount, setTransactionCount] = useState(0);
+    const [transactionValue, setTransactionValue] = useState(0);
+    const [endValue, setEndValue] = useState(null);
 
-  useEffect(() => {
-    // Simulating transaction count animation
-    let start = 0;
-    let end = 500000; 
-    let duration = 10000;
-    let stepTime = duration / (end - start);
+    useEffect(() => {
+        const fetchTransactionValue = async () => {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                if (data && data.value) {
+                setEndValue(data.value);
+                }
+            } catch (error) {
+                console.error("Error fetching transaction value:", error);
+            }
+        };
 
-    const incrementCounter = () => {
-      if (start < end) {
-        start += Math.ceil(end / 100);
-        setTransactionCount(start);
-        setTimeout(incrementCounter, stepTime);
-      } else {
-        setTransactionCount(end);
-      }
-    };
+        fetchTransactionValue();
+    }, []);  
 
-    incrementCounter();
-  }, []);
+    useEffect(() => {
+        if (endValue === null) return;
 
-  return (
-    <div style={styles.container}>
-      <img src={fizitLogo} alt="FIZIT Logo" style={styles.logo} />
-      <h1 style={styles.title}>It's Your Money and Timing is Everything</h1>
-      <p style={styles.subtitle}>
-        FIZIT empowers you to optimize cash flow with cutting-edge IoT and blockchain technology
-      </p>
+        // Simulating transaction count animation
+        let start = 0;
+        let end = endValue; 
+        let duration = 30000;
+        let stepTime = duration / (end - start);
 
-      <p style={styles.detail}>
-        FIZIT has Paid:
-      </p>
-      <div style={styles.counterContainer}>
-       ${transactionCount.toLocaleString()}
-      </div>
-      <p style={styles.detail}>
-        To Customers Next Day for Value Delivered
-      </p>
+        const incrementCounter = () => {
+            if (start < end) {
+                start += Math.ceil(end / 100);
+                setTransactionValue(start);
+                setTimeout(incrementCounter, stepTime);
+            } else {
+                setTransactionValue(end);
+            }
+        };
 
-      <a href="mailto:info@fizit.biz" style={styles.contactButton}>
-        Contact Us
-      </a>
+        incrementCounter();
+    }, [endValue]);
 
-      <div style={styles.footer}>&copy; {new Date().getFullYear()} FIZIT, Inc. All rights reserved.</div>
-    </div>
-  );
+    return (
+        <div style={styles.container}>
+        <img src={fizitLogo} alt="FIZIT Logo" style={styles.logo} />
+        <h1 style={styles.title}>It's Your Money and Timing is Everything</h1>
+        <p style={styles.subtitle}>
+            FIZIT empowers you to optimize cash flow with cutting-edge IoT and blockchain technology
+        </p>
+
+        <p style={styles.detail}>
+            FIZIT Has Paid:
+        </p>
+        <div style={styles.counterContainer}>
+        ${transactionValue.toLocaleString()}
+        </div>
+        <p style={styles.detail}>
+            To Customers Next Day for Value Delivered
+        </p>
+
+        <a href="mailto:info@fizit.biz" style={styles.contactButton}>
+            Contact Us
+        </a>
+
+        <div style={styles.footer}>&copy; {new Date().getFullYear()} FIZIT, Inc. All rights reserved.</div>
+        </div>
+    );
 };
 
 // Simple inline styles

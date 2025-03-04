@@ -10,4 +10,5 @@ from .event_view import EventViewSet
 from .advance_view import AdvanceViewSet
 from .residual_view import ResidualViewSet
 from .distribution_view import DistributionViewSet
+from .stats_view import StatsView
 from ..utilities.csrf import *
