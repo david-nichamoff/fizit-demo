@@ -29,15 +29,18 @@ const FIZITHome = () => {
     <div style={styles.container}>
       <img src={fizitLogo} alt="FIZIT Logo" style={styles.logo} />
       <h1 style={styles.title}>It's Your Money and Timing is Everything</h1>
-      <p style={styles.blurb}>
+      <p style={styles.subtitle}>
         FIZIT empowers you to optimize cash flow with cutting-edge IoT and blockchain technology
       </p>
 
+      <p style={styles.detail}>
+        FIZIT has Paid:
+      </p>
       <div style={styles.counterContainer}>
        ${transactionCount.toLocaleString()}
       </div>
-      <p style={styles.blurb}>
-        Transaction Volume
+      <p style={styles.detail}>
+        To Customers Next Day for Value Delivered
       </p>
 
       <a href="mailto:info@fizit.biz" style={styles.contactButton}>
@@ -66,9 +69,15 @@ const styles = {
     fontWeight: "bold",
     color: "#2c3e50",
   },
-  blurb: {
+  subtitle: {
     margin: "20px 0",
+    marginBottom: "60px",
     fontSize: "1.2rem",
+    color: "#555",
+  },
+  detail: {
+    margin: "20px 0",
+    fontSize: "1rem",
     color: "#555",
   },
   counterContainer: {
@@ -76,10 +85,10 @@ const styles = {
     backgroundColor: "#222", // Dark background like a scoreboard
     color: "#FFD700", // Gold/yellow numbers for contrast
     padding: "20px 30px",
-    marginTop: "20px",
+    marginTop: "0px",
     borderRadius: "8px",
-    fontFamily: "'Orbitron', sans-serif", // Optional: Add digital-style font
-    fontSize: "3rem", // Large number size
+    fontFamily: "'Orbitron', sans-serif", 
+    fontSize: "3rem", 
     fontWeight: "bold",
     letterSpacing: "5px",
     boxShadow: "0px 4px 8px rgba(0,0,0,0.3)", // Slight shadow for depth
