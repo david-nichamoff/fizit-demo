@@ -67,11 +67,9 @@ class PostDepositForm(BaseDepositForm):
         self.fields['contract_idx'].choices = [
             (contract['contract_idx'], contract['contract_name']) for contract in contracts
         ]
-        log_info(self.logger, f"Contract_idx choice: {self.fields['contract_idx'].choices}")
 
         contract_types = sorted(set(contract["contract_type"] for contract in contracts))
         self.fields['contract_type'].choices = [(ct, ct.title()) for ct in contract_types]
-        log_info(self.logger, f"Contract_type choice: {self.fields['contract_type'].choices}")
 
         if settlements:
             for key, settlement_list in settlements.items():

@@ -11,9 +11,9 @@ from api.permissions import HasCustomAPIKey
 from api.views.mixins.validation import ValidationMixin
 from api.views.mixins.permission import PermissionMixin
 from api.registry import RegistryManager
+from api.config import ConfigManager
 from api.interfaces import PartyAPI
 from api.serializers import ListContractSerializer, PurchaseContractSerializer, SaleContractSerializer, AdvanceContractSerializer
-from api.models import ContractSnapshot 
 from api.utilities.logging import log_info, log_error, log_warning
 
 class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
@@ -27,35 +27,51 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         super().__init__(*args, **kwargs)
         self.party_api = PartyAPI()
         self.registry_manager = RegistryManager()
+        self.config_manager = ConfigManager()
         self.logger = logging.getLogger(__name__)
 
     @extend_schema(
         tags=["Contracts"],
         parameters=[],
-        responses={status.HTTP_200_OK: ListContractSerializer(many=True)},  # Use generic serializer
+        responses={status.HTTP_200_OK: ListContractSerializer(many=True)},
         summary="List Contracts",
-        description="Retrieve a list of all contracts stored in the database.",
+        description="Retrieve a list of all contracts.",
     )
     def list_contracts(self, request):
-        """Retrieve a list of contracts from the database instead of querying the blockchain."""
-        log_info(self.logger, "Fetching contract list from ContractSnapshot")
+        """Retrieve a list of contracts from the underlying contract API."""
+        log_info(self.logger, "Fetching contract list.")
 
         try:
-            contracts = ContractSnapshot.objects.all()
+            contract_types = self.registry_manager.get_contract_types()
+            contracts = []
 
-            # Apply optional filters if needed
-            contract_type = request.query_params.get("contract_type")
-            is_active = request.query_params.get("is_active")
+            for contract_type in contract_types:
+                contract_api = self.registry_manager.get_contract_api(contract_type)
 
-            if contract_type:
-                contracts = contracts.filter(contract_type=contract_type)
+                # Retrieve contract count (caching is handled inside)
+                response = contract_api.get_contract_count(contract_type)
+                if response["status"] != status.HTTP_200_OK:
+                    log_error(self.logger, f"Failed to retrieve contract count for {contract_type}")
+                    continue
 
-            if is_active is not None:
-                contracts = contracts.filter(is_active=is_active.lower() == "true")
+                contract_count = response["data"]["count"]
 
-            contract_data = list(contracts.values())
+                # Retrieve each contract (caching is handled inside)
+                for contract_idx in range(contract_count):
+                    response = contract_api.get_contract(contract_type, contract_idx, request.auth.get("api_key"))
 
-            return Response(contract_data, status=status.HTTP_200_OK)
+                    if response["status"] == status.HTTP_200_OK:
+                        contract = {
+                            "contract_type": contract_type,
+                            "contract_idx": contract_idx,
+                            "contract_name": response["data"].get("contract_name"),
+                            "is_active": response["data"].get("is_active", True),
+                            "is_quote": response["data"].get("is_quote", False),
+                            "transact_logic": response["data"].get("transact_logic", {}),
+                        }
+                        contracts.append(contract)
+
+            return Response(contracts, status=status.HTTP_200_OK)
 
         except Exception as e:
             log_error(self.logger, f"Error retrieving contract list: {e}")
@@ -235,7 +251,7 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
                 return Response({"error" : response["message"]}, response["status"])
 
         except PermissionDenied as pd:
-            log_warning(self.logger, f"Permission denied: {pd}")
+            log_error(self.logger, f"Permission denied: {pd}")
             return Response({"detail": str(pd)}, status=status.HTTP_403_FORBIDDEN)
         except ValidationError as e:
             log_error(self.logger, f"Validation error: {str(e)}")
@@ -305,7 +321,7 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
                 return Response({"error": response["message"]}, response["status"])
 
         except PermissionDenied as pd:
-            log_warning(self.logger, f"Permission denied for contract {contract_idx}: {pd}")
+            log_error(self.logger, f"Permission denied for contract {contract_idx}: {pd}")
             return Response({"detail": str(pd)}, status=status.HTTP_403_FORBIDDEN)
         except ValidationError as e:
             log_error(self.logger, f"Validation error: {str(e)}")
@@ -334,8 +350,6 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
             log_info(self.logger, f"Response from delete_contract: {response}")
 
             if response["status"] == status.HTTP_204_NO_CONTENT:
-                # note that because the status is HTTP_204_NO_CONTENT, the response will 
-                # always be None 
                 return Response(response["data"], status=status.HTTP_204_NO_CONTENT)
             else:
                 return Response({"error" : response["message"]}, response["status"])
@@ -359,13 +373,13 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         try:
             self._validate_contract_type(contract_type, self.registry_manager)
             contract_api = self.registry_manager.get_contract_api(contract_type) 
-            log_info(self.logger, f"Contract api: {contract_api}")
             response = contract_api.get_contract_count(contract_type)
 
             if response["status"] == status.HTTP_200_OK:
-                return Response(response["data"], status=status.HTTP_200_OK)
-            else:
-                return Response({"error" : response["message"]}, response["status"])
+                contract_count = response["data"]["count"]
+                return Response({"count": contract_count}, status=status.HTTP_200_OK)
+
+            return Response({"error" : response["message"]}, response["status"])
 
         except Exception as e:
             log_error(self.logger, f"Error retrieving contract count: {e}")

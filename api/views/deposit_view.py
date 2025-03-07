@@ -188,7 +188,7 @@ class DepositViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
                 return Response({"error": response["message"]}, status=response["status"])
 
         except PermissionDenied as pd:
-            log_warning(self.logger, f"Permission denied for contract {contract_idx}: {pd}")
+            log_error(self.logger, f"Permission denied for contract {contract_idx}: {pd}")
             return Response({"error": str(pd)}, status=status.HTTP_403_FORBIDDEN)
         except ValidationError as e:
             log_error(self.logger, f"Validation error: {e}")

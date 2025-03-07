@@ -57,7 +57,7 @@ def fetch_all_distributions(headers, base_url, registry_manager, csrf_token):
                     log_info(logger, f"Distribution for {contract_type}:{contract_idx}: {distribution}")
                     distributions.extend(distribution)
                 except requests.RequestException as e:
-                    log_warning(logger, f"Failed to fetch distributions for contract {contract_type}:{contract_idx}: {e}")
+                    log_error(logger, f"Failed to fetch distributions for contract {contract_type}:{contract_idx}: {e}")
 
     return distributions
 

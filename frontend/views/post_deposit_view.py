@@ -136,8 +136,6 @@ def post_deposit_view(request, extra_context=None):
         if registry_manager.get_deposit_api(c["contract_type"]) is not None 
     ]
 
-    log_info(logger, f"Fetched contracts: {contracts}")
-
     # Fetch settlements where `settle_pay_dt` is null
     settlements = fetch_all_settlements(request, headers, base_url, csrf_token, contracts)
 
@@ -155,8 +153,6 @@ def post_deposit_view(request, extra_context=None):
         "settlements": json.dumps(settlements),
         "post_deposit_form": post_deposit_form
     }
-
-    log_info(logger, f"Context for rendering: {context}")
 
     if request.method == 'POST':
         return handle_post_deposit(request, headers, base_url, csrf_token, context)

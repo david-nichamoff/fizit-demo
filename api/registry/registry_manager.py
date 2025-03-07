@@ -13,7 +13,6 @@ from api.serializers import PurchaseTransactionSerializer, SaleTransactionSerial
 from api.adapters.bank import MercuryAdapter, TokenAdapter, ManualAdapter
 from api.utilities.logging import log_info, log_warning, log_error
 
-
 class RegistryManager:
     """Registry for static contract APIs, serializers, and fixed business logic."""
 
@@ -297,7 +296,7 @@ class RegistryManager:
             if field in transformed_kwargs:
                 instruction_data[field] = transformed_kwargs[field]
             else:
-                log_warning(self.logger, f"Missing expected field '{field}' for {transaction_type} on {bank}")
+                log_error(self.logger, f"Missing expected field '{field}' for {transaction_type} on {bank}")
 
         log_info(self.logger, f"Final instruction data for {transaction_type} on {bank}: {instruction_data}")
 

@@ -21,12 +21,12 @@ class AWSSecretsAPIKeyAuthentication(BaseAuthentication):
         api_key = request.META.get('HTTP_AUTHORIZATION')
 
         if not api_key:
-            log_warning(logger, "Authorization header missing or empty.")
+            log_error(logger, "Authorization header missing or empty.")
             raise AuthenticationFailed('Authorization header missing or empty')
 
         # Ensure API key has the correct prefix and remove it
         if not api_key.startswith("Api-Key "):
-            log_warning(logger, "Authorization header does not start with 'Api-Key '. Header: %s")
+            log_error(logger, "Authorization header does not start with 'Api-Key '. Header: %s")
             raise AuthenticationFailed('Authorization header must start with "Api-Key "')
 
         api_key = api_key.replace("Api-Key ", "", 1)
@@ -45,7 +45,7 @@ class AWSSecretsAPIKeyAuthentication(BaseAuthentication):
             return (None, {'api_key': api_key, 'is_master_key': False})
 
         # Log and raise an error if the API key doesn't match
-        log_warning(logger, "Invalid API key provided: %s")
+        log_error(logger, "Invalid API key provided: %s")
         raise AuthenticationFailed('Invalid API key')
 
     def authenticate_header(self, request):

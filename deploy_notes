@@ -1,11 +1,1 @@
-11/4: remove code in api/tests/operations
-11/13: add USDC configuration in config.json
-11/15: create user and role sessions for testnet in AWS
-11/18: update config for wallet list
-11/18: update config for rpc
-11/21: update event table, truncate it first 
-12/4: add bank and USDT options to config.json
-12/5: remove old command
-12/6: add humanize to installed apps
-12/31: pip install py-solc-x
-python -c "from solcx import install_solc; install_solc('0.8.0')"
+add presigned_url_expiration to config.json

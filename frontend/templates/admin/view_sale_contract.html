@@ -226,7 +226,7 @@
                         {% for artifact in artifacts %}
                         <tr>
                             <td>
-                                <a href="{{ artifact.presigned_url }}" target="_blank">{{ artifact.artifact_idx }}</a>
+                                <a href="{{ artifact.presigned_url }}" download="{{ artifact.doc_title }}">{{ artifact.artifact_idx }}</a>
                             </td>
                             <td>{{ artifact.doc_title }}</td>
                             <td>{{ artifact.doc_type }}</td>

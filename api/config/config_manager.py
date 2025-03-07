@@ -4,15 +4,15 @@ import logging
 
 from django.conf import settings
 from django.db import transaction
+from django.core.cache import cache
 
+from api.cache import CacheManager
 from api.utilities.logging import log_error, log_info, log_warning
-from api.models import ContractSnapshot
 
 class ConfigManager:
     """Configuration Manager for loading environment-specific settings."""
     
     _instance = None
-    _config_cache = None
 
     def __new__(cls, *args, **kwargs):
         """Ensure Singleton instance for ConfigManager."""
@@ -24,14 +24,58 @@ class ConfigManager:
         """Initialize ConfigManager with lazy loading for configurations."""
         if not hasattr(self, 'initialized'):
             self.CONFIG_FILE_PATH = os.path.join(settings.BASE_DIR, 'api', 'config', 'config.json')
-            self._config_cache = None  # Cache for loaded configurations
-            self.initialized = True
             self.logger = logging.getLogger(__name__)
+            self.cache_manager = CacheManager()
+            self.initialized = True
+
+            self.cache_key = self.cache_manager.get_config_cache_key()
 
     def _load_config(self):
         """Load configuration from `config.json`, converting the list to a dictionary."""
-        if self._config_cache is not None:
-            return self._config_cache  # Return cached config
+        config = cache.get(self.cache_key)
+
+        if config:
+            log_info(self.logger, "Loaded configuration from cache")
+            return config
+
+        return self._reload_config_from_file()
+
+    def _reload_config_from_file(self):
+        """Force reload configuration from the `config.json` file and update cache."""
+        if not os.path.exists(self.CONFIG_FILE_PATH):
+            log_error(self.logger, f"Configuration file not found: {self.CONFIG_FILE_PATH}")
+            raise FileNotFoundError(f"Configuration file not found: {self.CONFIG_FILE_PATH}")
+
+        try:
+            with open(self.CONFIG_FILE_PATH, 'r') as config_file:
+                config_list = json.load(config_file)
+
+            # Convert list of {"key": <key>, "value": <value>} into a dictionary
+            config = {item["key"]: item["value"] for item in config_list}
+
+            # Store in Redis cache with no expiration
+            cache.set(self.cache_key, config, timeout=None)
+            log_info(self.logger, "Configuration reloaded from file and cached in Redis")
+
+            return config
+
+        except json.JSONDecodeError as e:
+            log_error(self.logger, f"Error parsing configuration file: {e}")
+            raise RuntimeError("Failed to parse config.json") from e
+
+    def update_config(self):
+        """Clear the cache and reload configuration from file."""
+        cache.delete(self.cache_key)
+        log_info(self.logger, "Configuration cache cleared.")
+        return self._reload_config_from_file()
+
+    def _load_config(self):
+        """Load configuration from `config.json`, converting the list to a dictionary."""
+        config = cache.get(self.cache_key)
+
+        if config:
+            log_info(self.logger, "Loaded configuration from cache")
+            return config
 
         if not os.path.exists(self.CONFIG_FILE_PATH):
             log_error(self.logger, f"Configuration file not found: {self.CONFIG_FILE_PATH}")
@@ -42,25 +86,43 @@ class ConfigManager:
                 config_list = json.load(config_file)
 
             # Convert list of {"key": <key>, "value": <value>} into a dictionary
-            self._config_cache = {item["key"]: item["value"] for item in config_list}
-            
-            log_info(self.logger, "Configuration loaded successfully")
-            return self._config_cache
+            config = {item["key"]: item["value"] for item in config_list}
+
+            # Store in Redis cache
+            cache.set(self.cache_key, config, timeout=None)
+            log_info(self.logger, "Configuration loaded from file and cached in Redis")
+
+            return config
+
         except json.JSONDecodeError as e:
             log_error(self.logger, f"Error parsing configuration file: {e}")
             raise RuntimeError("Failed to parse config.json") from e
 
+    def _save_config(self, config):
+        """Save the updated configuration to both Redis and `config.json`."""
+        try:
+            # Convert config dictionary back to list format
+            config_list = [{"key": key, "value": value} for key, value in config.items()]
+
+            with open(self.CONFIG_FILE_PATH, "w") as config_file:
+                json.dump(config_list, config_file, indent=4)
+
+            # Update Redis cache
+            cache.set(self.cache_key, config, timeout=None)
+            log_info(self.logger, "Configuration updated in file and Redis cache")
+
+        except Exception as e:
+            log_error(self.logger, f"Error saving configuration: {e}")
+            raise RuntimeError(f"Failed to save configuration: {e}")
+
     def _get_config_value(self, key, default=None):
         """Retrieve a specific configuration value, loading from cache if needed."""
-        if self._config_cache is None:
-            self._load_config()
-        return self._config_cache.get(key, default)
+        config = self._load_config()
+        return config.get(key, default)
 
     def _get_nested_config_value(self, parent_key, child_key, default=None):
-        if self._config_cache is None:
-            self._load_config()
-
         parent_value = self._get_config_value(parent_key, [])
+
         if not isinstance(parent_value, list):
             log_error(self.logger, f"Expected list for '{parent_key}', but got {type(parent_value)}")
             return default
@@ -72,39 +134,55 @@ class ConfigManager:
         log_warning(self.logger, f"'{child_key}' not found in configuration '{parent_key}'. Returning default.")
         return default
 
+    def update_contract_address(self, contract_type, contract_address):
+        """Update contract address"""
+        config = self._load_config()
+        contracts = config.get("contract_addr", [])
+
+        if not isinstance(contracts, list):
+            log_error(self.logger, "Contract addresses section is not a list in configuration.")
+            raise ValueError("Contract addresses section is not a list in configuration.")
+
+        # Update contract address
+        updated = False
+        for contract in contracts:
+            if isinstance(contract, dict) and contract.get("key") == contract_type:
+                old_address = contract.get("value", "N/A")
+                contract["value"] = contract_address
+                updated = True
+                log_info(self.logger, f"Updated {contract_type} contract address from {old_address} to {contract_address}")
+                break
+
+        if not updated:
+            log_error(self.logger, f"Contract type '{contract_type}' not found in configuration.")
+            raise ValueError(f"Contract type '{contract_type}' not found in configuration.")
+
+        # Save updated config
+        self._save_config(config)
+
+    ### **Standard Getters Using Redis Cache**
+
     def get_rpc_url(self):
-        """Retrieve the correct RPC URL for the current environment."""
         return self._get_config_value("rpc")
 
     def get_base_url(self):
-        """Retrieve the base URL for the current environment."""
         return self._get_config_value("url")
 
     def get_cs_url(self):
-        """Retrieve the Cubist Signer (CS) service URL."""
         return self._get_nested_config_value("cs", "url")
 
     def get_cs_org_id(self):
-        """Retrieve the Cubist Signer (CS) organization ID."""
         return self._get_nested_config_value("cs", "org_id")
 
     def get_wallet_address(self, wallet_name):
-        """Retrieve wallet address dynamically based on the environment."""
         wallets = self._get_config_value("wallet_addr", [])
-
-        if not isinstance(wallets, list):
-            log_error(self.logger, f"Expected list for 'wallet_addr', got {type(wallets)}")
-            return None
-
-        for wallet in wallets:
-            if wallet.get("key") == wallet_name:
-                return wallet.get("value")
-
-        log_warning(self.logger, f"Wallet '{wallet_name}' not found in configuration.")
-        return None  # Return None if not found
+        if isinstance(wallets, list):
+            for wallet in wallets:
+                if wallet.get("key") == wallet_name:
+                    return wallet.get("value")
+        return None
 
     def get_party_address(self, party_code):
-        """Retrieve the Ethereum address of a party."""
         parties = self._get_config_value("party_addr", [])
         for party in parties:
             if party["key"] == party_code:
@@ -112,20 +190,16 @@ class ConfigManager:
         return None
 
     def get_party_addresses(self):
-        """Retrieve a list of party Ethereum addresses."""
         return self._get_config_value("party_addr", [])
 
     def get_party_codes(self):
-        """Retrieve a list of party codes."""
         party_codes = self._get_config_value("party_addr", [])
         return [party_code["key"] for party_code in party_codes if "key" in party_code]
 
     def get_wallet_addresses(self):
-        """Retrieve a list of wallet Ethereum addresses."""
         return self._get_config_value("wallet_addr", [])
 
     def get_chain_id(self, network):
-        """Retrieve the chain ID for the given blockchain."""
         chains = self._get_config_value("chain", [])
         for chain in chains:
             if chain["key"] == network:
@@ -133,11 +207,9 @@ class ConfigManager:
         return None
 
     def get_mercury_url(self):
-        """Retrieve the Mercury API URL."""
         return self._get_config_value("mercury_url")
 
     def get_contract_address(self, contract_type):
-        """Retrieve the deployed contract address dynamically."""
         contracts = self._get_config_value("contract_addr", [])
         for contract in contracts:
             if contract["key"] == contract_type:
@@ -145,7 +217,6 @@ class ConfigManager:
         return None
 
     def get_contract_abi(self, contract_type):
-        """Retrieve the ABI for a given contract type from a fixed location."""
         abi_path = os.path.join(settings.BASE_DIR, "api", "contract", "abi", f"{contract_type}.json")
 
         if not os.path.exists(abi_path):
@@ -160,7 +231,6 @@ class ConfigManager:
             raise
 
     def get_token_address(self, token_symbol):
-        """Retrieve ERC-20 token contract address dynamically."""
         tokens = self._get_config_value("token_addr", [])
         for token in tokens:
             if token["key"] == token_symbol:
@@ -168,73 +238,17 @@ class ConfigManager:
         return None
 
     def get_token_addresses(self):
-        """Retrieve a list of token contract addresses."""
         return self._get_config_value("token_addr", [])
 
     def get_token_list(self):
-        """Retrieve a list of available token symbols."""
         tokens = self._get_config_value("token_addr", [])
         return [token["key"] for token in tokens if "key" in token]
 
     def get_s3_bucket(self):
-        """Retrieve the S3 bucket name."""
         return self._get_config_value("s3_bucket")
 
     def get_contact_email_list(self):
-        """Retrieve the list of contact emails."""
         return self._get_config_value("contact_email_list", [])
 
-    def update_contract_address(self, contract_type, contract_address):
-        """Update the contract address for a specific contract type and also clear contract_snapshot."""
-        if self._config_cache is None:
-            self._load_config()
-
-        # Retrieve contract addresses as a dictionary
-        contracts = self._config_cache.get("contract_addr", [])
-
-        if not isinstance(contracts, list):
-            log_error(self.logger, "Contract addresses section is not a list in configuration.")
-            raise ValueError("Contract addresses section is not a list in configuration.")
-
-        # Update contract address if found
-        for contract in contracts:
-            if contract["key"] == contract_type:
-                old_address = contract["value"]
-                contract["value"] = contract_address
-                log_info(self.logger, f"Updated {contract_type} contract address from {old_address} to {contract_address}")
-                break
-        else:
-            log_error(self.logger, f"Contract type '{contract_type}' not found in configuration.")
-            raise ValueError(f"Contract type '{contract_type}' not found in configuration.")
-
-        # Save the updated config back to file
-        self._write_config()
-
-        # ✅ Delete all rows in contract_snapshot for the given contract_type
-        try:
-            with transaction.atomic():
-                deleted_count, _ = ContractSnapshot.objects.filter(contract_type=contract_type).delete()
-                log_info(self.logger, f"Deleted {deleted_count} ContractSnapshot records for contract_type: {contract_type}")
-
-        except Exception as e:
-            log_error(self.logger, f"Failed to delete ContractSnapshot records for {contract_type}: {e}")
-            raise RuntimeError(f"Failed to update contract snapshot: {e}")
-
-    def _write_config(self):
-        """Write the updated configuration back to `config.json` while maintaining its original list format."""
-        try:
-            # Convert _config_cache (dict) back to the original list format
-            config_list = [{"key": key, "value": value} for key, value in self._config_cache.items()]
-
-            with open(self.CONFIG_FILE_PATH, 'w') as config_file:
-                json.dump(config_list, config_file, indent=4)
-
-            log_info(self.logger, f"Configuration successfully updated in {self.CONFIG_FILE_PATH}")
-
-            # Reload the cache after writing
-            self._config_cache = None
-            self._load_config()
-
-        except Exception as e:
-            log_error(self.logger, f"Error writing to configuration file: {e}")
-            raise
+    def get_presigned_url_expiration(self):
+        return self._get_config_value("presigned_url_expiration", 3600)

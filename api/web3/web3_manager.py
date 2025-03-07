@@ -3,15 +3,16 @@ import os
 import json
 import requests
 import urllib.parse
-
 from datetime import datetime
 
 from eth_utils import keccak, to_checksum_address
 from web3 import Web3, HTTPProvider
 from web3.middleware.proof_of_authority import ExtraDataToPOAMiddleware
+from django.core.cache import cache
 
 from api.secrets import SecretsManager
 from api.config import ConfigManager
+from api.cache import CacheManager
 from api.models.event_model import Event
 from api.utilities.logging import log_error, log_info, log_warning
 
@@ -19,7 +20,6 @@ class Web3Manager():
 
     _instance = None
     _web3_instances = {}
-    _abi_cache = {}
 
     def __new__(cls, *args, **kwargs):
         """Ensure that the class is a singleton."""
@@ -32,18 +32,15 @@ class Web3Manager():
             self.initialized = True
             self.secrets_manager = SecretsManager()
             self.config_manager = ConfigManager()
+            self.cache_manager = CacheManager()
             self.logger = logging.getLogger(__name__)
 
     def get_web3_instance(self, network="fizit"):
-        """Get or create the Web3 instance for the specified network."""
+        """Retrieve or create a Web3 instance for a given network """
         if network not in self._web3_instances:
-            try:
-                rpc_url = self._get_rpc_url(network)
-                web3_instance = self._initialize_web3_instance(rpc_url, network)
-                self._web3_instances[network] = web3_instance
-            except Exception as e:
-                log_error(self.logger, f"Failed to initialize Web3 instance for {network}: {e}")
-                raise
+            rpc_url = self._get_rpc_url(network)  # Always get from ConfigManager
+            self._web3_instances[network] = self._initialize_web3_instance(rpc_url, network)
+
         return self._web3_instances[network]
 
     def _get_rpc_url(self, network):
@@ -67,14 +64,21 @@ class Web3Manager():
         return web3_instance
 
     def get_web3_contract(self, contract_type, network="fizit"):
-        """Get the Web3 contract instance for the specified network and contract_type"""
+        cache_key = self.cache_manager.get_contract_abi_cache_key(contract_type)
+        abi = cache.get(cache_key)
+
+        if not abi:
+            abi = self.load_abi(contract_type)
+            cache.set(cache_key, abi, timeout=None)  # Store ABI in Redis
+            log_info(self.logger, f"Cached ABI for {contract_type}")
+
         web3_instance = self.get_web3_instance(network)
         contract_address = self.config_manager.get_contract_address(contract_type)
-        log_info(self.logger, f"Found contract address at {contract_address}")
 
         if not contract_address:
             raise ValueError("Contract address is missing in configuration")
-        return web3_instance.eth.contract(abi=self.load_abi(contract_type), address=contract_address)
+
+        return web3_instance.eth.contract(abi=abi, address=contract_address)
 
     def get_nonce(self, wallet_addr, network="fizit"):
         """Get the transaction nonce for a wallet."""
@@ -86,9 +90,12 @@ class Web3Manager():
         return to_checksum_address(wallet_addr)
 
     def load_abi(self, contract_type):
-        """Load the contract ABI from file based on contract type."""
-        if contract_type in self._abi_cache:
-            return self._abi_cache[contract_type]  # Return cached ABI
+        cache_key = self.cache_manager.get_contract_abi_cache_key(contract_type)
+        abi = cache.get(cache_key)
+
+        if abi:
+            log_info(self.logger, f"Loaded ABI for {contract_type}")
+            return abi
 
         abi_file_path = os.path.join(os.path.dirname(__file__), f"../contract/abi/{contract_type}.json")
 
@@ -99,8 +106,12 @@ class Web3Manager():
         try:
             with open(abi_file_path, "r") as abi_file:
                 abi = json.load(abi_file)
-                self._abi_cache[contract_type] = abi  # Cache the ABI
+
+                cache.set(cache_key, abi, timeout=None)
+                log_info(self.logger, f"Loaded ABI for {contract_type} and cached")
+
                 return abi
+
         except json.JSONDecodeError as e:
             log_error(self.logger, f"Failed to parse ABI JSON: {e}")
             raise
@@ -151,7 +162,6 @@ class Web3Manager():
                 },
             }
 
-            log_warning(self.logger, f"Sending tx_data: {tx_data}")
             signed_tx, error_code = self._sign_transaction(tx_data, wallet_addr)
 
             if signed_tx:
@@ -167,8 +177,6 @@ class Web3Manager():
             raise
 
     def _estimate_gas_fees(self, web3_instance, transaction):
-
-        log_info(self.logger, f"transaction details for estimating gas: {transaction}")
 
         """Estimate gas fees for a transaction."""
         estimated_gas = web3_instance.eth.estimate_gas({
@@ -206,7 +214,6 @@ class Web3Manager():
         }
 
         response = requests.post(api_url, json=tx_data, headers=headers)
-        log_warning(self.logger, f"Response from Cubist: {response.json()}")
 
         response.raise_for_status()
         signed_tx = response.json().get("rlp_signed_tx")
@@ -317,3 +324,8 @@ class Web3Manager():
         except Exception as e:
             logging.error(f"Error occurred: {str(e)}")
             raise
+
+    def reset_web3_cache(self):
+        """Clear all Web3-related caches."""
+        cache.delete_pattern(self.cache_manager.get_contract_abi_cache_key("*"))
+        log_info(self.logger, "Cleared all Web3-related caches.")

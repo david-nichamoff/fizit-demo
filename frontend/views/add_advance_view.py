@@ -57,7 +57,7 @@ def fetch_all_advances(headers, base_url, registry_manager, csrf_token):
                     advance = bank_ops.get_advances(contract_type, contract_idx)
                     advances.extend(advance)
                 except requests.RequestException as e:
-                    log_warning(logger, f"Failed to fetch advances for contract {contract_type}:{contract_idx}: {e}")
+                    log_error(logger, f"Failed to fetch advances for contract {contract_type}:{contract_idx}: {e}")
 
     return advances
 
@@ -106,7 +106,6 @@ def add_advance_view(request, extra_context=None):
 
     # Fetch all contracts with prepopulated transact_data
     advances = fetch_all_advances(headers, base_url, registry_manager, csrf_token)
-    log_info(logger, f"Retrieved advances {advances}")
 
     context = {
         "advances": advances 

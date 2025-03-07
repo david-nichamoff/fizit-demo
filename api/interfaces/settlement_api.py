@@ -3,9 +3,11 @@ from decimal import Decimal
 
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from django.core.cache import cache
 
 from api.web3 import Web3Manager
 from api.config import ConfigManager
+from api.cache import CacheManager
 from api.interfaces.encryption_api import get_encryptor, get_decryptor
 from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
@@ -26,33 +28,43 @@ class BaseSettlementAPI(ResponseMixin):
             self.registry_manager = registry_manager
             self.config_manager = ConfigManager()
             self.w3_manager = Web3Manager()
+            self.cache_manager = CacheManager()
             self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
+
             self.logger = logging.getLogger(__name__)
             self.initialized = True
 
     def get_settlements(self, contract_type, contract_idx, api_key=None, parties=[]):
-        """Retrieve all settlements for a given contract."""
+        """Retrieve all settlements for a given contract while ensuring only encrypted values are cached."""
         try:
+            cache_key = self.cache_manager.get_settlement_cache_key(contract_type, contract_idx)
+            cached_settlements = cache.get(cache_key)
+            success_message = f"Successfully retrieved settlements for {contract_type}:{contract_idx}"
+
             contract_api = self.registry_manager.get_contract_api(contract_type)
-            response = contract_api.get_contract(contract_type, contract_idx, api_key, parties)
-            if response["status"] == status.HTTP_200_OK:
-                contract = response["data"]
-                log_info(self.logger, f"Retrieved {contract_type}:{contract_idx} with data {contract}")
-            else:
-                raise RuntimeError("Error retrieving contract")
+            contract = contract_api.get_contract(contract_type, contract_idx, api_key, parties).get("data")
+
+            if cached_settlements is not None:
+                log_info(self.logger, f"Loaded settlements for {contract_type}:{contract_idx} from cache")
+                parsed_settlements = [
+                    self._build_settlement_dict(settlement, idx, contract_type, contract, api_key, parties)
+                    for idx, settlement in enumerate(cached_settlements)
+                ]
+                log_info(self.logger, f"Returning parsed settlements {parsed_settlements}")
+                return self._format_success(parsed_settlements, success_message, status.HTTP_200_OK)
 
             w3_contract = self.w3_manager.get_web3_contract(contract_type)
             raw_settlements = w3_contract.functions.getSettlements(contract["contract_idx"]).call()
-            log_info(self.logger, f"Retrieved settlements {raw_settlements} for {contract_type}:{contract_idx}")
 
-            settlements = []
-            for idx, settlement in enumerate(raw_settlements):
-                settlement_dict = self._build_settlement_dict(settlement, idx, contract_type, contract, api_key, parties)
-                settlements.append(settlement_dict)
+            cache.set(cache_key, raw_settlements, timeout=None)
+            log_warning(self.logger, f"Retrieved settlements {raw_settlements} for {contract_type}:{contract_idx} from chain")
 
-            success_message = f"Retrieved {len(settlements)} settlements for {contract_type}:{contract_idx}"
-            data = sorted(settlements, key=lambda d: d["settle_due_dt"], reverse=True)
-            return self._format_success(data, success_message, status.HTTP_200_OK)
+            parsed_settlements = [
+                self._build_settlement_dict(settlement, idx, contract_type, contract, api_key, parties)
+                for idx, settlement in enumerate(raw_settlements)
+            ]
+
+            return self._format_success(parsed_settlements, success_message, status.HTTP_200_OK)
 
         except ValidationError as e:
             error_message = f"Validation error returning settlements for {contract_type}:{contract_idx}: {str(e)}"
@@ -77,6 +89,9 @@ class BaseSettlementAPI(ResponseMixin):
 
                 processed_count += 1
 
+            cache_key = self.cache_manager.get_settlement_cache_key(contract_type, contract_idx)
+            cache.delete(cache_key)
+
             success_message = f"Successfully added {processed_count} settlements for {contract_type}:{contract_idx}"
             return self._format_success({"count":processed_count}, success_message, status.HTTP_201_CREATED )
 
@@ -96,6 +111,9 @@ class BaseSettlementAPI(ResponseMixin):
 
             if tx_receipt["status"] != 1:
                 raise RuntimeError
+
+            cache_key = self.cache_manager.get_settlement_cache_key(contract_type, contract_idx)
+            cache.delete(cache_key)
 
             success_message = f"All settlements deleted for {contract_type}:{contract_idx}"
             return self._format_success({"contract_idx" : contract_idx}, success_message, status.HTTP_204_NO_CONTENT)

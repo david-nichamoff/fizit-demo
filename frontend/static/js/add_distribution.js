@@ -1,4 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
+    console.log("DistributionsList received from template:", distributionsList); // Debugging
+
     const distributionsTableBody = document.querySelector("#distributions-table tbody");
     const submitButton = document.querySelector(".submit-row input[type='submit']");
     const distributionForm = document.querySelector(".distribution-form");

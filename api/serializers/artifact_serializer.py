@@ -10,3 +10,4 @@ class ArtifactSerializer(serializers.Serializer):
     s3_bucket = serializers.CharField(max_length=255)  
     s3_object_key = serializers.CharField(max_length=1024) 
     s3_version_id = serializers.CharField(max_length=255) 
+    presigned_url = serializers.URLField(required=False, allow_null=True)

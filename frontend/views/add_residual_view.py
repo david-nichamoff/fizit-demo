@@ -57,7 +57,7 @@ def fetch_all_residuals(headers, base_url, registry_manager, csrf_token):
                     log_info(logger, f"Residual for {contract_type}:{contract_idx}: {residual}")
                     residuals.extend(residual)
                 except requests.RequestException as e:
-                    log_warning(logger, f"Failed to fetch residuals for contract {contract_type}:{contract_idx}: {e}")
+                    log_error(logger, f"Failed to fetch residuals for contract {contract_type}:{contract_idx}: {e}")
 
     return residuals 
 
@@ -106,8 +106,6 @@ def add_residual_view(request, extra_context=None):
 
     # Fetch all contracts with prepopulated transact_data
     residuals = fetch_all_residuals(headers, base_url, registry_manager, csrf_token)
-    log_info(logger, f"Retrieved residuals {residuals}")
-
     context = {
         "residuals": residuals 
     }

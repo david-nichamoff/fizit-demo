@@ -5,9 +5,11 @@ from datetime import datetime, timedelta
 
 from rest_framework.exceptions import ValidationError
 from rest_framework import status
+from django.core.cache import cache
 
 from api.secrets import SecretsManager
 from api.config import ConfigManager
+from api.cache import CacheManager
 from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import log_error, log_info, log_warning
 
@@ -24,10 +26,12 @@ class MercuryAdapter(ResponseMixin):
         if not hasattr(self, 'initialized'):
             self.secrets_manager = SecretsManager()
             self.config_manager = ConfigManager()
-            self._accounts_cache = None
-            self._recipients_cache = None
+            self.cache_manager = CacheManager()
             self.initialized = True
             self.logger = logging.getLogger(__name__)
+
+            self.account_cache_key = self.cache_manager.get_account_cache_key("mercury")
+            self.recipient_cache_key = self.cache_manager.get_recipient_cache_key("mercury")
 
     def _build_headers(self):
         """Helper to build request headers."""
@@ -54,15 +58,19 @@ class MercuryAdapter(ResponseMixin):
 
     def get_accounts(self):
         """Fetch accounts from the Mercury API and cache results."""
-        if self._accounts_cache is not None:
-            log_info(self.logger, "Returning cached accounts.")
-            return self._accounts_cache
+        cached_accounts = cache.get(self.account_cache_key)
+
+        if cached_accounts:
+            log_info(self.logger, "Returning accounts for cache")
+            return cached_accounts
 
         url = self._build_url('accounts')
+
         try:
             data = self._send_request('get', url)
             accounts = data.get('accounts', [])
-            self._accounts_cache = [
+
+            account_list = [
                 {
                     'bank': 'mercury',
                     'account_id': account['id'],
@@ -70,33 +78,42 @@ class MercuryAdapter(ResponseMixin):
                     'available_balance': account['availableBalance']
                 } for account in accounts
             ]
-            log_info(self.logger, f"Fetched and cached {len(self._accounts_cache)} accounts.")
-            return self._accounts_cache
+
+            # store in Redis cache
+            cache.set(self.account_cache_key, account_list, timeout=None)
+            log_warning(self.logger, f"Fetched and cached {len(account_list)} accounts.")
+            return account_list
 
         except Exception as e:
             error_message = f"Error fetching accounts: {e}"
-            log_warning(self.logger, error_message)
+            log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e
 
     def get_recipients(self):
         """Fetch recipients from the Mercury API and cache results."""
-        if self._recipients_cache is not None:
+        cached_recipients = cache.get(self.recipient_cache_key)
+
+        if cached_recipients:
             log_info(self.logger, "Returning cached recipients.")
-            return self._recipients_cache
+            return cached_recipients
 
         url = self._build_url('recipients')
+
         try:
             data = self._send_request('get', url, headers=self._build_headers())
             recipients = data.get('recipients', [])
-            self._recipients_cache = [
+
+            recipient_list = [
                 {
                     'bank': 'mercury',
                     'recipient_id': recipient['id'],
                     'recipient_name': recipient['name']
                 } for recipient in recipients
             ]
-            log_info(self.logger, f"Fetched and cached {len(self._recipients_cache)} recipients.")
-            return self._recipients_cache
+
+            cache.set(self.recipient_cache_key, recipient_list, timeout=None)
+            log_warning(self.logger, f"Fetched and cached {len(recipient_list)} recipients.")
+            return recipient_list
 
         except Exception as e:
             error_message = f"Error fetching recipients: {e}"
@@ -104,10 +121,8 @@ class MercuryAdapter(ResponseMixin):
             raise RuntimeError(error_message) from e
 
     def get_deposits(self, start_date, end_date, contract):
-        """Fetch deposits for a specific account within a date range and clear the cache."""
-        self.clear_cache()  # Clear cache before fetching new data
-
         account_id = contract.get("deposit_instr", {}).get("account_id")
+
         if not account_id:
             raise ValidationError("Missing deposit_instr.account_id in contract.")
 
@@ -126,6 +141,7 @@ class MercuryAdapter(ResponseMixin):
                     'deposit_dt': txn['createdAt']
                 } for txn in transactions if txn['amount'] > 0  # Filter out expenses
             ]
+
         except ValidationError as e:
             error_message = f"Validation error getting deposits: {e}"
             log_error(self.logger, error_message)
@@ -138,7 +154,6 @@ class MercuryAdapter(ResponseMixin):
     def make_payment(self, account_id, recipient_id, amount):
         """Initiate a payment to a recipient and clear the cache."""
         log_info(self.logger, f"Attempting payment for account {account_id}, recipient {recipient_id}, amount {amount}")
-        self.clear_cache()  # Clear cache before making a payment
 
         url = self._build_url(f"account/{account_id}/request-send-money")
         payload = {
@@ -164,8 +179,6 @@ class MercuryAdapter(ResponseMixin):
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e
 
-    def clear_cache(self):
-        """Clear cached accounts and recipients."""
-        self._accounts_cache = None
-        self._recipients_cache = None
-        log_info(self.logger, "Cleared Mercury accounts and recipients cache.")
+    def reset_mercury_cache(self):
+        cache.delete(self.account_cache_key)
+        cache.delete(self.recipient_cache_key)

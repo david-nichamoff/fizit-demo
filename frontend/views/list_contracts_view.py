@@ -41,8 +41,6 @@ def list_contracts_view(request, extra_context=None):
         try:
             # Fetch all contracts at once
             contracts = contract_ops.list_contracts()
-            log_info(logger, f"Returned contracts {contracts}")
-
             for contract in contracts:
                 if "last_updated" in contract:
                     contract["last_updated"] = datetime.fromisoformat(contract["last_updated"].rstrip("Z")).strftime("%Y-%m-%d %I:%M %p")
@@ -54,8 +52,6 @@ def list_contracts_view(request, extra_context=None):
             log_error(logger, f"{error_message}: {e}")
             messages.error(request, f"{error_message}")
             contracts = []
-
-        log_info(logger, f"Contracts: {contracts}")
 
         # Handle sorting
         ordering = request.GET.get("ordering", "contract_idx") 
@@ -72,7 +68,6 @@ def list_contracts_view(request, extra_context=None):
             "contract_name": f"?ordering={'-' if ordering == 'contract_name' else ''}contract_name&contract_type={selected_contract_type}",
             "is_quote": f"?ordering={'-' if ordering == 'is_quote' else ''}is_quote&contract_type={selected_contract_type}",
             "is_active": f"?ordering={'-' if ordering == 'is_active' else ''}is_active&contract_type={selected_contract_type}",
-            "last_updated": f"?ordering={'-' if ordering == 'last_updated' else ''}last_updated&contract_type={selected_contract_type}",
         }
 
         # Prepare context
@@ -88,7 +83,6 @@ def list_contracts_view(request, extra_context=None):
         if extra_context:
             context.update(extra_context)
 
-        log_info(logger, f"Context for list_contracts.html: {context}")
         return render(request, "admin/list_contracts.html", context)
 
     except Exception as e:

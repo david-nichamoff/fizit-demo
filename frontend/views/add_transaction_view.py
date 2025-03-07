@@ -117,8 +117,6 @@ def add_transaction_view(request, extra_context=None):
 
     # Fetch all contracts with prepopulated transact_data
     raw_contracts = fetch_all_contracts(request, headers, base_url, csrf_token)
-    log_info(logger, f"Raw contract data {raw_contracts}")
-
     default_contract_type = registry_manager.get_default_contract_type()
 
     contracts = [
@@ -137,9 +135,6 @@ def add_transaction_view(request, extra_context=None):
     contract_types = sorted(set(contract["contract_type"] for contract in contracts))
 
     # Initialize the form with contract data
-    log_info(logger, f"Calling transaction form with data {contracts}")
-    log_info(logger, f"Calling transaction form with contract types {contract_types}")
-    log_info(logger, f"Calling transaction form with default contract type {default_contract_type}")
     transaction_form = TransactionForm(contracts=contracts)
 
     context = {

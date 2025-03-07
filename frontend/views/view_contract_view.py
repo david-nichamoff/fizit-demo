@@ -103,6 +103,7 @@ def prepare_view_context(request, registry_manager, contract_type, contract_idx,
         parties = fetch_parties(contract_type, contract_idx, headers, base_url)
         transactions = fetch_transactions(contract_type, contract_idx, headers, base_url)
         artifacts = fetch_artifacts(contract_type, contract_idx, headers, base_url)
+        log_info(logger, f"artifacts: {artifacts}")
 
     except Exception as e:
         log_error(logger, f"Failed to fetch related data for {contract_type}:{contract_idx}: {e}")

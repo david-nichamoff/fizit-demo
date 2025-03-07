@@ -102,7 +102,7 @@ const styles = {
   },
   counterContainer: {
     display: "inline-block",
-    backgroundColor: "#222", // Dark background like a scoreboard
+    backgroundColor: "#222", 
     color: "#FFD700", // Gold/yellow numbers for contrast
     padding: "20px 30px",
     marginTop: "0px",

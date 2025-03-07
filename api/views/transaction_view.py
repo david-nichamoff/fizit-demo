@@ -192,7 +192,7 @@ class TransactionViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
             log_info(self.logger, f"Contract_type: {contract_type}, Contract_idx: {contract_idx}")
             log_info(self.logger, f"Transact_logic: {transact_logic}, validated_data: {validated_data}")
             response = transaction_api.add_transactions(
-                contract_type, contract_idx, transact_logic, validated_data, api_key=request.auth.get("api_key")
+                contract_type, contract_idx, transact_logic, validated_data
             )
 
             if response["status"] == status.HTTP_201_CREATED:
@@ -201,7 +201,7 @@ class TransactionViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
                 return Response({"error": response["message"]}, response["status"])
 
         except PermissionDenied as pd:
-            log_warning(self.logger, f"Permission denied: {pd}")
+            log_error(self.logger, f"Permission denied: {pd}")
             return Response({"detail": str(pd)}, status=status.HTTP_403_FORBIDDEN)
         except ValidationError as e:
             log_error(self.logger, f"Validation error: {str(e)}")
@@ -228,7 +228,7 @@ class TransactionViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
                 return Response({"error": response["message"]}, response["status"])
 
         except PermissionDenied as pd:
-            log_warning(self.logger, f"Permission denied: {pd}")
+            log_error(self.logger, f"Permission denied: {pd}")
             return Response({"detail": str(pd)}, status=status.HTTP_403_FORBIDDEN)
         except ValidationError as e:
             log_error(self.logger, f"Validation error: {str(e)}")
@@ -243,5 +243,5 @@ class TransactionViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         try:
             return date_parser.isoparse(date_str).astimezone(timezone.utc)
         except (ValueError, TypeError):
-            log_warning(self.logger, f"Invalid date format: {date_str}")
+            log_error(self.logger, f"Invalid date format: {date_str}")
             raise ValidationError("Invalid date format. Expected ISO 8601 format.")

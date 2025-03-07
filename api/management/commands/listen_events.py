@@ -81,7 +81,7 @@ class Command(BaseCommand):
                 )
                 contracts[contract_type] = contract_instance
             else:
-                log_warning(self.logger, f"Skipping contract {contract_type} (no address found)")
+                log_error(self.logger, f"Skipping contract {contract_type} (no address found)")
 
         log_info(self.logger, f"Loaded {len(contracts)} contract instances: {list(contracts.keys())}")
         return contracts
@@ -186,7 +186,7 @@ class Command(BaseCommand):
                     existing_event.save()
                     log_info(self.logger, f'Updated Fizit event for {contract_type}: tx_hash={tx_hash}')
                 else:
-                    log_warning(self.logger, f"No matching Event found for Fizit tx_hash={tx_hash}")
+                    log_error(self.logger, f"No matching Event found for Fizit tx_hash={tx_hash}")
 
             except Exception as e:
                 log_error(self.logger, f"Error processing Fizit event for {contract_type}: {str(e)}")

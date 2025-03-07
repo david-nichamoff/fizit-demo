@@ -7,9 +7,11 @@ from json_logic import jsonLogic
 
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from django.core.cache import cache
 
 from api.web3 import Web3Manager
 from api.config import ConfigManager
+from api.cache import CacheManager
 from api.interfaces.encryption_api import get_encryptor, get_decryptor
 from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
@@ -30,6 +32,7 @@ class BaseTransactionAPI(ResponseMixin):
             self.config_manager = ConfigManager()
             self.registry_manager = registry_manager
             self.w3_manager = Web3Manager()
+            self.cache_manager = CacheManager()
             self.w3 = self.w3_manager.get_web3_instance()
             self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
             self.checksum_wallet_addr = self.w3_manager.get_checksum_address(self.wallet_addr)
@@ -38,26 +41,39 @@ class BaseTransactionAPI(ResponseMixin):
             self.initialized = True
 
     def get_transactions(self, contract_type, contract_idx, api_key=None, parties=[], transact_min_dt=None, transact_max_dt=None):
-        """Retrieve transactions for a contract within a date range."""
+        """Retrieve transactions while ensuring only encrypted values are cached."""
         try:
-            contract_api = self.registry_manager.get_contract_api(contract_type)
-            contract = contract_api.get_contract(contract_type, contract_idx, api_key, parties).get("data")
-            log_info(self.logger, f"Retrieving transactions for {contract_type}:{contract_idx} with data {contract}")
-
-            w3_contract = self.w3_manager.get_web3_contract(contract_type) 
-            log_info(self.logger, f"w3_contract: {w3_contract}")
-            raw_transactions = w3_contract.functions.getTransactions(contract_idx).call()
-            log_info(self.logger, f"Retrieved raw transaction data {raw_transactions}")
-
-            transactions = [
-                self._parse_transaction(t, idx, contract_type, contract, api_key, parties)
-                for idx, t in enumerate(raw_transactions)
-                if self._filter_transaction(t, transact_min_dt, transact_max_dt)
-            ]
+            cache_key = self.cache_manager.get_transaction_cache_key(contract_type, contract_idx)
+            cached_transactions = cache.get(cache_key)
 
             success_message = f"Successfully retrieved transactions for {contract_type}:{contract_idx}"
-            data = sorted(transactions, key=lambda t: t["transact_dt"], reverse=True)
-            return self._format_success(data, success_message, status.HTTP_200_OK)
+            decryptor = get_decryptor(api_key, parties)
+
+            contract_api = self.registry_manager.get_contract_api(contract_type)
+            contract = contract_api.get_contract(contract_type, contract_idx, api_key, parties).get("data")
+
+            if cached_transactions is not None:
+                log_info(self.logger, f"Loaded transactions for {contract_type}:{contract_idx} from cache")
+                parsed_transactions = [
+                    self._decrypt_fields(contract_type, contract, idx, raw_transaction, decryptor)
+                    for idx, raw_transaction in enumerate(cached_transactions)
+                ]
+                return self._format_success(parsed_transactions, success_message, status.HTTP_200_OK)
+
+            log_info(self.logger, f"Retrieving transactions for {contract_type}:{contract_idx} from chain")
+            w3_contract = self.w3_manager.get_web3_contract(contract_type) 
+            raw_transactions = w3_contract.functions.getTransactions(contract_idx).call()
+            log_info(self.logger, f"Retrieve {raw_transactions} from chain")
+
+            cache.set(cache_key, raw_transactions, timeout=None)
+            log_warning(self.logger, f"Cached transactions for {contract_type}:{contract_idx} in Redis")
+
+            parsed_transactions = [
+                self._decrypt_fields(contract_type, contract, idx, raw_transaction, decryptor)
+                for idx, raw_transaction in enumerate(raw_transactions)
+            ]
+
+            return self._format_success(parsed_transactions, success_message, status.HTTP_200_OK)
 
         except ValidationError as e:
             error_message = f"Validation error for {contract_type}:{contract_idx}: {str(e)}"
@@ -89,28 +105,32 @@ class BaseTransactionAPI(ResponseMixin):
             log_error(self.logger, f"Error filtering transaction: {transaction}, error: {e}")
             return False
 
-    def add_transactions(self, contract_type, contract_idx, transact_logic, transactions, api_key):
+    def add_transactions(self, contract_type, contract_idx, transact_logic, transactions):
         """Add transactions to the blockchain for a given contract."""
         try:
-            encryptor = get_encryptor()
 
-            for transaction in transactions:
-                log_info(self.logger, f"Sending {transaction} to chain with {contract_type}:{contract_idx}")
-                encrypted_data = self._encrypt_transaction_data(transaction, encryptor)
-
-                transact_amt = self._calculate_transaction_amount(transaction, transact_logic)
+            for transaction_dict in transactions:
+                log_info(self.logger, f"Sending transaction to chain for {contract_type}:{contract_idx}")
+                transact_amt = self._calculate_transaction_amount(transaction_dict, transact_logic)
                 log_info(self.logger, f"Calculated transaction amount {transact_amt} with logic {transact_logic}")
+                transaction = self._build_transaction(transaction_dict)
+                log_info(self.logger, f"Built transaction: {transaction}")
 
                 w3_contract = self.w3_manager.get_web3_contract(contract_type)
                 tx = w3_contract.functions.addTransaction(
                     contract_idx,
-                    encrypted_data["extended_data"],
-                    int(transaction["transact_dt"].timestamp()),
+                    transaction["extended_data"],
+                    transaction["transact_dt"],
                     transact_amt,
-                    encrypted_data["transact_data"]
+                    transaction["transact_data"]
                 ).build_transaction()
 
                 self._send_transaction(tx, contract_type, contract_idx, "addTransaction")
+
+            cache_key = self.cache_manager.get_transaction_cache_key(contract_type, contract_idx)
+            cache.delete(cache_key)
+            cache_key = self.cache_manager.get_settlement_cache_key(contract_type, contract_idx)
+            cache.delete(cache_key)
 
             success_message = f"Successfully added transactions for {contract_type}:{contract_idx}"
             return self._format_success({"count": len(transactions)}, success_message, status.HTTP_201_CREATED)
@@ -129,6 +149,11 @@ class BaseTransactionAPI(ResponseMixin):
             tx = w3_contract.functions.deleteTransactions(contract_idx).build_transaction()
             self._send_transaction(tx, contract_type, contract_idx, "deleteTransactions")
 
+            cache_key = self.cache_manager.get_transaction_cache_key(contract_type, contract_idx)
+            cache.delete(cache_key)
+            cache_key = self.cache_manager.get_settlement_cache_key(contract_type, contract_idx)
+            cache.delete(cache_key)
+
             success_message = f"Successfully deleted transactions for {contract_type}:{contract_idx}"
             return self._format_success({ "contract_idx":contract_idx}, success_message, status.HTTP_204_NO_CONTENT)
 
@@ -138,20 +163,6 @@ class BaseTransactionAPI(ResponseMixin):
         except Exception as e:
             error_message = f"Error deleting transactions for {contract_type}:{contract_idx}: {e}"
             return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-  
-    def _encrypt_transaction_data(self, transaction, encryptor):
-        """Encrypt sensitive transaction data."""
-
-        try:
-            return {
-                "extended_data": encryptor.encrypt(transaction["extended_data"]),
-                "transact_data": encryptor.encrypt(transaction["transact_data"]),
-            }
-        except Exception as e:
-            error_message = "Error decryting data"
-            log_error(self.logger, error_message)
-            raise RuntimeError(error_message) from e
 
     def _calculate_transaction_amount(self, transaction, transact_logic):
         """Calculate the transaction amount using transaction logic."""
@@ -174,7 +185,7 @@ class BaseTransactionAPI(ResponseMixin):
             if tx_receipt["status"] != 1:
                 error_message = f"Blockchain {operation} failed for contract {contract_idx}" 
                 log_error(self.logger, error_message)
-                raise RuntimeError(error_message) from e
+                raise RuntimeError(error_message)
 
         except Exception as e:
             error_message = f"Error sending transaction: {e}"
@@ -183,76 +194,134 @@ class BaseTransactionAPI(ResponseMixin):
 
 ### **Subclass for Purchase Contracts**
 class PurchaseTransactionAPI(BaseTransactionAPI):
-  def _parse_transaction(self, transact, idx, contract_type, contract, api_key, parties):
+
+    def _decrypt_fields(self, contract_type, contract, transact_idx, raw_transaction, decryptor):
+        """Decrypt fields specific to purchase transactions."""
+        try:
+            parsed_transaction = self._parse_transaction(contract_type, contract, transact_idx, raw_transaction)
+            parsed_transaction["extended_data"] = decryptor.decrypt(raw_transaction[0])
+            parsed_transaction["transact_data"] = decryptor.decrypt(raw_transaction[5])
+            return parsed_transaction
+        except Exception as e:
+            raise RuntimeError(f"Decryption failed for purchase transaction {transact_idx}: {e}") from e
+
+    def _parse_transaction(self, contract_type, contract, transact_idx, raw_transaction):
         """Parse a raw transaction from the blockchain into a dictionary."""
-        decryptor = get_decryptor(api_key, parties)
         try:
             return {
-                "extended_data": decryptor.decrypt(transact[0]),
-                "transact_dt": from_timestamp(transact[1]),
-                "transact_amt": f"{Decimal(transact[2]) / 100:.2f}",
-                "service_fee_amt": f"{Decimal(transact[3]) / 100:.2f}",
-                "advance_amt": f"{Decimal(transact[4]) / 100:.2f}",
-                "transact_data": decryptor.decrypt(transact[5]),
-                "advance_pay_dt": from_timestamp(transact[6]),
-                "advance_pay_amt": f"{Decimal(transact[7]) / 100:.2f}",
-                "advance_tx_hash": transact[8],
+                "extended_data": raw_transaction[0],
+                "transact_dt": from_timestamp(raw_transaction[1]),
+                "transact_amt": f"{Decimal(raw_transaction[2]) / 100:.2f}",
+                "service_fee_amt": f"{Decimal(raw_transaction[3]) / 100:.2f}",
+                "advance_amt": f"{Decimal(raw_transaction[4]) / 100:.2f}",
+                "transact_data": raw_transaction[5],
+                "advance_pay_dt": from_timestamp(raw_transaction[6]),
+                "advance_pay_amt": f"{Decimal(raw_transaction[7]) / 100:.2f}",
+                "advance_tx_hash": raw_transaction[8],
                 "contract_type": contract_type,
                 "contract_idx": contract["contract_idx"],
                 "funding_instr": contract["funding_instr"],
-                "transact_idx": idx,
+                "transact_idx": transact_idx,
             }
 
         except Exception as e:
-            error_message = f"Error parsing transaction {idx}: {e}"
+            error_message = f"Error parsing transaction {transact_idx}: {e}"
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e
+
+    def _build_transaction(self, transaction_dict):
+        """Encrypt fields specific to purchase transactions."""
+
+        encryptor = get_encryptor()
+        return {
+            "extended_data" : encryptor.encrypt(transaction_dict["extended_data"]),
+            "transact_data" : encryptor.encrypt(transaction_dict["transact_data"]),
+            "transact_dt" : int(transaction_dict["transact_dt"].timestamp())
+        }
 
 ### **Subclass for Sale Contracts**
 class SaleTransactionAPI(BaseTransactionAPI):
-  def _parse_transaction(self, transact, idx, contract_type, contract, api_key, parties):
+    def _decrypt_fields(self, contract_type, contract, transact_idx, raw_transaction, decryptor):
+        """Decrypt fields specific to purchase transactions."""
+        try:
+            parsed_transaction = self._parse_transaction(contract_type, contract, transact_idx, raw_transaction)
+            parsed_transaction["extended_data"] = decryptor.decrypt(raw_transaction[0])
+            parsed_transaction["transact_data"] = decryptor.decrypt(raw_transaction[3])
+            return parsed_transaction
+        except Exception as e:
+            raise RuntimeError(f"Decryption failed for purchase transaction {transact_idx}: {e}") from e
+
+    def _parse_transaction(self, contract_type, contract, transact_idx, raw_transaction):
         """Parse a raw transaction from the blockchain into a dictionary."""
-        decryptor = get_decryptor(api_key, parties)
         try:
             return {
-                "extended_data": decryptor.decrypt(transact[0]),
-                "transact_dt": from_timestamp(transact[1]),
-                "transact_amt": f"{Decimal(transact[2]) / 100:.2f}",
-                "transact_data": decryptor.decrypt(transact[3]),
+                "extended_data": raw_transaction[0],
+                "transact_dt": from_timestamp(raw_transaction[1]),
+                "transact_amt": f"{Decimal(raw_transaction[2]) / 100:.2f}",
+                "transact_data": raw_transaction[3],
                 "contract_type": contract_type,
                 "contract_idx": contract["contract_idx"],
                 "funding_instr": contract["funding_instr"],
-                "transact_idx": idx,
+                "transact_idx": transact_idx,
             }
 
         except Exception as e:
-            error_message = f"Error parsing transaction {idx}: {e}"
+            error_message = f"Error parsing transaction {transact_idx}: {e}"
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e
+
+    def _build_transaction(self, transaction_dict):
+        """Encrypt fields specific to purchase transactions."""
+
+        encryptor = get_encryptor()
+        return {
+            "extended_data" : encryptor.encrypt(transaction_dict["extended_data"]),
+            "transact_data" : encryptor.encrypt(transaction_dict["transact_data"]),
+            "transact_dt" : int(transaction_dict["transact_dt"].timestamp())
+        }
 
 ### **Subclass for Advance Contracts**
 class AdvanceTransactionAPI(BaseTransactionAPI):
-  def _parse_transaction(self, transact, idx, contract_type, contract, api_key, parties):
+    def _decrypt_fields(self, contract_type, contract, transact_idx, raw_transaction, decryptor):
+        """Decrypt fields specific to purchase transactions."""
+        try:
+            parsed_transaction = self._parse_transaction(contract_type, contract, transact_idx, raw_transaction)
+            parsed_transaction["extended_data"] = decryptor.decrypt(raw_transaction[0])
+            parsed_transaction["transact_data"] = decryptor.decrypt(raw_transaction[5])
+            return parsed_transaction
+        except Exception as e:
+            raise RuntimeError(f"Decryption failed for purchase transaction {transact_idx}: {e}") from e
+
+    def _parse_transaction(self, contract_type, contract, transact_idx, raw_transaction):
         """Parse a raw transaction from the blockchain into a dictionary."""
-        decryptor = get_decryptor(api_key, parties)
         try:
             return {
-                "extended_data": decryptor.decrypt(transact[0]),
-                "transact_dt": from_timestamp(transact[1]),
-                "transact_amt": f"{Decimal(transact[2]) / 100:.2f}",
-                "service_fee_amt": f"{Decimal(transact[3]) / 100:.2f}",
-                "advance_amt": f"{Decimal(transact[4]) / 100:.2f}",
-                "transact_data": decryptor.decrypt(transact[5]),
-                "advance_pay_dt": from_timestamp(transact[6]),
-                "advance_pay_amt": f"{Decimal(transact[7]) / 100:.2f}",
-                "advance_tx_hash": transact[8],
+                "extended_data": raw_transaction[0],
+                "transact_dt": from_timestamp(raw_transaction[1]),
+                "transact_amt": f"{Decimal(raw_transaction[2]) / 100:.2f}",
+                "service_fee_amt": f"{Decimal(raw_transaction[3]) / 100:.2f}",
+                "advance_amt": f"{Decimal(raw_transaction[4]) / 100:.2f}",
+                "transact_data": raw_transaction[5],
+                "advance_pay_dt": from_timestamp(raw_transaction[6]),
+                "advance_pay_amt": f"{Decimal(raw_transaction[7]) / 100:.2f}",
+                "advance_tx_hash": raw_transaction[8],
                 "contract_type": contract_type,
                 "contract_idx": contract["contract_idx"],
                 "funding_instr": contract["funding_instr"],
-                "transact_idx": idx,
+                "transact_idx": transact_idx,
             }
 
         except Exception as e:
-            error_message = f"Error parsing transaction {idx}: {e}"
+            error_message = f"Error parsing transaction {transact_idx}: {e}"
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e
+
+    def _build_transaction(self, transaction_dict):
+        """Encrypt fields specific to purchase transactions."""
+
+        encryptor = get_encryptor()
+        return {
+            "extended_data" : encryptor.encrypt(transaction_dict["extended_data"]),
+            "transact_data" : encryptor.encrypt(transaction_dict["transact_data"]),
+            "transact_dt" : int(transaction_dict["transact_dt"].timestamp())
+        }

@@ -70,16 +70,6 @@
                                 Is Active?
                             </a>
                         </th>
-                        <th scope="col">
-                            <a href="{{ sorting_links.last_updated }}">
-                                Last Updated
-                                {% if ordering == 'last_updated' %}
-                                    <span class="sorting-indicator">&#x25B2;</span>
-                                {% elif ordering == '-last_updated' %}
-                                    <span class="sorting-indicator">&#x25BC;</span>
-                                {% endif %}
-                            </a>
-                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -105,7 +95,6 @@
                                 <img src="{% static 'admin/img/icon-no.svg' %}" alt="False" class="icon-no">
                             {% endif %}
                         </td>
-                        <td>{{ contract.last_updated }}</td>
                     </tr>
                     {% empty %}
                     <tr>

@@ -10,6 +10,7 @@ from api.serializers.artifact_serializer import ArtifactSerializer
 from api.permissions import HasCustomAPIKey
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.interfaces import ArtifactAPI
+from api.interfaces import PartyAPI
 from api.registry import RegistryManager
 from api.views.mixins.validation import ValidationMixin
 from api.views.mixins.permission import PermissionMixin
@@ -25,6 +26,7 @@ class ArtifactViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         super().__init__(*args, **kwargs)
         self.registry_manager = RegistryManager()
         self.artifact_api = ArtifactAPI(self.registry_manager)
+        self.party_api = PartyAPI()
         self.logger = logging.getLogger(__name__)
 
 ### **Purchase Artifacts**
@@ -122,11 +124,19 @@ class ArtifactViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
     def _list_artifacts(self, request, contract_type, contract_idx):
         log_info(self.logger, f"Fetching artifacts for {contract_type} contract {contract_idx}")
         try:
-            self._validate_contract_type(contract_type, self.registry_manager)
             contract_api = self.registry_manager.get_contract_api(contract_type)
+            self._validate_contract_type(contract_type, self.registry_manager)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
-            response = self.artifact_api.get_artifacts(contract_type, int(contract_idx))
+            api_key = request.auth.get("api_key")
+            response = self.party_api.get_parties(contract_type, int(contract_idx))
+
+            if response["status"] == status.HTTP_200_OK:
+                parties = response["data"]
+            else:
+                return Response({"error": response["message"]}, response["status"])
+
+            response = self.artifact_api.get_artifacts(contract_type, int(contract_idx), api_key, parties)
 
             if response["status"] == status.HTTP_200_OK:
                 serializer = ArtifactSerializer(response["data"], many=True)
@@ -166,7 +176,7 @@ class ArtifactViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
                 return Response({"error": response["message"]}, status=response["status"])
 
         except PermissionDenied as e:
-            log_warning(self.logger, f"Permission denied for {contract_type} contract {contract_idx}: {e}")
+            log_error(self.logger, f"Permission denied for {contract_type} contract {contract_idx}: {e}")
             return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
         except ValidationError as e:
             log_error(self.logger, f"Validation error: {str(e)}")
@@ -192,7 +202,7 @@ class ArtifactViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
                 return Response({"error": response["message"]}, status=response["status"])
 
         except PermissionDenied as e:
-            log_warning(self.logger, f"Permission denied for {contract_type} contract {contract_idx}: {e}")
+            log_error(self.logger, f"Permission denied for {contract_type} contract {contract_idx}: {e}")
             return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
         except ValidationError as e:
             log_error(self.logger, f"Validation error: {str(e)}")

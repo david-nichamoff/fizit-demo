@@ -4,9 +4,11 @@ from decimal import Decimal
 
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from django.core.cache import cache
 
 from api.config import ConfigManager
 from api.web3 import Web3Manager
+from api.cache import CacheManager
 from api.interfaces import PartyAPI
 from api.interfaces.account_api import AccountAPI
 from api.interfaces.recipient_api import RecipientAPI
@@ -28,6 +30,7 @@ class BaseAdvanceAPI(ResponseMixin):
         if not hasattr(self, "initialized"):
             self.config_manager = ConfigManager()
             self.w3_manager = Web3Manager()
+            self.cache_manager = CacheManager()
             self.w3 = self.w3_manager.get_web3_instance()
 
             self.account_api = AccountAPI(registry_manager)
@@ -92,6 +95,11 @@ class BaseAdvanceAPI(ResponseMixin):
     def add_advances(self, contract_type, contract_idx, advances):
 
         try:
+            cache_key = self.cache_manager.get_transaction_cache_key(contract_type, contract_idx)
+            cache.delete(cache_key)
+            cache_key = self.cache_manager.get_settlement_cache_key(contract_type, contract_idx)
+            cache.delete(cache_key)
+
             processed_count = 0
             for advance in advances:
                 tx_hash = self._make_payment(advance)
@@ -100,6 +108,7 @@ class BaseAdvanceAPI(ResponseMixin):
 
             success_message =  f"Added advances for {contract_type}:{contract_idx}"
             return self._format_success({"count" : processed_count}, success_message, status.HTTP_201_CREATED)
+
 
         except ValidationError as e:
             error_message = f"Validation error adding advances for {contract_type}:{contract_idx}: {str(e)}"

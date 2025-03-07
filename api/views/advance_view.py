@@ -10,6 +10,7 @@ from api.serializers.advance_serializer import AdvanceSerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
 from api.registry import RegistryManager
+from api.config import ConfigManager
 from api.views.mixins.validation import ValidationMixin
 from api.views.mixins.permission import PermissionMixin
 from api.utilities.logging import log_error, log_info, log_warning
@@ -23,6 +24,7 @@ class AdvanceViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         """Initialize the view with AdvanceAPI instance and logger."""
         super().__init__(*args, **kwargs)
         self.registry_manager = RegistryManager()
+        self.config_manager = ConfigManager()
         self.logger = logging.getLogger(__name__)
 
 ### **Purchase Advances**
@@ -137,7 +139,7 @@ class AdvanceViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
                 return Response({"error": response["message"]}, response["status"])
 
         except PermissionDenied as pd:
-            log_warning(self.logger, f"Permission denied for contract {contract_type}:{contract_idx}: {pd}")
+            log_error(self.logger, f"Permission denied for contract {contract_type}:{contract_idx}: {pd}")
             return Response({"error": str(pd)}, status=status.HTTP_403_FORBIDDEN)
         except ValidationError as e:
             log_error(self.logger, f"Validation error: {str(e)}")

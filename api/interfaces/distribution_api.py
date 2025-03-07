@@ -4,9 +4,11 @@ from decimal import Decimal
 
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from django.core.cache import cache
 
 from api.web3 import Web3Manager
 from api.config import ConfigManager
+from api.cache import CacheManager
 from api.interfaces import PartyAPI
 from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
@@ -25,6 +27,7 @@ class BaseDistributionAPI(ResponseMixin):
         if not hasattr(self, "initialized"):
             self.config_manager = ConfigManager()
             self.w3_manager = Web3Manager()
+            self.cache_manager = CacheManager()
             self.party_api = PartyAPI()
             self.registry_manager = registry_manager
             self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
@@ -72,6 +75,11 @@ class BaseDistributionAPI(ResponseMixin):
     def add_distributions(self, contract_type, contract_idx, distributions):
         """Add distribution payments for a contract."""
         try:
+            cache_key = self.cache_manager.get_transaction_cache_key(contract_type, contract_idx)
+            cache.delete(cache_key)
+            cache_key = self.cache_manager.get_settlement_cache_key(contract_type, contract_idx)
+            cache.delete(cache_key)
+
             processed_count = 0
             for distribution in distributions:
                 tx_hash = self._process_distribution_payment(distribution, contract_type, contract_idx)

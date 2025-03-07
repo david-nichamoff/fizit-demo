@@ -112,8 +112,6 @@ def find_deposits_view(request, extra_context=None):
         if registry_manager.get_deposit_api(c["contract_type"]) is not None 
     ]
 
-    log_info(logger, f"Fetched contracts: {contracts}")
-
     # Initialize form and variables
     find_deposits_form = FindDepositsForm(contracts=contracts, initial={
         "start_date": (datetime.now() - timedelta(days=5)).strftime('%Y-%m-%dT%H:%M:%S'),

@@ -1,0 +1,8 @@
+2728:C 05 Mar 2025 10:22:36.062 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+2728:C 05 Mar 2025 10:22:36.062 * Redis version=7.2.7, bits=64, commit=00000000, modified=0, pid=2728, just started
+2728:C 05 Mar 2025 10:22:36.062 # Warning: no config file specified, using the default config. In order to specify a config file use redis-server /path/to/redis.conf
+2728:M 05 Mar 2025 10:22:36.063 * monotonic clock: POSIX clock_gettime
+2728:M 05 Mar 2025 10:22:36.064 * Running mode=standalone, port=6379.
+2728:M 05 Mar 2025 10:22:36.064 # WARNING: The TCP backlog setting of 511 cannot be enforced because kern.ipc.somaxconn is set to the lower value of 128.
+2728:M 05 Mar 2025 10:22:36.064 # Warning: Could not create server TCP listening socket *:6379: bind: Address already in use
+2728:M 05 Mar 2025 10:22:36.064 # Failed listening on port 6379 (tcp), aborting.

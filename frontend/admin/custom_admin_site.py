@@ -26,7 +26,7 @@ class CustomAdminSite(AdminSite):
     def has_permission(self, request):
         if request.user.is_active and request.user.is_staff:
             return True
-        log_warning(logger, "Permission denied")
+        log_error(logger, "Permission denied")
         return False
 
     def get_urls(self):
