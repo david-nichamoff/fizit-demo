@@ -74,7 +74,6 @@ class ConfigManager:
         config = cache.get(self.cache_key)
 
         if config:
-            log_info(self.logger, "Loaded configuration from cache")
             return config
 
         if not os.path.exists(self.CONFIG_FILE_PATH):
@@ -252,3 +251,9 @@ class ConfigManager:
 
     def get_presigned_url_expiration(self):
         return self._get_config_value("presigned_url_expiration", 3600)
+
+    def get_listen_sleep_time(self):
+        return self._get_config_value("list_sleep_time", 5)
+
+    def get_stats_sleep_time(self):
+        return self._get_config_value("stats_sleep_time", 300)

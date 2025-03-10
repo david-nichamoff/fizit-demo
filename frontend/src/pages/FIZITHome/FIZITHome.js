@@ -12,8 +12,8 @@ const FIZITHome = () => {
             try {
                 const response = await fetch(API_URL);
                 const data = await response.json();
-                if (data && data.value) {
-                setEndValue(data.value);
+                if (data && data.total_advance_amt) {
+                setEndValue(data.total_advance_amt);
                 }
             } catch (error) {
                 console.error("Error fetching transaction value:", error);
@@ -29,7 +29,7 @@ const FIZITHome = () => {
         // Simulating transaction count animation
         let start = 0;
         let end = endValue; 
-        let duration = 30000;
+        let duration = 600000000;
         let stepTime = duration / (end - start);
 
         const incrementCounter = () => {
@@ -60,7 +60,7 @@ const FIZITHome = () => {
         ${transactionValue.toLocaleString()}
         </div>
         <p style={styles.detail}>
-            To Customers Next Day for Value Delivered
+            Next Day for Value Delivered
         </p>
 
         <a href="mailto:info@fizit.biz" style={styles.contactButton}>

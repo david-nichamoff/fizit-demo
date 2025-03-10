@@ -36,7 +36,6 @@ class SecretsManager:
         secrets = cache.get(self.cache_key)
 
         if secrets:
-            log_info(self.logger, "Loaded secrets from cache.")
             return secrets
 
         return self._reload_secrets_from_aws()

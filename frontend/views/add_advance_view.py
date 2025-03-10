@@ -52,7 +52,6 @@ def fetch_all_advances(headers, base_url, registry_manager, csrf_token):
 
             # Fetch advances one by one
             for contract_idx in range(0, contract_count):
-            #for contract_idx in range(4, 10):
                 try:
                     advance = bank_ops.get_advances(contract_type, contract_idx)
                     advances.extend(advance)

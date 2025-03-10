@@ -48,3 +48,7 @@ class CacheManager:
     @staticmethod
     def get_artifact_cache_key(contract_type, contract_idx):
         return f"artifact_{contract_type}_{contract_idx}"
+
+    @staticmethod
+    def get_stats_cache_key():
+        return f"stats"
