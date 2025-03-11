@@ -1,6 +1,7 @@
 import json
 import os
 import logging
+import time
 
 from django.test import TestCase
 
@@ -74,6 +75,8 @@ class PurchaseEncryptionTest(TestCase):
         self._initialize_operations(self.fizit_headers)
         affiliate_party = [{"party_code": "Affiliate", "party_type": "affiliate"}]
         self.party_ops.post_parties(contract_type, contract_idx, affiliate_party)
+
+        time.sleep(5)
 
         # 7. Retrieve and verify with Affiliate Key again (should be decrypted now)
         self._initialize_operations(self.affiliate_headers)
