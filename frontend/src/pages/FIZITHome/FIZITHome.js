@@ -29,7 +29,7 @@ const FIZITHome = () => {
         // Simulating transaction count animation
         let start = 0;
         let end = endValue; 
-        let duration = 600000000;
+        let duration = 2000;
         let stepTime = duration / (end - start);
 
         const incrementCounter = () => {

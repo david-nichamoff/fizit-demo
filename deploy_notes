@@ -1,3 +1,5 @@
 add presigned_url_expiration to config.json
 add listen_sleep_time to config.json
-add logging for collect_stats
+update supervisorctl/conf.d to add collect_stats
+sudo supervisorctl reread
+sudo supervisorctl update

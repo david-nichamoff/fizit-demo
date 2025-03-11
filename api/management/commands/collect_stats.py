@@ -57,7 +57,7 @@ class Command(BaseCommand):
                         log_info(self.logger, f"Retrieved transactions {transactions} for {contract_type}:{contract_idx}")
 
                         for transaction in transactions:
-                            stats['total_advance_amt'] += Decimal(transaction.get("advance_amt", 0))
+                            stats['total_advance_amt'] += Decimal(transaction.get("advance_pay_amt", 0))
 
             except Exception as e:
                 log_error(self.logger, f"Error processing stats")
