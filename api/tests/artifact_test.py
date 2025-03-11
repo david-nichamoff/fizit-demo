@@ -95,6 +95,8 @@ class ArtifactTest(TestCase):
 
             log_info(self.logger, f"Retrieved artifacts match expected values for {contract_type}:{contract_idx} from {file_path}")
 
+            time.sleep(5)
+
             # Step 4: Delete artifacts
             delete_response = self.artifact_ops.delete_artifacts(contract_type, contract_idx)
 
