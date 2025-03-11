@@ -123,36 +123,46 @@ class Web3Manager():
         """Send a signed transaction using the signing API."""
         web3_instance = self.get_web3_instance(network)
         wallet_addr = to_checksum_address(wallet_addr)
-        chain_id = self.config_manager.get_chain_id(network)
+
+        log_info(self.logger, f"web3_instance: {network}, wallet_addr: {wallet_addr}")
+
+        # Ensure 'from' is set to wallet_addr if not provided
+        if "from" not in transaction or not transaction["from"]:
+            transaction["from"] = wallet_addr
+            log_info(self.logger, f"'from' address set to: {wallet_addr}")
+
+        log_info(self.logger, f"transaction: {transaction}")
 
         if not web3_instance.is_connected():
             log_error(self.logger, "Web3 instance is not connected")
             raise ConnectionError("Web3 instance is not connected")
 
         try:
+            chain_id = self.config_manager.get_chain_id(network)
+            log_info(self.logger, f"chain_id: {chain_id}")
+
+            gas_limit, max_fee_per_gas, max_priority_fee_per_gas = self._estimate_gas_fees(web3_instance, transaction)
+            log_info(self.logger, f"gas_limit: {gas_limit}, max_fee_per_gas: {max_fee_per_gas}, max_priority_fee_per_gas: {max_priority_fee_per_gas}")
+
             nonce = self.get_nonce(wallet_addr, network)
+            log_info(self.logger, f"nonce: {nonce}")
 
-            tx = self._build_transaction(
-                from_addr=wallet_addr,
-                to_addr=transaction['to'],
-                value=transaction["value"],
-                data=transaction.get('data','0x'),
-                nonce=nonce,
-                chain_id=chain_id
-            )
-            gas_limit, max_fee_per_gas, max_priority_fee_per_gas = self._estimate_gas_fees(web3_instance, tx)
+            tx_data = {
+                "chain_id": chain_id,
+                "tx": {
+                    "chain_id": hex(chain_id),
+                    "gas": hex(gas_limit),
+                    "maxFeePerGas": hex(max_fee_per_gas),
+                    "maxPriorityFeePerGas": hex(max_priority_fee_per_gas),
+                    "nonce": hex(nonce),
+                    "to": transaction["to"],
+                    "type": "0x2",
+                    "value": hex(transaction["value"]),
+                    "data": transaction.get("data", "0x"),
+                },
+            }
 
-            log_info(self.logger, f"TX to send {tx}")
-            log_info(self.logger, f"gas_limit: {gas_limit}")
-            log_info(self.logger, f"max_fee_per_gas {max_fee_per_gas}")
-            log_info(self.logger, f"max_priority_fee_per_gas {max_priority_fee_per_gas}")
-
-            # Update tx with gas values
-            tx['gas'] = gas_limit
-            tx['maxFeePerGas'] = max_fee_per_gas
-            tx['maxPriorityFeePerGas'] = max_priority_fee_per_gas
-
-            signed_tx, error_code = self._sign_transaction({"chain_id": chain_id, "tx": self._hexify_tx(tx)}, wallet_addr)
+            signed_tx, error_code = self._sign_transaction(tx_data, wallet_addr)
 
             if signed_tx:
                 return self._broadcast_transaction(web3_instance, signed_tx, wallet_addr, transaction, contract_type, contract_idx, network)
@@ -165,53 +175,6 @@ class Web3Manager():
         except Exception as e:
             log_error(self.logger, f"Error sending signed transaction: {e}")
             raise
-
-    def send_contract_deployment(self, bytecode, abi, wallet_addr, network="fizit"):
-        web3_instance = self.get_web3_instance(network)
-        wallet_addr = to_checksum_address(wallet_addr)
-        chain_id = self.config_manager.get_chain_id(network)
-
-        if not web3_instance.is_connected():
-            logging.error(f"Web3 instance is not connected to the {network} network.")
-            raise ConnectionError("Web3 instance is not connected")
-
-        try:
-            nonce = web3_instance.eth.get_transaction_count(wallet_addr)
-            
-            # Set a manually high gas limit
-            gas_limit = 10_000_000  # Reasonably high limit for large contracts
-            max_priority_fee_per_gas = web3_instance.to_wei('2', 'gwei')  # Priority fee
-            max_fee_per_gas = web3_instance.to_wei('100', 'gwei')  # Max fee per gas
-
-            log_info(self.logger, f"Deployment Details")
-            log_info(self.logger, f"Wallet Address: {wallet_addr}")
-            log_info(self.logger, f"Gas Limit: {gas_limit}")
-            log_info(self.logger, f"maxFeePerGas: {max_fee_per_gas}")
-            log_info(self.logger, f"maxPriorityFeePerGas: {max_priority_fee_per_gas}")
-                
-            tx = self._build_transaction(
-                from_addr=wallet_addr,
-                to_addr=None,
-                value=0,
-                data=bytecode,
-                nonce=nonce,
-                gas_limit=gas_limit,
-                max_fee_per_gas=max_fee_per_gas,
-                max_priority_fee_per_gas=max_priority_fee_per_gas,
-                chain_id=chain_id
-            )
-
-            signed_tx, error_code = self._sign_transaction({"chain_id": chain_id, "tx": self._hexify_tx(tx)}, wallet_addr)
-
-            if signed_tx:
-                return self._broadcast_transaction(web3_instance, signed_tx, wallet_addr, tx, contract_type="Deployment", contract_idx=None, network=network)
-
-            raise RuntimeError(error_code)
-
-        except Exception as e:
-            logging.error(f"Error occurred: {str(e)}")
-            raise
-
 
     def _estimate_gas_fees(self, web3_instance, transaction):
 
@@ -262,40 +225,105 @@ class Web3Manager():
         tx_hash = web3_instance.eth.send_raw_transaction(web3_instance.to_bytes(hexstr=signed_tx))
         tx_receipt = web3_instance.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
 
-        # If this was a contract deployment, no need to create an event
-        if contract_type != 'Deployment':
-
-            Event.objects.create(
-                contract_idx=contract_idx,
-                contract_type=contract_type,
-                network=network,
-                from_addr=wallet_addr,
-                to_addr=transaction["to"],
-                tx_hash=tx_hash.hex(),
-                event_type="TransactionSent",
-                details="Pending",
-                status="pending",
-            )
+        Event.objects.create(
+            contract_idx=contract_idx,
+            contract_type=contract_type,
+            network=network,
+            from_addr=wallet_addr,
+            to_addr=transaction["to"],
+            tx_hash=tx_hash.hex(),
+            event_type="TransactionSent",
+            details="Pending",
+            status="pending",
+        )
 
         return tx_receipt
 
-    def _build_transaction(self, from_addr, to_addr=None, value=0, data="0x", nonce=None, gas_limit=None, max_fee_per_gas=None, max_priority_fee_per_gas=None, chain_id=None):
-        """Build a basic EIP-1559 transaction dict."""
-        return {
-            "from": from_addr,
-            "nonce": nonce,
-            "value": value,
-            "to": to_addr,  # None for contract deployment
-            "gas": gas_limit,
-            "maxFeePerGas": max_fee_per_gas,
-            "maxPriorityFeePerGas": max_priority_fee_per_gas,
-            "type": "0x2",  # EIP-1559 transaction
-            "data": data
-        }
+    def send_contract_deployment(self, bytecode, abi, wallet_addr, network="fizit"):
+        web3_instance = self.get_web3_instance(network)
+        wallet_addr = to_checksum_address(wallet_addr)
 
-    def _hexify_tx(self, tx):
-        """Convert int values in tx dict to hex strings."""
-        return {k: (hex(v) if isinstance(v, int) else v) for k, v in tx.items()}
+        if not web3_instance.is_connected():
+            logging.error(f"Web3 instance is not connected to the {network} network.")
+            raise ConnectionError("Web3 instance is not connected")
+
+        org_id = self.config_manager.get_cs_org_id()
+        encoded_org_id = urllib.parse.quote(org_id, safe='')
+
+        role_session_token = self.secrets_manager.get_cs_role_session_token()
+        if not role_session_token:
+            raise ValueError("Session token is missing in the configuration")
+
+        chain_id = self.config_manager.get_chain_id(network)
+        
+        try:
+            # Prepare the contract data
+            nonce = web3_instance.eth.get_transaction_count(wallet_addr)
+            
+            # Set a manually high gas limit
+            gas_limit = 10_000_000  # Reasonably high limit for large contracts
+            
+            # Use fixed gas fees for simplicity
+            max_priority_fee_per_gas = web3_instance.to_wei('2', 'gwei')  # Priority fee
+            max_fee_per_gas = web3_instance.to_wei('100', 'gwei')  # Max fee per gas
+
+            log_info(self.logger, f"Deployment Details")
+            log_info(self.logger, f"Wallet Address: {wallet_addr}")
+            log_info(self.logger, f"Gas Limit: {gas_limit}")
+            log_info(self.logger, f"maxFeePerGas: {max_fee_per_gas}")
+            log_info(self.logger, f"maxPriorityFeePerGas: {max_priority_fee_per_gas}")
+                
+            # Build transaction
+            tx = {
+                "from": wallet_addr,
+                "nonce": nonce,
+                "value": 0,  # Contract deployments typically have no ETH value
+                "to": None,  # Contract deployment transaction
+                "gas": gas_limit,
+                "maxFeePerGas": max_fee_per_gas,
+                "maxPriorityFeePerGas": max_priority_fee_per_gas,
+                "type": "0x2",  # EIP-1559 transaction type
+                "data": bytecode
+            }
+
+            # Signing API payload
+            tx_data = {
+                "chain_id": chain_id,
+                "tx": {key: (hex(value) if isinstance(value, int) else value) for key, value in tx.items()}
+            }
+
+            cs_url = self.config_manager.get_cs_url()
+            api_url = f"{cs_url}/v1/org/{encoded_org_id}/eth1/sign/{wallet_addr}"
+            headers = {
+                "Content-Type": "application/json",
+                "accept": "application/json",
+                "Authorization": f"{role_session_token}"
+            }
+
+            # Send signing request
+            response = requests.post(api_url, json=tx_data, headers=headers)
+            response.raise_for_status()
+
+            signed_tx = response.json().get("rlp_signed_tx")
+            if not signed_tx:
+                raise ValueError("Signed transaction not found in response")
+
+            signed_tx_bytes = web3_instance.to_bytes(hexstr=signed_tx)
+
+            # Send the transaction to the network
+            tx_hash = web3_instance.eth.send_raw_transaction(signed_tx_bytes)
+
+            # Wait for transaction receipt
+            tx_receipt = web3_instance.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+            return tx_receipt
+
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Error sending request to signing API: {str(e)}")
+            raise
+
+        except Exception as e:
+            logging.error(f"Error occurred: {str(e)}")
+            raise
 
     def reset_web3_cache(self):
         """Clear all Web3-related caches."""

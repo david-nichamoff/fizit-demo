@@ -59,12 +59,13 @@ log/django.log
 log/events.log
 log/npm.log
 
-# cs files
+# cubesigner files
 cs/session.json
 cs/
 
 # config files
 api/config/config.json
 
-#django debug log
+# log files
 django_debug.log
+log/

@@ -125,6 +125,7 @@ class Command(BaseCommand):
                 raise ValueError("Contract was deployed, but no bytecode found at this address!")
 
             self.stdout.write(f"Contract successfully deployed and verified at {new_contract_addr}")
+            self.stdout.write(f"Reload cache!")
 
             # Update smart contract history
             self.update_smart_contract_history(current_contract_addr, new_contract_addr, contract_type)

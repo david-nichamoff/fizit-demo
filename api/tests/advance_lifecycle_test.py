@@ -131,7 +131,7 @@ class AdvanceLifecycleTest(TestCase):
 
     def _validate_event(self, contract_idx, event_type):
         """Check for an event with retries, filtering by contract_type, contract_idx, and to_addr."""
-        retries = 3
+        retries = 5
         to_addr = self.config_manager.get_contract_address("advance")
 
         for attempt in range(retries):
