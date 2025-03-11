@@ -57,6 +57,7 @@ class AdvanceContractEncryptionTest(TestCase):
         # 1. Create an advance contract
         contract_type = self.fixture_data["contract_type"]
         contract_data = self.fixture_data["contract"]
+        contract_data['contract_name'] = 'Advance Encryption Test'
         contract_response = self.contract_ops.post_contract(contract_type, contract_data)
         contract_idx = contract_response.get("contract_idx")
 

@@ -82,7 +82,9 @@ class SaleAuthorizationTest(TestCase):
         for scenario in self.scenarios:
             self._set_auth_header(scenario["key"])
 
-            response = self._perform_operation(self.contract_ops.post_contract, self.contract_type, self.contract_data['contract'])
+            contract = self.contract_data['contract']
+            contract['contract_name'] = 'Sale Authorization Test'
+            response = self._perform_operation(self.contract_ops.post_contract, self.contract_type, contract)
             log_info(self.logger, f"Sale contract scenario {scenario['key']} returned: {response}")
 
             if scenario["post_status"] == "Unauthorized":

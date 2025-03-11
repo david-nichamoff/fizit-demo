@@ -69,6 +69,7 @@ class AdvanceFiatTest(TestCase):
         self._test_load_transactions(contract_type, contract_idx, data['transactions'])
 
     def _test_create_contract(self, contract_type, contract_data):
+        contract_data["contract_name"] = "Advance Fiat Test"
         response = self.contract_ops.post_contract(contract_type, contract_data)
         contract_idx = response.get("contract_idx")
         self.assertGreater(contract_idx, 0)

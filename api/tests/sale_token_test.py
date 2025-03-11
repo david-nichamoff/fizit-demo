@@ -57,6 +57,7 @@ class SaleTokenTest(TestCase):
 
     def _create_contract(self, contract_type, contract_data):
         """Create a contract and return contract index."""
+        contract_data['contract_name'] = 'Sale Token Test'
         response = self.contract_ops.post_contract(contract_type, contract_data)
         contract_idx = response.get("contract_idx", -1)
         self.assertGreater(contract_idx, -1)

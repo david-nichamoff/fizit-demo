@@ -55,6 +55,7 @@ class PurchaseLifecycleTest(TestCase):
     def test_contract_lifecycle(self):
         """Test the entire contract lifecycle."""
         contract_body = self.contract_data["contract"]
+        contract_body["contract_name"] = "Purchase Lifecyle Test"
 
         # Store initial values
         service_fee_pct = float(contract_body["service_fee_pct"])

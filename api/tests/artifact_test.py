@@ -52,6 +52,7 @@ class ArtifactTest(TestCase):
             log_info(self.logger, f"Adding artifact list {artifact_list}")
 
             # Step 1: Create contract
+            contract_body['contract_name'] = 'Artifact Test'
             create_response = self.contract_ops.post_contract(contract_type, contract_body)
 
             if "error" in create_response:

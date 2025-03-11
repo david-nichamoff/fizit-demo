@@ -72,6 +72,7 @@ class SaleManualTest(TestCase):
 
     def _test_create_contract(self, contract_type, contract_data):
         """Create the manual sale contract."""
+        contract_data['contract_name'] = 'Sale Manual Test'
         response = self.contract_ops.post_contract(contract_type, contract_data)
         contract_idx = response.get("contract_idx")
         self.assertGreater(contract_idx, 0)

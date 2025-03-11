@@ -43,6 +43,7 @@ class PartyTest(TestCase):
 
             contract_type = contract_data["contract_type"]
             contract_body = contract_data["contract"]
+            contract_body['contract_name'] = 'Party Test'
             party_list = contract_data["parties"]
 
             # Step 1: Create contract

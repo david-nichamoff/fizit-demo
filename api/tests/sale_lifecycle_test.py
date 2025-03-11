@@ -56,6 +56,7 @@ class SaleLifecycleTest(TestCase):
     def test_contract_lifecycle(self):
         """Test the entire contract lifecycle."""
         contract_body = self.contract_data["contract"]
+        contract_body["contract_name"] = "Sale Lifecyle Test"
 
         # Step 1: Create the contract
         log_info(self.logger, f"Creating {self.contract_type} contract {contract_body}")

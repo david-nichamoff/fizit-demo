@@ -41,6 +41,7 @@ class DeleteContractTest(TestCase):
 
             contract_type = contract_data["contract_type"]
             contract_body = contract_data["contract"]
+            contract_body['contract_name'] = 'Delete Contract Test'
 
             create_response = self.contract_ops.post_contract(contract_type, contract_body)
 
