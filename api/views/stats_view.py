@@ -21,7 +21,5 @@ class StatsView(APIView):
     )
     def get(self, request):
         cache_manager = CacheManager()
-
-        stats = cache.get(cache_manager.get_stats_cache_key(), {'total_advance_amt': 0.00})  
-        total_advance_amt = round(stats.get('total_advance_amt', 0.00))
-        return Response({"total_advance_amt": total_advance_amt}, status=status.HTTP_200_OK)
+        stats = cache.get(cache_manager.get_stats_cache_key(), 0)  
+        return Response(stats, status=status.HTTP_200_OK)

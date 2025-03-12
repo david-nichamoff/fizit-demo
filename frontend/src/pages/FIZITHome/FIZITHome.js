@@ -1,137 +1,122 @@
 import React, { useEffect, useState } from "react";
-import fizitLogo from "../../../static/assets/logo/fizit_full_color.png"; 
+import "./FIZITHome.css";
 
-const API_URL = "/api/stats/"; 
+// Static assets
+import fizitLogo from "../../../static/assets/logo/fizit_full_color.png"; 
+import avalancheLogo from "../../../static/assets/logo/PoweredbyAvalanche_RedWhite1.png"; 
+import tetherLogo from "../../../static/assets/logo/Tether_Logo.png"; 
+import usBankLogo from "../../../static/assets/logo/U.S._Bancorp_logo.png";
+import blizzardLogo from "../../../static/assets/logo/BlizzardLogo.jpeg";
+
+const API_URL = "/api/stats/";
 
 const FIZITHome = () => {
-    const [transactionValue, setTransactionValue] = useState(0);
-    const [endValue, setEndValue] = useState(null);
+  const [transactionValue, setTransactionValue] = useState(0);
+  const [endValue, setEndValue] = useState(null);
+  const [totalTransactions, setTotalTransactions] = useState(0);
 
-    useEffect(() => {
-        const fetchTransactionValue = async () => {
-            try {
-                const response = await fetch(API_URL);
-                const data = await response.json();
-                if (data && data.total_advance_amt) {
-                setEndValue(data.total_advance_amt);
-                }
-            } catch (error) {
-                console.error("Error fetching transaction value:", error);
-            }
-        };
+  useEffect(() => {
+    const fetchTransactionValue = async () => {
+      try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
 
-        fetchTransactionValue();
-    }, []);  
+        if (data) {
+          if (data.total_advance_amt) setEndValue(data.total_advance_amt);
+          if (data.total_transactions) setTotalTransactions(data.total_transactions);
+        }
+      } catch (error) {
+        console.error("Error fetching transaction value:", error);
+      }
+    };
 
-    useEffect(() => {
-        if (endValue === null) return;
+    fetchTransactionValue();
+  }, []);
 
-        // Simulating transaction count animation
-        let start = 0;
-        let end = endValue; 
-        let duration = 2000;
-        let stepTime = duration / (end - start);
+  useEffect(() => {
+    if (endValue === null) return;
 
-        const incrementCounter = () => {
-            if (start < end) {
-                start += Math.ceil(end / 100);
-                setTransactionValue(start);
-                setTimeout(incrementCounter, stepTime);
-            } else {
-                setTransactionValue(end);
-            }
-        };
+    let start = 0;
+    const duration = 5000;
+    const stepTime = duration / (endValue - start);
 
-        incrementCounter();
-    }, [endValue]);
+    const incrementCounter = () => {
+      if (start < endValue) {
+        start += Math.ceil(endValue / 100);
+        setTransactionValue(start);
+        setTimeout(incrementCounter, stepTime);
+      } else {
+        setTransactionValue(endValue);
+      }
+    };
 
-    return (
-        <div style={styles.container}>
-        <img src={fizitLogo} alt="FIZIT Logo" style={styles.logo} />
-        <h1 style={styles.title}>It's Your Money and Timing is Everything</h1>
-        <p style={styles.subtitle}>
-            FIZIT empowers you to optimize cash flow with cutting-edge IoT and blockchain technology
+    incrementCounter();
+  }, [endValue]);
+
+  return (
+    <div className="container">
+
+      <div className = "logo-container">
+        <img src={fizitLogo} alt="FIZIT Logo" className="logo" />
+      </div>
+
+      <div className = "title-container">
+        <h1 className="title">It's Your Money and Timing is Everything</h1>
+        <p className="subtitle">
+          FIZIT empowers you to optimize cash flow with cutting-edge IoT and blockchain technology
         </p>
+      </div>
 
-        <p style={styles.detail}>
-            FIZIT Has Paid:
+      <div className = "counter-container">
+        <p className="body">
+          FIZIT has Funded {totalTransactions.toLocaleString()} Transactions Totaling:
         </p>
-        <div style={styles.counterContainer}>
-        ${transactionValue.toLocaleString()}
+        <div className="counter">
+          ${transactionValue.toLocaleString()}
         </div>
-        <p style={styles.detail}>
-            Next Day for Value Delivered
-        </p>
+        <p className="body">Get Paid Tomorrow for Value Delivered Today</p>
+      </div>
 
-        <a href="mailto:info@fizit.biz" style={styles.contactButton}>
-            Contact Us
-        </a>
+      <h4 className="section-title">Partners</h4>
+      <div className="partner-container">
+        <img src={avalancheLogo} alt="Avalanche Logo" className="partner-logo" />
+        <img src={tetherLogo} alt="Tether Logo" className="partner-logo" />
+        <img src={usBankLogo} alt="USBank Logo" className="partner-logo" />
+      </div>
 
-        <div style={styles.footer}>&copy; {new Date().getFullYear()} FIZIT, Inc. All rights reserved.</div>
+      <h4 className="section-title">Investors</h4>
+      <div className="partner-container">
+        <img src={blizzardLogo} alt="Blizzard Logo" className="partner-logo" />
+      </div>
+
+      {/* Contact Form */}
+      <h4 className="section-title">Contact Us</h4>
+      <form 
+        action="https://formspree.io/f/xoveqrro"
+        method="POST" 
+        className="contact-form"
+      >
+        <div className="form-group">
+          <label htmlFor="name" className='label'>Name: </label>
+          <input type="text" name="name" id="name" required />
         </div>
-    );
-};
+        <div className="form-group">
+            <label htmlFor="email" className='label'>Email: </label>
+            <input type="email" name="email" id="email" required />
+        </div>
+        <div className="form-group">
+            <label htmlFor="message" className='label'>Message: </label>
+            <textarea name="message" id="message" rows="4" required />
+        </div>
+        <button type="submit" className="message-button">Send Message</button>
+      </form>
 
-// Simple inline styles
-const styles = {
-  container: {
-    textAlign: "center",
-    fontFamily: "Arial, sans-serif",
-    padding: "50px 20px",
-  },
-  logo: {
-    width: "250px", 
-    height: "auto", 
-    marginBottom: "20px",
-  },
-  title: {
-    fontSize: "2rem",
-    fontWeight: "bold",
-    color: "#2c3e50",
-  },
-  subtitle: {
-    margin: "20px 0",
-    marginBottom: "60px",
-    fontSize: "1.2rem",
-    color: "#555",
-  },
-  detail: {
-    margin: "20px 0",
-    fontSize: "1rem",
-    color: "#555",
-  },
-  counterContainer: {
-    display: "inline-block",
-    backgroundColor: "#222", 
-    color: "#FFD700", // Gold/yellow numbers for contrast
-    padding: "20px 30px",
-    marginTop: "0px",
-    borderRadius: "8px",
-    fontFamily: "'Orbitron', sans-serif", 
-    fontSize: "3rem", 
-    fontWeight: "bold",
-    letterSpacing: "5px",
-    boxShadow: "0px 4px 8px rgba(0,0,0,0.3)", // Slight shadow for depth
-  },
-  contactButton: {
-    display: "inline-block",
-    marginTop: "40px",
-    padding: "12px 24px",
-    fontSize: "1.2rem",
-    fontWeight: "bold",
-    color: "#fff",
-    backgroundColor: "rgba(107, 72, 255, 1)",
-    border: "none",
-    borderRadius: "8px",
-    textDecoration: "none",
-    transition: "background-color 0.3s",
-    cursor: "pointer",
-  },
-  footer: {
-    marginTop: "20px",
-    fontSize: "0.9rem",
-    color: "#777",
-  },
+      <div className="footer">
+        &copy; {new Date().getFullYear()} FIZIT, Inc. All rights reserved.
+      </div>
+    </div>
+
+  );
 };
 
 export default FIZITHome;

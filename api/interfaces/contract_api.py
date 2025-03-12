@@ -125,6 +125,9 @@ class BaseContractAPI(ResponseMixin):
             tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, "fizit")
     
             if tx_receipt["status"] == 1:
+                # Sleep to give time for transaction to complete
+                time.sleep(self.config_manager.get_network_sleep_time())
+
                 cache_key = self.cache_manager.get_contract_cache_key(contract_type, contract_idx)
                 cache.delete(cache_key)
                 return self._format_success({"contract_idx": contract_idx}, f"Contract {contract_type}:{contract_idx} updated", status.HTTP_200_OK)
@@ -142,6 +145,9 @@ class BaseContractAPI(ResponseMixin):
             tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, "fizit")
 
             if tx_receipt["status"] == 1:
+                # Sleep to give time for transaction to complete
+                time.sleep(self.config_manager.get_network_sleep_time())
+
                 cache_key = self.cache_manager.get_contract_cache_key(contract_type, contract_idx)
                 cache.delete(cache_key)
                 return self._format_success( {"contract_idx":contract_idx}, f"Contract {contract_type}:{contract_idx} deleted", status.HTTP_204_NO_CONTENT)

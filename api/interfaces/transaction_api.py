@@ -153,6 +153,9 @@ class BaseTransactionAPI(ResponseMixin):
             tx = w3_contract.functions.deleteTransactions(contract_idx).build_transaction()
             self._send_transaction(tx, contract_type, contract_idx, "deleteTransactions")
 
+            # Sleep to give time for transaction to complete
+            time.sleep(self.config_manager.get_network_sleep_time())
+
             cache_key = self.cache_manager.get_transaction_cache_key(contract_type, contract_idx)
             cache.delete(cache_key)
             cache_key = self.cache_manager.get_settlement_cache_key(contract_type, contract_idx)

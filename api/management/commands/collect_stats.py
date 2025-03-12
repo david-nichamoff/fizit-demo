@@ -38,10 +38,11 @@ class Command(BaseCommand):
         self.transaction_ops = TransactionOperations(headers, base_url, csrf_token)
 
         while True:
-            stats = {}
-            stats["total_advance_amt"] = 0
+            stats = {
+                "total_advance_amt": 0,
+                "total_transactions": 0
+            }
 
-            time.sleep(self.config_manager.get_stats_sleep_time()) 
 
             try:
                 contract_types = self.registry_manager.get_contract_types()
@@ -54,17 +55,24 @@ class Command(BaseCommand):
                     for contract_idx in range(0, contract_count):
 
                         transactions = self.transaction_ops.get_transactions(contract_type, contract_idx)
-                        log_info(self.logger, f"Retrieved transactions {transactions} for {contract_type}:{contract_idx}")
-
                         for transaction in transactions:
-                            stats['total_advance_amt'] += Decimal(transaction.get("advance_pay_amt", 0))
+                            advance_pay_amt = Decimal(transaction.get("advance_pay_amt", 0))
+                            log_info(self.logger, f"Contract: {contract_type}:{contract_idx} Transact Amount: {advance_pay_amt}")
+
+                            if advance_pay_amt > 0:
+                                stats['total_transactions'] += 1 
+                                stats['total_advance_amt'] += advance_pay_amt
 
             except Exception as e:
                 log_error(self.logger, f"Error processing stats")
 
             cache_key = self.cache_manager.get_stats_cache_key()
             cache.set(cache_key, {
-                'total_advance_amt': stats['total_advance_amt'] 
+                'total_advance_amt': round(stats['total_advance_amt']),
+                'total_transactions': stats['total_transactions']
             })
 
             log_info(self.logger, f"Total advance value: {stats['total_advance_amt']}")
+            log_info(self.logger, f"Total transactions: {stats['total_transactions']}")
+
+            time.sleep(self.config_manager.get_stats_sleep_time()) 

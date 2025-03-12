@@ -98,6 +98,9 @@ class PartyAPI(ResponseMixin):
             function_call = w3_contract.functions.deleteParties(contract_idx)
             self._send_transaction(function_call, contract_type, contract_idx, "Failed to delete parties.")
 
+            # Sleep to give time for transaction to complete
+            time.sleep(self.config_manager.get_network_sleep_time())
+
             cache_key = self.cache_manager.get_party_cache_key(contract_type, contract_idx)
             cache.delete(cache_key)
 
