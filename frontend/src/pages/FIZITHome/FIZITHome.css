@@ -63,13 +63,13 @@
     display: flex;
     justify-content: flex-start; /* Align label/input to the left */
     align-items: center; /* Vertically align label and input */
-    width: 400px; /* or whatever works for your layout */
+    width: 320px; /* or whatever works for your layout */
     margin-bottom: 15px;
 }
 
 .label {
     display: inline-block;
-    width: 75px; /* Give labels a fixed width for alignment */
+    width: 70px; /* Give labels a fixed width for alignment */
     text-align: left; /* Align text to the right inside the label */
     margin-right: 10px; /* Space between label and input */
     font-size: 0.8rem;
