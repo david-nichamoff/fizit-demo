@@ -1,5 +1,6 @@
 import logging
 import json
+import time
 
 from decimal import Decimal
 from datetime import datetime
@@ -126,6 +127,9 @@ class BaseTransactionAPI(ResponseMixin):
                 ).build_transaction()
 
                 self._send_transaction(tx, contract_type, contract_idx, "addTransaction")
+
+            # Sleep to give time for transaction to complete
+            time.sleep(self.config_manager.get_network_sleep_time())
 
             cache_key = self.cache_manager.get_transaction_cache_key(contract_type, contract_idx)
             cache.delete(cache_key)

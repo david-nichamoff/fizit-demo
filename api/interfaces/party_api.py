@@ -1,4 +1,5 @@
 import logging
+import time
 
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
@@ -73,6 +74,9 @@ class PartyAPI(ResponseMixin):
                     contract_idx, [party["party_code"], party_addr, party["party_type"]]
                 )
                 self._send_transaction(function_call, contract_type, contract_idx, f"Failed to add party {party['party_code']}")
+
+            # Sleep to give time for transaction to complete
+            time.sleep(self.config_manager.get_network_sleep_time())
 
             cache_key = self.cache_manager.get_party_cache_key(contract_type, contract_idx)
             cache.delete(cache_key)

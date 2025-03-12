@@ -1,4 +1,5 @@
 import logging
+import time
 from decimal import Decimal
 
 from rest_framework import status
@@ -88,6 +89,9 @@ class BaseSettlementAPI(ResponseMixin):
                     raise RuntimeError
 
                 processed_count += 1
+
+            # Sleep to give time for transaction to complete
+            time.sleep(self.config_manager.get_network_sleep_time())
 
             cache_key = self.cache_manager.get_settlement_cache_key(contract_type, contract_idx)
             cache.delete(cache_key)

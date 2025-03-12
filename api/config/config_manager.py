@@ -253,7 +253,10 @@ class ConfigManager:
         return self._get_config_value("presigned_url_expiration", 3600)
 
     def get_listen_sleep_time(self):
-        return self._get_config_value("list_sleep_time", 5)
+        return self._get_config_value("listen_sleep_time", 5)
 
     def get_stats_sleep_time(self):
         return self._get_config_value("stats_sleep_time", 300)
+
+    def get_network_sleep_time(self):
+        return self._get_config_value("network_sleep_time", 1)
