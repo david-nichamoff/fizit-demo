@@ -69,7 +69,7 @@ const FIZITHome = () => {
 
       <div className = "counter-container">
         <p className="body">
-          FIZIT has Funded {totalTransactions.toLocaleString()} Transactions Totaling:
+          FIZIT has funded {totalTransactions.toLocaleString()} transactions totaling:
         </p>
         <div className="counter">
           ${transactionValue.toLocaleString()}
