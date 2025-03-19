@@ -101,10 +101,7 @@ class AdvanceTokenTest(TestCase):
         
         from_addr = self.config_manager.get_wallet_address("Transactor")
         to_addr = self.config_manager.get_contract_address("advance")
-        self._validate_event_log("PayAdvance", contract_type, contract_idx, from_addr=from_addr, to_addr=to_addr)
-
-        # from_addr = self.config_manager.get_party_address("FIZIT")
-        # self._validate_event_log("ERC-20 Transfer", contract_type, contract_idx, from_addr=from_addr)
+        self._validate_event_log("AdvancePaid", contract_type, contract_idx, from_addr=from_addr, to_addr=to_addr)
 
     def _process_deposits(self, contract_type, contract_idx, deposit_params, expected_deposit):
         """Retrieve and validate token deposits."""
@@ -129,7 +126,7 @@ class AdvanceTokenTest(TestCase):
 
         from_addr = self.config_manager.get_wallet_address("Transactor")
         to_addr = self.config_manager.get_contract_address("advance")
-        self._validate_event_log("PostSettlement", contract_type, contract_idx, from_addr=from_addr, to_addr=to_addr)
+        self._validate_event_log("SettlementPosted", contract_type, contract_idx, from_addr=from_addr, to_addr=to_addr)
 
     def _process_residuals(self, contract_type, contract_idx):
         """Retrieve and process residuals."""
@@ -143,9 +140,6 @@ class AdvanceTokenTest(TestCase):
         from_addr = self.config_manager.get_wallet_address("Transactor")
         to_addr = self.config_manager.get_contract_address("advance")
         self._validate_event_log("ResidualPaid", contract_type, contract_idx, from_addr=from_addr, to_addr=to_addr)
-
-        # from_addr = self.config_manager.get_party_address("FIZIT")
-        # self._validate_event_log("ERC-20 Transfer", contract_type, contract_idx, from_addr=from_addr)
 
     def _validate_event_log(self, event_type, contract_type, contract_idx, from_addr=None, to_addr=None):
         """Wait up to 30 seconds for an event to appear with status 'complete'."""

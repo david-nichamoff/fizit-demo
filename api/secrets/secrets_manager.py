@@ -29,6 +29,16 @@ class SecretsManager:
             self.cache_manager = CacheManager()
             self.logger = logging.getLogger(__name__)
 
+            fizit_env = os.getenv("FIZIT_ENV")
+            if not fizit_env or fizit_env not in {"dev", "test", "main"}:
+                raise EnvironmentError("FIZIT_ENV must be set to 'dev', 'test', or 'main'.")
+
+            self.secret_prefix = {
+                "dev": "devnet",
+                "test": "testnet",
+                "main": "mainnet"
+            }[fizit_env]
+
             self.cache_key = self.cache_manager.get_secret_cache_key()
 
     def _load_secrets(self):
@@ -42,21 +52,13 @@ class SecretsManager:
 
     def _reload_secrets_from_aws(self):
         secrets = {}
-        fizit_env = os.getenv("FIZIT_ENV")
-
-        if not fizit_env or fizit_env not in {"dev", "test", "main"}:
-            raise EnvironmentError("FIZIT_ENV must be set to 'dev', 'test', or 'main'.")
-
-        secret_prefix = {"dev": "devnet", "test": "testnet", "main": "mainnet"}[fizit_env]
-        client = boto3.client(service_name="secretsmanager", region_name=self.region_name)
 
         try:
             # Load secrets
-            secrets["FIZIT_MASTER_KEY"] = self._fetch_secret(client, f"{secret_prefix}/master-key", "api_key")
-            secrets["aes_key"] = self._fetch_secret(client, f"{secret_prefix}/contract-key", "aes_key")
-            secrets["static_keys"] = self._fetch_secret(client, f"{secret_prefix}/static-keys")
-            secrets["cs_keys"] = self._fetch_secret(client, f"{secret_prefix}/cs-keys")
-            secrets["partner_keys"] = self._fetch_partner_api_keys(client, secret_prefix)
+            secrets["aes_key"] = self._fetch_secret(f"{self.secret_prefix}/contract-key", "aes_key")
+            secrets["static_keys"] = self._fetch_secret(f"{self.secret_prefix}/static-keys")
+            secrets["cs_keys"] = self._fetch_secret(f"{self.secret_prefix}/cs-keys")
+            secrets["partner_keys"] = self._fetch_partner_api_keys(self.secret_prefix)
 
             # Store in Redis with no expiration (timeout=None)
             cache.set(self.cache_key, secrets, timeout=None)
@@ -68,8 +70,10 @@ class SecretsManager:
             log_error(self.logger, f"Error fetching secrets: {e}")
             raise RuntimeError("Failed to load secrets.") from e
 
-    def _fetch_secret(self, client, secret_name, key=None):
+    def _fetch_secret(self, secret_name, key=None):
         """(Internal) Fetch a single secret from AWS Secrets Manager."""
+        client = boto3.client(service_name="secretsmanager", region_name=self.region_name)
+
         try:
             response = client.get_secret_value(SecretId=secret_name)
             secret_string = response.get("SecretString")
@@ -84,8 +88,9 @@ class SecretsManager:
             log_error(self.logger, f"Error fetching secret '{secret_name}': {e}")
             raise
 
-    def _fetch_partner_api_keys(self, client, secret_prefix):
+    def _fetch_partner_api_keys(self, secret_prefix):
         """(Internal) Fetch partner API keys from AWS Secrets Manager."""
+        client = boto3.client(service_name="secretsmanager", region_name=self.region_name)
         partner_keys = {}
 
         try:
@@ -93,7 +98,7 @@ class SecretsManager:
             for secret in response.get("SecretList", []):
                 secret_name = secret["Name"]
                 partner_code = secret_name.split(f"{secret_prefix}/api-key-")[-1]
-                partner_keys[partner_code] = self._fetch_secret(client, secret_name, "api_key")
+                partner_keys[partner_code] = self._fetch_secret(secret_name, "api_key")
 
         except ClientError as e:
             log_error(self.logger, f"Error listing partner API keys: {e}")
@@ -116,8 +121,10 @@ class SecretsManager:
     # --- Public API Methods ---
 
     def get_master_key(self):
-        """Retrieve the FIZIT Master Key."""
-        return self._load_secrets().get("FIZIT_MASTER_KEY")
+        """Always fetch the FIZIT Master Key directly from AWS.
+        This eliminate possibility of a break during a key rotation"""
+        secret_name = f"{self.secret_prefix}/master-key"
+        return self._fetch_secret(secret_name, key="api_key")
 
     def get_aes_key(self):
         """Retrieve the AES contract encryption key."""

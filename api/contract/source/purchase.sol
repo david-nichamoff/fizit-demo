@@ -169,7 +169,7 @@ contract Purchase {
         transactions[contract_idx][transact_idx].advance_pay_dt = advance_pay_dt;
         transactions[contract_idx][transact_idx].advance_pay_amt = advance_pay_amt;
         transactions[contract_idx][transact_idx].advance_tx_hash = advance_tx_hash;
-        emit ContractEvent(contract_idx, "PayAdvance", "");
+        emit ContractEvent(contract_idx, "AdvancePaid", "");
     }
 
     function uintToString(uint v) internal pure returns (string memory) {

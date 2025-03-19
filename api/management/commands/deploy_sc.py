@@ -6,7 +6,6 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 from django.utils import timezone
 
-from api.secrets import SecretsManager
 from api.config import ConfigManager
 from api.web3 import Web3Manager
 from api.registry import RegistryManager
@@ -30,7 +29,6 @@ class Command(BaseCommand):
         web3_manager = Web3Manager()
         w3 = web3_manager.get_web3_instance(network="fizit")
 
-        secrets_manager = SecretsManager()
         config_manager = ConfigManager()
         registry_manager = RegistryManager()
 
@@ -70,7 +68,13 @@ class Command(BaseCommand):
         if not current_contract_addr:
             raise ValueError(f"Current contract address for type '{contract_type}' not found in configuration.")
 
+        # Get the current contract release in a temporary variable
+        current_contract_release = config_manager.get_contract_release(contract_type)
+        if current_contract_release is None:
+            raise ValueError(f"Current contract release for type '{contract_type}' not found in configuration.")
+
         self.stdout.write(f"Current contract address: {current_contract_addr}")
+        self.stdout.write(f"Current contract release: {current_contract_release}")
 
         # Check nonce before deployment
         nonce = w3.eth.get_transaction_count(wallet_address)
@@ -95,8 +99,7 @@ class Command(BaseCommand):
             tx_receipt = web3_manager.send_contract_deployment(
                 bytecode=bytecode,
                 wallet_addr=wallet_address,
-                network=network,
-                abi=abi
+                network=network
             )
 
             # Extract transaction hash from the receipt
@@ -119,6 +122,8 @@ class Command(BaseCommand):
             new_contract_addr = tx_receipt.contractAddress
             self.stdout.write(f"New contract deployed at address: {new_contract_addr}")
 
+            new_contract_release = current_contract_release + 1
+
             # Verify contract exists at the deployed address
             deployed_code = w3.eth.get_code(new_contract_addr)
             if deployed_code.hex() == "0x":
@@ -128,15 +133,15 @@ class Command(BaseCommand):
             self.stdout.write(f"Reload cache!")
 
             # Update smart contract history
-            self.update_smart_contract_history(current_contract_addr, new_contract_addr, contract_type)
+            self.update_smart_contract_history(current_contract_addr, new_contract_addr, new_contract_release, contract_type)
 
             # Update config.json with the new contract address
-            self.update_config(contract_type, new_contract_addr)
+            self.update_config(contract_type, new_contract_addr, new_contract_release)
 
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"Failed to deploy the contract: {str(e)}"))
 
-    def update_smart_contract_history(self, current_contract_addr, new_contract_addr, contract_type):
+    def update_smart_contract_history(self, current_contract_addr, new_contract_addr, new_contract_release, contract_type):
         """Update smart contract history in the database."""
         # Set expiry date for the current contract
         try:
@@ -150,16 +155,17 @@ class Command(BaseCommand):
         # Create a new entry for the new contract
         new_contract = SmartContract(
             contract_addr=new_contract_addr,
+            contract_release=new_contract_release,
             contract_type=contract_type,
             created_dt=timezone.now()
         )
         new_contract.save()
         self.stdout.write(f"Created new smart contract entry for: {new_contract_addr} for type {contract_type}")
 
-    def update_config(self, contract_type, new_contract_addr):
+    def update_config(self, contract_type, new_contract_addr, new_contract_release):
         """Update the contract address in config.json for the given contract_type."""
         config_manager = ConfigManager()
-        config_manager.update_contract_address(contract_type, new_contract_addr)
+        config_manager.update_contract_address(contract_type, new_contract_addr, new_contract_release)
 
     # Compile the Solidity contract
     def compile_contract(self, contract_file_path):

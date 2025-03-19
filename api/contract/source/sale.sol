@@ -224,7 +224,7 @@ contract Advance {
             settlements[contract_idx][settle_idx].dist_calc_amt = 0;
         }
 
-        emit ContractEvent(contract_idx, "PostSettlement", "");
+        emit ContractEvent(contract_idx, "SettlementPosted", "");
     }
 
     function payDistribution(uint contract_idx, uint settle_idx, uint dist_pay_dt, int dist_pay_amt, string memory dist_tx_hash) public {

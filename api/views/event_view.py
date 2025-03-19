@@ -29,7 +29,7 @@ class EventViewSet(viewsets.ViewSet, ValidationMixin):
         self.registry_manager = RegistryManager()
 
     @extend_schema(
-        tags=["Events"],
+        tags=["Admin"],
         parameters=[
             OpenApiParameter(name='contract_idx', description='Contract index for filtering events', required=True, type=int),
             OpenApiParameter(name='contract_type', description='Contract type for filtering events', required=True, type=str),

@@ -1,7 +1,9 @@
 from .login_view import *
 from .format_fields import *
+
 from .event_admin_view import EventAdmin
 from .contract_admin_view import ContractAdmin
+
 from .erc20_balances_view import  erc20_balances_view
 from .mercury_balances_view import  mercury_balances_view
 from .avax_balances_view import  avax_balances_view

@@ -60,7 +60,6 @@ log/events.log
 log/npm.log
 
 # cubesigner files
-cs/session.json
 cs/
 
 # config files

@@ -64,7 +64,7 @@ class ArtifactTest(TestCase):
 
             log_info(self.logger, f"Created contract {contract_type}:{contract_idx} from {file_path}")
 
-            time.sleep(5)
+            time.sleep(15)
 
             # Step 2: Add artifacts
             add_response = self.artifact_ops.post_artifacts(contract_type, contract_idx, artifact_list)

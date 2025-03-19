@@ -1,5 +1,14 @@
 {% extends "admin/base_site.html" %}
 {% load humanize %}
+{% load static %}
+
+{% block extrahead %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/balances.css' %}">
+    <script src="{% static 'js/copy_clipboard.js' %}?v=1.2"></script>
+    <script src="{% static 'js/paste_clipboard.js' %}?v=1.0"></script>
+    <script src="{% static 'js/send_transfer.js' %}?v=1.0"></script>
+{% endblock %}
 
 {% block content %}
 <div id="content-main">
@@ -30,7 +39,15 @@
                     {% for wallet in balances.wallets %}
                     <tr>
                         <td>{{ wallet.label }}</td>
-                        <td>{{ wallet.address }}</td>
+                        <td>
+                            <span id="wallet-address-{{ forloop.counter }}">{{ wallet.address }}</span>
+                            <button type="button"
+                                    class="w3-button w3-transparent icon-button"
+                                    onclick="copyToClipboard('wallet-address-{{ forloop.counter }}')"
+                                    title="Copy address">
+                                <i class="fas fa-clipboard"></i>
+                            </button>
+                        </td>
                         <td>{{ wallet.balance | floatformat:2|intcomma}}</td>
                     </tr>
                     {% empty %}
@@ -57,7 +74,15 @@
                     {% for party in balances.parties %}
                     <tr>
                         <td>{{ party.label }}</td>
-                        <td>{{ party.address }}</td>
+                        <td>
+                            <span id="party-address-{{ forloop.counter }}">{{ party.address }}</span>
+                            <button type="button"
+                                    class="w3-button w3-transparent icon-button"
+                                    onclick="copyToClipboard('wallet-address-{{ forloop.counter }}')"
+                                    title="Copy address">
+                                <i class="fas fa-clipboard"></i>
+                            </button>
+                        </td>
                         <td>{{ party.balance }}</td>
                     </tr>
                     {% empty %}
@@ -68,6 +93,58 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Transfer Funds Section -->
+        <div class="module">
+            <h2 class="subhead">Transfer Funds</h2>
+            <form method="post" class="transfer-funds-form">
+                {% csrf_token %}
+                <fieldset class="module aligned">
+                    <!-- From Address -->
+                    <div class="form-row">
+                        <label for="{{ transfer_funds_form.from_address.id_for_label }}">
+                            {{ transfer_funds_form.from_address.label }}
+                        </label>
+                        {{ transfer_funds_form.from_address }}
+                        <button type="button"
+                                class="icon-button"
+                                onclick="pasteFromClipboard('id_from')"
+                                title="Paste address">
+                            <i class="fas fa-paste"></i>
+                        </button>
+                    </div>
+                
+                    <!-- To Address -->
+                    <div class="form-row">
+                        <label for="{{ transfer_funds_form.to_address.id_for_label }}">
+                            {{ transfer_funds_form.to_address.label }}
+                        </label>
+
+                        {{ transfer_funds_form.to_address }} 
+                        <button type="button"
+                                class="icon-button"
+                                onclick="pasteFromClipboard('id_to')"
+                                title="Paste address">
+                            <i class="fas fa-paste"></i>
+                        </button>
+                    </div>
+                
+                    <!-- Amount -->
+                    <div class="form-row">
+                        <label for="{{ transfer_funds_form.amount.id_for_label }}">
+                            {{ transfer_funds_form.amount.label }}
+                        </label>
+                        {{ transfer_funds_form.amount }}
+                    </div>
+                </fieldset>
+
+                <!-- Submit Button -->
+                <div class="submit-row">
+                    <input type="submit" value="Send Funds" class="default" />
+                </div>
+            </form>
+        </div>
+    <div>
     {% endif %}
 </div>
 {% endblock %}

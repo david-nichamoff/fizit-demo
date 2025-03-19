@@ -15,7 +15,7 @@ class StatsView(APIView):
     permission_classes = [AllowAny]
 
     @extend_schema(
-        tags=["Stats"],
+        tags=["Admin"],
         summary="Transaction Stats",
         description="Retrieve transaction statistics",
     )

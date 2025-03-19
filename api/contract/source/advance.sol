@@ -258,7 +258,7 @@ contract Advance {
         transactions[contract_idx][transact_idx].advance_pay_dt = advance_pay_dt;
         transactions[contract_idx][transact_idx].advance_pay_amt = advance_pay_amt;
         transactions[contract_idx][transact_idx].advance_tx_hash = advance_tx_hash;
-        emit ContractEvent(contract_idx, "PayAdvance", "");
+        emit ContractEvent(contract_idx, "AdvancePaid", "");
     }
 
     function postSettlement(uint contract_idx, uint settle_idx, uint settle_pay_dt, int settle_pay_amt, string memory settle_tx_hash, string memory dispute_reason) public {
@@ -290,7 +290,7 @@ contract Advance {
             settlements[contract_idx][settle_idx].residual_calc_amt = 0;
         }
 
-        emit ContractEvent(contract_idx, "PostSettlement", "");
+        emit ContractEvent(contract_idx, "SettlementPosted", "");
     }
 
     function payResidual(uint contract_idx, uint settle_idx, uint residual_pay_dt, int residual_pay_amt, string memory residual_tx_hash) public {

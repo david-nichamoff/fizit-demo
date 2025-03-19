@@ -1,54 +1,42 @@
 import logging
-from django.shortcuts import render
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+
 from eth_utils import to_checksum_address
+
 from api.config import ConfigManager
 from api.web3 import Web3Manager
+from api.registry import RegistryManager
+from api.secrets import SecretsManager
+from api.operations import CsrfOperations
+from api.web3 import Web3Manager
 from api.utilities.logging import log_info, log_warning, log_error
+
+from frontend.forms import TransferFundsForm
 
 logger = logging.getLogger(__name__)
 
 ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
-def avax_balances_view(request, extra_context=None):
-    """
-    Custom view to display AVAX native token balances.
-    """
-    try:
-        log_info(logger, "AVAX Balances view accessed")
+def initialize_backend_services():
+    secrets_manager = SecretsManager()
+    config_manager = ConfigManager()
+    registry_manager = RegistryManager()
+    web3_manager = Web3Manager()
 
-        # Initialize Config and Web3 managers
-        config_manager = ConfigManager()
-        web3_manager = Web3Manager()
-        w3 = web3_manager.get_web3_instance(network="avalanche")  
+    headers = {
+        'Authorization': f"Api-Key {secrets_manager.get_master_key()}",
+        'Content-Type': 'application/json',
+    }
 
-        # Collect AVAX balances
-        balances = {
-            "wallets": _get_avax_balances(config_manager.get_wallet_addresses(), "Wallet", w3, logger),
-            "parties": _get_avax_balances(config_manager.get_party_addresses(), "Party", w3, logger),
-        }
+    csrf_ops = CsrfOperations(headers, config_manager.get_base_url())
+    csrf_token = csrf_ops.get_csrf_token()
 
-        if not balances["wallets"] and not balances["parties"]:
-            log_warning(logger, "No balances found for wallets or parties.")
-            context = {"balances": {}, "error": "No balances found."}
-        else:
-            context = {"balances": balances}
+    return headers, registry_manager, config_manager, web3_manager, csrf_token
 
-        # Merge with extra_context if provided
-        if extra_context:
-            context.update(extra_context)
 
-        return render(request, "admin/avax_balances.html", context)
-
-    except Exception as e:
-        log_error(logger, f"Error in avax_balances_view: {e}")
-        return render(
-            request,
-            "admin/avax_balances.html",
-            {"error": f"An error occurred: {str(e)}"},
-            status=500,
-        )
-
-def _get_avax_balances(addresses, label, w3, logger):
+def get_avax_balances(addresses, label, w3, logger):
     """Helper to retrieve AVAX native token balances for wallets or parties."""
     results = []
 
@@ -86,3 +74,39 @@ def _get_avax_balances(addresses, label, w3, logger):
             results.append({"label": item_label, "address": item_addr, "balance": "Error"})
 
     return results
+
+def handle_post_request(request, headers, config, csrf_token):
+    from_address = request.POST.get("from_address")
+    to_address = request.POST.get("to_address")
+    amount = request.POST.get("amount")
+
+    log_info(logger, f"Send {amount} from {to_address} to {from_address}")
+    messages.success(request, "Transaction posted successfully.")
+    return redirect(request.path)
+
+def avax_balances_view(request, extra_context=None):
+    headers, registry_manager, config_manager, web3_manager, csrf_token = initialize_backend_services()
+    base_url = config_manager.get_base_url()
+    w3 = web3_manager.get_web3_instance(network="avalanche") 
+
+    if request.method == 'POST':
+        # Delegate to the POST handler
+        return handle_post_request(request, headers, base_url, csrf_token)
+
+    # Collect AVAX balances
+    balances = {
+        "wallets": get_avax_balances(config_manager.get_wallet_addresses(), "Wallet", w3, logger),
+        "parties": get_avax_balances(config_manager.get_party_addresses(), "Party", w3, logger),
+    }
+
+    transfer_funds_form = TransferFundsForm() 
+
+    context = {
+        "balances": balances,
+        "transfer_funds_form": transfer_funds_form
+    }
+
+    if extra_context:
+        context.update(extra_context)
+
+    return render(request, "admin/avax_balances.html", context)

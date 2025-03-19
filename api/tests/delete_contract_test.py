@@ -1,6 +1,8 @@
 import os
 import json
 import logging
+import time
+
 from django.test import TestCase
 
 from api.operations import ContractOperations, CsrfOperations
@@ -54,6 +56,8 @@ class DeleteContractTest(TestCase):
 
             contract_records.append((contract_type, contract_idx))
             log_info(self.logger, f"Created contract {contract_type}:{contract_idx}")
+
+            time.sleep(15)
 
         # Step 2: Delete each contract
         for contract_type, contract_idx in contract_records:

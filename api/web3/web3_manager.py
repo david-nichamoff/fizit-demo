@@ -121,6 +121,8 @@ class Web3Manager():
 
     def send_signed_transaction(self, transaction, wallet_addr, contract_type, contract_idx, network="fizit"):
         """Send a signed transaction using the signing API."""
+        """Note that contract_type and contract_idx could be none, which means its a manual transfer of funds"""
+
         web3_instance = self.get_web3_instance(network)
         wallet_addr = to_checksum_address(wallet_addr)
         chain_id = self.config_manager.get_chain_id(network)
@@ -140,6 +142,7 @@ class Web3Manager():
                 nonce=nonce,
                 chain_id=chain_id
             )
+
             gas_limit, max_fee_per_gas, max_priority_fee_per_gas = self._estimate_gas_fees(web3_instance, tx)
 
             log_info(self.logger, f"TX to send {tx}")
@@ -155,18 +158,27 @@ class Web3Manager():
             signed_tx, error_code = self._sign_transaction({"chain_id": chain_id, "tx": self._hexify_tx(tx)}, wallet_addr)
 
             if signed_tx:
-                return self._broadcast_transaction(web3_instance, signed_tx, wallet_addr, transaction, contract_type, contract_idx, network)
+                tx_hash, tx_receipt = self._broadcast_transaction(web3_instance, signed_tx)
+                tx_hash_hex = tx_hash.hex()
+
+                if contract_type is not None and contract_idx is not None:
+                    contract_release = self.config_manager.get_contract_release(contract_type)
+                    self._log_event(transaction, tx_hash_hex, wallet_addr, contract_type, contract_idx, contract_release, network)
+
             elif error_code == 'MfaRequired':
                 # Simulate a successful response
-                return 'MfaRequired'
+                tx_receipt = 'MfaRequired'
             else:
-                raise RuntimeError(error_code)
+                raise RuntimeError(f"Error broadcasting transaction with error code: {error_code}")
+
+            return tx_receipt
 
         except Exception as e:
             log_error(self.logger, f"Error sending signed transaction: {e}")
             raise
 
-    def send_contract_deployment(self, bytecode, abi, wallet_addr, network="fizit"):
+    def send_contract_deployment(self, bytecode, wallet_addr, network="fizit"):
+
         web3_instance = self.get_web3_instance(network)
         wallet_addr = to_checksum_address(wallet_addr)
         chain_id = self.config_manager.get_chain_id(network)
@@ -204,9 +216,11 @@ class Web3Manager():
             signed_tx, error_code = self._sign_transaction({"chain_id": chain_id, "tx": self._hexify_tx(tx)}, wallet_addr)
 
             if signed_tx:
-                return self._broadcast_transaction(web3_instance, signed_tx, wallet_addr, tx, contract_type="Deployment", contract_idx=None, network=network)
+                tx_hash, tx_receipt = self._broadcast_transaction(web3_instance, signed_tx)
+            else:
+                raise RuntimeError(f"Transaction failed with error code {error_code}")
 
-            raise RuntimeError(error_code)
+            return tx_receipt
 
         except Exception as e:
             logging.error(f"Error occurred: {str(e)}")
@@ -255,29 +269,38 @@ class Web3Manager():
         response.raise_for_status()
         signed_tx = response.json().get("rlp_signed_tx")
         error_code = response.json().get("error_code")
+
         return signed_tx, error_code
 
-    def _broadcast_transaction(self, web3_instance, signed_tx, wallet_addr, transaction, contract_type, contract_idx, network):
+    def _broadcast_transaction(self, web3_instance, signed_tx):
         """Broadcast the signed transaction to the network."""
+
         tx_hash = web3_instance.eth.send_raw_transaction(web3_instance.to_bytes(hexstr=signed_tx))
         tx_receipt = web3_instance.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
 
-        # If this was a contract deployment, no need to create an event
-        if contract_type != 'Deployment':
+        return tx_hash, tx_receipt
 
+    def _log_event(self, transaction, tx_hash, wallet_addr, contract_type, contract_idx, contract_release, network):
+        """ Log event associated with a particular contract"""
+
+        try:
             Event.objects.create(
                 contract_idx=contract_idx,
                 contract_type=contract_type,
+                contract_release=contract_release,
                 network=network,
                 from_addr=wallet_addr,
                 to_addr=transaction["to"],
-                tx_hash=tx_hash.hex(),
+                tx_hash=tx_hash,
                 event_type="TransactionSent",
                 details="Pending",
                 status="pending",
             )
 
-        return tx_receipt
+        except Exception as e:
+            logging.error(f"Error occurred: {str(e)}")
+            raise
+
 
     def _build_transaction(self, from_addr, to_addr=None, value=0, data="0x", nonce=None, gas_limit=None, max_fee_per_gas=None, max_priority_fee_per_gas=None, chain_id=None):
         """Build a basic EIP-1559 transaction dict."""

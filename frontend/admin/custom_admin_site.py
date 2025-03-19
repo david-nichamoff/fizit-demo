@@ -108,12 +108,13 @@ class CustomAdminSite(AdminSite):
         # Custom links grouped by sections
         context['custom_links'] = [
             {
-                'section': 'Balances',
+                'section': 'Payments',
                 'links': [
-                    {'name': 'AVAX', 'url': reverse('custom_admin:avax_balances')},
-                    {'name': 'FIZIT', 'url': reverse('custom_admin:fizit_balances')},
-                    {'name': 'ERC20', 'url': reverse('custom_admin:erc20_balances')},
-                    {'name': 'Mercury', 'url': reverse('custom_admin:mercury_balances')},
+                    {'name': 'AVAX Balances', 'url': reverse('custom_admin:avax_balances')},
+                    {'name': 'FIZIT Balances', 'url': reverse('custom_admin:fizit_balances')},
+                    {'name': 'ERC20 Balances', 'url': reverse('custom_admin:erc20_balances')},
+                    {'name': 'Mercury Balances', 'url': reverse('custom_admin:mercury_balances')},
+                    {'name': 'Approvals', 'url': reverse('custom_admin:mercury_balances')},
                 ],
             },
             {

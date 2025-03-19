@@ -30,7 +30,7 @@ class RecipientViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         self.logger = logging.getLogger(__name__)
 
     @extend_schema(
-        tags=["Recipients"],
+        tags=["Bank"],
         parameters=[
             OpenApiParameter(
                 name='bank',

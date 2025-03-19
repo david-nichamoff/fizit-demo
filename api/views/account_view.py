@@ -27,7 +27,7 @@ class AccountViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         self.account_api = AccountAPI(registry_manager=self.registry_manager)
 
     @extend_schema(
-        tags=["Accounts"],
+        tags=["Bank"],
         parameters=[
             OpenApiParameter(
                 name="bank",

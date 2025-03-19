@@ -133,23 +133,40 @@ class ConfigManager:
         log_warning(self.logger, f"'{child_key}' not found in configuration '{parent_key}'. Returning default.")
         return default
 
-    def update_contract_address(self, contract_type, contract_address):
+    def update_contract_address(self, contract_type, contract_address, contract_release):
         """Update contract address"""
         config = self._load_config()
-        contracts = config.get("contract_addr", [])
+        contract_addresses = config.get("contract_addr", [])
+        contract_releases = config.get("contract_release", [])
 
-        if not isinstance(contracts, list):
+        if not isinstance(contract_addresses, list):
             log_error(self.logger, "Contract addresses section is not a list in configuration.")
             raise ValueError("Contract addresses section is not a list in configuration.")
 
+        if not isinstance(contract_releases, list):
+            log_error(self.logger, "Contract releases section is not a list in configuration.")
+            raise ValueError("Contract releases section is not a list in configuration.")
+
         # Update contract address
         updated = False
-        for contract in contracts:
+        for contract in contract_addresses:
             if isinstance(contract, dict) and contract.get("key") == contract_type:
-                old_address = contract.get("value", "N/A")
                 contract["value"] = contract_address
                 updated = True
-                log_info(self.logger, f"Updated {contract_type} contract address from {old_address} to {contract_address}")
+                log_info(self.logger, f"Updated {contract_type} contract address to {contract_address}")
+                break
+
+        if not updated:
+            log_error(self.logger, f"Contract type '{contract_type}' not found in configuration.")
+            raise ValueError(f"Contract type '{contract_type}' not found in configuration.")
+
+        # Update contract release
+        updated = False
+        for contract in contract_releases:
+            if isinstance(contract, dict) and contract.get("key") == contract_type:
+                contract["value"] = contract_release
+                updated = True
+                log_info(self.logger, f"Updated {contract_type} contract release to {contract_release}")
                 break
 
         if not updated:
@@ -210,6 +227,13 @@ class ConfigManager:
 
     def get_contract_address(self, contract_type):
         contracts = self._get_config_value("contract_addr", [])
+        for contract in contracts:
+            if contract["key"] == contract_type:
+                return contract["value"]
+        return None
+
+    def get_contract_release(self, contract_type):
+        contracts = self._get_config_value("contract_release", [])
         for contract in contracts:
             if contract["key"] == contract_type:
                 return contract["value"]

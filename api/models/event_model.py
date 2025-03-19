@@ -4,6 +4,7 @@ class Event(models.Model):
     event_idx = models.AutoField(primary_key=True) 
     contract_idx = models.IntegerField(null=True, blank=True)     
     contract_type = models.CharField(max_length=25)
+    contract_release = models.IntegerField(default=0)
     network = models.CharField(max_length=50, null=True, blank=True) 
     from_addr = models.CharField(null=True, blank=True, max_length=255)
     to_addr = models.CharField(null=True, blank=True, max_length=255)
