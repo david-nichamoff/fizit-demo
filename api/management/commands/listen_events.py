@@ -47,7 +47,7 @@ class Command(BaseCommand):
                     try:
                         time.sleep(self.config_manager.get_listen_sleep_time())  # Pause before processing events
 
-                        # 🔥 Check for contract config changes in the inner loop
+                        #  Check for contract config changes in the inner loop
                         if self.contracts_changed():
                             log_warning(self.logger, "Contract addresses changed! Reloading contracts and filters...")
                             break  # Exit inner loop to reload everything
@@ -133,8 +133,8 @@ class Command(BaseCommand):
                 log_info(self.logger, f"Fizit event found for {contract_type}: {event}")
 
                 tx_hash = event.get('transactionHash', b'').hex()
-                if tx_hash.startswith("0x"):
-                    tx_hash = tx_hash[2:]
+                if not tx_hash.startswith("0x"):
+                    tx_hash = "0x" + tx_hash
 
                 contract_addr = event.get('address', 'Unknown address')
                 block_number = event.get('blockNumber', 'Unknown block')
@@ -149,7 +149,7 @@ class Command(BaseCommand):
                 gas_used = receipt.get("gasUsed") if receipt else None
                 block_timestamp = self.fizit_w3.eth.get_block(block_number).timestamp
 
-                time.sleep(1)
+                time.sleep(self.config_manager.get_listen_sleep_time())
 
                 existing_event = Event.objects.filter(tx_hash=tx_hash).first()
                 if existing_event:

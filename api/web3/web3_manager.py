@@ -159,7 +159,7 @@ class Web3Manager():
 
             if signed_tx:
                 tx_hash, tx_receipt = self._broadcast_transaction(web3_instance, signed_tx)
-                tx_hash_hex = tx_hash.hex()
+                tx_hash_hex = Web3.to_hex(tx_hash)
 
                 if contract_type is not None and contract_idx is not None:
                     contract_release = self.config_manager.get_contract_release(contract_type)
