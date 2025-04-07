@@ -59,18 +59,21 @@ class Command(BaseCommand):
         balance = w3.eth.get_balance(wallet_address)
         self.stdout.write(f"Wallet balance: {w3.from_wei(balance, 'ether')} FIZIT")
 
-        # Save the current contract address in a temporary variable
         current_contract_addr = self.context.config_manager.get_contract_address(contract_type)
-        if not current_contract_addr:
-            raise ValueError(f"Current contract address for type '{contract_type}' not found in configuration.")
-
-        # Get the current contract release in a temporary variable
         current_contract_release = self.context.config_manager.get_contract_release(contract_type)
-        if current_contract_release is None:
-            raise ValueError(f"Current contract release for type '{contract_type}' not found in configuration.")
 
-        self.stdout.write(f"Current contract address: {current_contract_addr}")
-        self.stdout.write(f"Current contract release: {current_contract_release}")
+        if current_contract_addr:
+            self.stdout.write(f"Current contract address: {current_contract_addr}")
+        else:
+            self.stdout.write("No current contract address found — this is the first deployment.")
+
+        if current_contract_release is None:
+            self.stdout.write("No current contract release found — initializing to 0.")
+            current_contract_release = 0
+        else:
+            self.stdout.write(f"Current contract release: {current_contract_release}")
+            self.stdout.write(f"Current contract address: {current_contract_addr}")
+            self.stdout.write(f"Current contract release: {current_contract_release}")
 
         # Check nonce before deployment
         nonce = w3.eth.get_transaction_count(wallet_address)

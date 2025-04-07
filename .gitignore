@@ -63,7 +63,7 @@ log/npm.log
 cs/
 
 # config files
-api/config/config.json
+api/managers/fixtures
 
 # log files
 django_debug.log
