@@ -1,6 +1,8 @@
 import logging
+
 from django.core.management.base import BaseCommand
-from api.config import ConfigManager
+
+from api.managers.config_manager import ConfigManager
 
 class Command(BaseCommand):
     help = "Refresh the configuration cache from the JSON file."

@@ -5,14 +5,15 @@ from django.contrib.admin import AdminSite
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 
+from frontend.views import (
+    erc20_balances_view, avax_balances_view, fizit_balances_view, mercury_balances_view,
+    view_contract_view, list_contracts_view, add_contract_view,
+    add_transaction_view, add_advance_view, add_residual_view,
+    add_distribution_view, post_deposit_view, find_deposits_view,
+    EventAdmin, ContractAdmin
+)
+
 from api.models import Event, SmartContract
-
-from frontend.views import erc20_balances_view, avax_balances_view, fizit_balances_view, mercury_balances_view
-from frontend.views import view_contract_view, list_contracts_view, add_contract_view
-from frontend.views import add_transaction_view, add_advance_view, add_residual_view
-from frontend.views import add_distribution_view, post_deposit_view, find_deposits_view
-from frontend.views import EventAdmin, ContractAdmin
-
 from api.utilities.logging import log_info, log_warning, log_error
 
 logger = logging.getLogger(__name__)

@@ -8,26 +8,18 @@ from drf_spectacular.utils import extend_schema
 
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-from api.views.mixins.validation import ValidationMixin
-from api.views.mixins.permission import PermissionMixin
-from api.registry import RegistryManager
-from api.config import ConfigManager
-from api.interfaces import PartyAPI
 from api.serializers import ListContractSerializer, PurchaseContractSerializer, SaleContractSerializer, AdvanceContractSerializer
+from api.views.mixins import ValidationMixin, PermissionMixin
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_error, log_warning
 
 class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
-    """
-    A ViewSet for managing contract-related operations.
-    """
     authentication_classes = [AWSSecretsAPIKeyAuthentication]
     permission_classes = [HasCustomAPIKey]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.party_api = PartyAPI()
-        self.registry_manager = RegistryManager()
-        self.config_manager = ConfigManager()
+        self.context = build_app_context()
         self.logger = logging.getLogger(__name__)
 
     @extend_schema(
@@ -42,21 +34,18 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         log_info(self.logger, "Fetching contract list.")
 
         try:
-            contract_types = self.registry_manager.get_contract_types()
+            contract_types = self.context.domain_manager.get_contract_types()
             contracts = []
 
             for contract_type in contract_types:
-                contract_api = self.registry_manager.get_contract_api(contract_type)
+                contract_api = self.context.api_manager.get_contract_api(contract_type)
 
-                # Retrieve contract count (caching is handled inside)
                 response = contract_api.get_contract_count(contract_type)
                 if response["status"] != status.HTTP_200_OK:
                     log_error(self.logger, f"Failed to retrieve contract count for {contract_type}")
                     continue
 
-                contract_count = response["data"]["count"]
-
-                # Retrieve each contract (caching is handled inside)
+                contract_count = self._get_contract_count(contract_type)
                 for contract_idx in range(contract_count):
                     response = contract_api.get_contract(contract_type, contract_idx, request.auth.get("api_key"))
 
@@ -233,16 +222,15 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
 
         try:
             self._validate_master_key(request.auth)
-            self._validate_contract_type(contract_type, self.registry_manager)
-            serializer_class = self.registry_manager.get_contract_serializer(contract_type)
-            log_info(self.logger, f"Using serializer class {serializer_class}")
+            self._validate_contract_type(contract_type, self.context.domain_manager)
+            serializer_class = self.context.serializer_manager.get_contract_serializer(contract_type)
 
             validated_data = self._validate_request_data(serializer_class, request.data)
             log_info(self.logger, f"Sending data for validation {contract_type}: {validated_data}")
             self._validate_contract(validated_data)
             log_info(self.logger, "Contract validated")
 
-            contract_api = self.registry_manager.get_contract_api(contract_type)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
             response = contract_api.add_contract(contract_type, validated_data)
 
             if response["status"] == status.HTTP_201_CREATED:
@@ -264,15 +252,15 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         log_info(self.logger, f"Fetching {contract_type}:{contract_idx}")
 
         try:
-            contract_api = self.registry_manager.get_contract_api(contract_type)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
 
             # Validate contract_idx
-            self._validate_contract_type(contract_type, self.registry_manager)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
-            parties = self.party_api.get_parties(contract_type, contract_idx)
-            response = contract_api.get_contract(contract_type, contract_idx, request.auth.get("api_key"), parties["data"])
+            parties = self._get_parties(contract_type, contract_idx)
 
+            response = contract_api.get_contract(contract_type, contract_idx, request.auth.get("api_key"), parties)
             if response["status"] == status.HTTP_200_OK:
                 return Response(response["data"], status=status.HTTP_200_OK)
             else:
@@ -289,21 +277,21 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         log_info(self.logger, f"Updating {contract_type}:{contract_idx}")
 
         try:
-            contract_api = self.registry_manager.get_contract_api(contract_type)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
 
             self._validate_master_key(request.auth)
-            self._validate_contract_type(contract_type, self.registry_manager)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
-            parties = self.party_api.get_parties(contract_type, contract_idx)
-            response = contract_api.get_contract(contract_type, contract_idx, request.auth.get("api_key"), parties["data"])
+            parties = self._get_parties(contract_type, contract_idx)
 
+            response = contract_api.get_contract(contract_type, contract_idx, request.auth.get("api_key"), parties)
             if response["status"] != status.HTTP_200_OK:
                 return Response({"error": response["message"]}, response["status"])
 
             contract = response["data"]
             log_info(self.logger,f"Updated contract {contract}")
-            serializer_class = self.registry_manager.get_contract_serializer(contract_type)
+            serializer_class = self.context.serializer_manager.get_contract_serializer(contract_type)
             serializer = serializer_class(data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
 
@@ -340,10 +328,10 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         log_info(self.logger, f"Deleting {contract_type}:{contract_idx}.")
 
         try:
-            contract_api = self.registry_manager.get_contract_api(contract_type) 
+            contract_api = self.context.api_manager.get_contract_api(contract_type) 
 
             self._validate_master_key(request.auth)
-            self._validate_contract_type(contract_type, self.registry_manager)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
             response = contract_api.delete_contract(contract_type, contract_idx)
@@ -371,16 +359,27 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         log_info(self.logger, f"Fetching contract count for {contract_type}")
 
         try:
-            self._validate_contract_type(contract_type, self.registry_manager)
-            contract_api = self.registry_manager.get_contract_api(contract_type) 
-            response = contract_api.get_contract_count(contract_type)
-
-            if response["status"] == status.HTTP_200_OK:
-                contract_count = response["data"]["count"]
-                return Response({"count": contract_count}, status=status.HTTP_200_OK)
-
-            return Response({"error" : response["message"]}, response["status"])
+            self._validate_contract_type(contract_type, self.context.domain_manager)
+            contract_count = self._get_contract_count(contract_type)
+            return Response({"count": contract_count}, status=status.HTTP_200_OK)
 
         except Exception as e:
             log_error(self.logger, f"Error retrieving contract count: {e}")
             return Response({"error": f"Unexpected error {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def _get_contract_count(self, contract_type):
+        contract_api = self.context.api_manager.get_contract_api(contract_type)
+        response = contract_api.get_contract_count(contract_type)
+
+        if response["status"] == status.HTTP_200_OK:
+            return response["data"]["count"]
+
+        log_error(self.logger, f"Failed to retrieve contract count for {contract_type}: {response.get('message')}")
+        raise RuntimeError(response.get("message"))
+
+    def _get_parties(self, contract_type, contract_idx):
+        response = self.context.api_manager.get_party_api().get_parties(contract_type, contract_idx)
+        if response["status"] != status.HTTP_200_OK:
+            log_error(self.logger, f"Failed to fetch parties: {response.get('message')}")
+            raise RuntimeError(response.get("message"))
+        return response["data"]

@@ -11,6 +11,7 @@ class DistributionSerializer(serializers.Serializer):
     recipient_id = serializers.UUIDField(required=False)
     funder_addr = serializers.CharField(required=False,max_length=42)
     recipient_addr = serializers.CharField(required=False,max_length=42)
+    network = serializers.CharField(required=False, max_length=20)
     token_symbol = serializers.CharField(required=False,max_length=10)
-    tx_hash = serializers.CharField(required=False, max_length=64) 
+    tx_hash = serializers.CharField(required=False, max_length=66) 
     distribution_calc_amt = serializers.CharField(max_length=20)

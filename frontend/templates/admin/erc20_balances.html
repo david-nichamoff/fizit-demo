@@ -12,123 +12,109 @@
 
 {% block content %}
 <div id="content-main">
-    <h1 class="title">View ERC20 Balances</h1>
+    <h1 class="title">ERC-20 Token Balances</h1>
 
     {% if error %}
         <div class="errornote">
             <p>{{ error }}</p>
         </div>
     {% else %}
-        <!-- Token Information -->
-        <div class="module">
-            <h2 class="subhead">Token: {{ token_name|upper }}</h2>
-        </div>
 
-        <!-- Operations Balances Section -->
-        <div class="module">
-            <h3 class="subhead">Operations Balances</h3>
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th scope="col">Label</th>
-                        <th scope="col">Address</th>
-                        <th scope="col">Balance</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for wallet in balances.wallets %}
-                    <tr>
-                        <td>{{ wallet.label }}</td>
-                        <td>
-                            <span id="wallet-address-{{ forloop.counter }}">{{ wallet.address }}</span>
-                            <button type="button"
-                                    class="w3-button w3-transparent icon-button"
-                                    onclick="copyToClipboard('wallet-address-{{ forloop.counter }}')"
-                                    title="Copy address">
-                                <i class="fas fa-clipboard"></i>
-                            </button>
-                        </td>
-                        <td>{{ wallet.balance | floatformat:2|intcomma}}</td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="3" class="empty-result">No wallets found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        {% for network, tokens in balances.items %}
+            <div class="module">
+                <h2 class="subhead">Network: {{ network|capfirst }}</h2>
 
-        <!-- Party Balances Section -->
-        <div class="module">
-            <h3 class="subhead">Party Balances</h3>
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th scope="col">Label</th>
-                        <th scope="col">Address</th>
-                        <th scope="col">Balance</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for party in balances.parties %}
-                    <tr>
-                        <td>{{ party.label }}</td>
-                        <td>
-                            <span id="party-address-{{ forloop.counter }}">{{ party.address }}</span>
-                            <button type="button"
-                                    class="w3-button w3-transparent icon-button"
-                                    onclick="copyToClipboard('wallet-address-{{ forloop.counter }}')"
-                                    title="Copy address">
-                                <i class="fas fa-clipboard"></i>
-                            </button>
-                        </td>
-                        <td>{{ party.balance }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="3" class="empty-result">No parties found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                {% for token_name, token_data in tokens.items %}
+                    <div class="module token-section">
+                        <h3 class="subhead">{{ token_name }}</h3>
 
-        <!-- Transfer Funds Section -->
+                        <h4>Operations Balances</h4>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr><th>Label</th><th>Address</th><th>Balance</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for wallet in token_data.wallets %}
+                                <tr>
+                                    <td>{{ wallet.label }}</td>
+                                    <td>
+                                        <span id="wallet-address-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">{{ wallet.address }}</span>
+                                        <button class="icon-button" onclick="copyToClipboard('wallet-address-{{ forloop.parentloop.counter }}-{{ forloop.counter }}')">
+                                            <i class="fas fa-clipboard"></i>
+                                        </button>
+                                    </td>
+                                    <td>{{ wallet.balance|floatformat:2|intcomma }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="3">No wallets found.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+
+                        <h4>Party Balances</h4>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr><th>Label</th><th>Address</th><th>Balance</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for party in token_data.parties %}
+                                <tr>
+                                    <td>{{ party.label }}</td>
+                                    <td>
+                                        <span id="party-address-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">{{ party.address }}</span>
+                                        <button class="icon-button" onclick="copyToClipboard('party-address-{{ forloop.parentloop.counter }}-{{ forloop.counter }}')">
+                                            <i class="fas fa-clipboard"></i>
+                                        </button>
+                                    </td>
+                                    <td>{{ party.balance|floatformat:2|intcomma }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="3">No parties found.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+
+        <!-- Transfer Form -->
         <div class="module">
             <h2 class="subhead">Transfer Funds</h2>
             <form method="post" class="transfer-funds-form">
                 {% csrf_token %}
                 <fieldset class="module aligned">
+
+                    <!-- Token Dropdown -->
+                    <div class="form-row">
+                        <label for="{{ transfer_funds_form.token_symbol.id_for_label }}">
+                            {{ transfer_funds_form.token_symbol.label }}
+                        </label>
+                        {{ transfer_funds_form.token_symbol }}
+                    </div>
+
                     <!-- From Address -->
                     <div class="form-row">
                         <label for="{{ transfer_funds_form.from_address.id_for_label }}">
                             {{ transfer_funds_form.from_address.label }}
                         </label>
                         {{ transfer_funds_form.from_address }}
-                        <button type="button"
-                                class="icon-button"
-                                onclick="pasteFromClipboard('id_from')"
-                                title="Paste address">
+                        <button type="button" class="icon-button" onclick="pasteFromClipboard('id_from')" title="Paste address">
                             <i class="fas fa-paste"></i>
                         </button>
                     </div>
-                
+
                     <!-- To Address -->
                     <div class="form-row">
                         <label for="{{ transfer_funds_form.to_address.id_for_label }}">
                             {{ transfer_funds_form.to_address.label }}
                         </label>
-
-                        {{ transfer_funds_form.to_address }} 
-                        <button type="button"
-                                class="icon-button"
-                                onclick="pasteFromClipboard('id_to')"
-                                title="Paste address">
+                        {{ transfer_funds_form.to_address }}
+                        <button type="button" class="icon-button" onclick="pasteFromClipboard('id_to')" title="Paste address">
                             <i class="fas fa-paste"></i>
                         </button>
                     </div>
-                
+
                     <!-- Amount -->
                     <div class="form-row">
                         <label for="{{ transfer_funds_form.amount.id_for_label }}">
@@ -138,13 +124,12 @@
                     </div>
                 </fieldset>
 
-                <!-- Submit Button -->
                 <div class="submit-row">
                     <input type="submit" value="Send Funds" class="default" />
                 </div>
             </form>
         </div>
-    <div>
+
     {% endif %}
 </div>
 {% endblock %}

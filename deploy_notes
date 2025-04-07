@@ -4,3 +4,5 @@ update supervisorctl/conf.d to add collect_stats
 sudo supervisorctl reread
 sudo supervisorctl update
 run migrations and delete everyting from smart_contract_history and event tables
+
+update config.json for networks (token_addr)

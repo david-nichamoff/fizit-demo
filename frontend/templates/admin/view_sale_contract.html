@@ -63,6 +63,15 @@
                     </div>
                     <div class="form-row">
                         <div class="flex-container">
+                            <label for="{{ contract_form.deposit_instr.id_for_label }}">{{ contract_form.deposit_instr.label }}</label>
+                            <div class="field">
+                                {{ contract_form.deposit_instr }}
+                            </div>
+                        </div>
+                        <div class="help">{{ contract_form.deposit_instr.help_text }}</div>
+                    </div>
+                    <div class="form-row">
+                        <div class="flex-container">
                             <label for="{{ contract_form.transact_logic.id_for_label }}">{{ contract_form.transact_logic.label }}</label>
                             <div class="field">
                                 {{ contract_form.transact_logic }}
@@ -105,6 +114,7 @@
             <!-- Add New Party Form -->
             <div class="inline-group">
                 <h3 class="subhead">Add a New Party</h3>
+                <p class="help">A buyer, funder and client are required for sale contracts.</p>
                 <form method="post" action="#">
                     {% csrf_token %}
                     <input type="hidden" name="form_type" value="parties">

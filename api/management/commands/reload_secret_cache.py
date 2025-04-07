@@ -1,12 +1,15 @@
 import logging
+
 from django.core.management.base import BaseCommand
-from api.secrets import SecretsManager
+
+from api.managers.secrets_manager import SecretsManager
 
 class Command(BaseCommand):
     help = "Reload the secrets cache from AWS Secrets Manager."
 
     def handle(self, *args, **kwargs):
         logger = logging.getLogger(__name__)
+        
         try:
             secrets_manager = SecretsManager()
             secrets_manager.reset_secret_cache()

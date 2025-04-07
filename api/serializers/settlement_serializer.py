@@ -11,7 +11,7 @@ class BaseSettlementSerializer(serializers.Serializer):
     settle_due_dt = serializers.DateTimeField() 
     settle_pay_dt =  serializers.DateTimeField(read_only=True) 
     settle_pay_amt = serializers.CharField(read_only=True, max_length=20, default = "0.00")
-    settle_tx_hash = serializers.CharField(read_only=True, max_length=64, required=False)
+    settle_tx_hash = serializers.CharField(read_only=True, max_length=66, required=False)
     days_late = serializers.IntegerField(read_only=True)
     late_fee_amt = serializers.CharField(read_only=True, max_length=20, default = "0.00")
 
@@ -21,7 +21,7 @@ class SaleSettlementSerializer(BaseSettlementSerializer):
     dist_pay_dt =  serializers.DateTimeField(read_only=True)  
     dist_pay_amt = serializers.CharField(read_only=True, max_length=20, default = "0.00")
     dist_calc_amt = serializers.CharField(read_only=True, max_length=20, default = "0.00")
-    dist_tx_hash = serializers.CharField(read_only=True, max_length=64, required=False)
+    dist_tx_hash = serializers.CharField(read_only=True, max_length=66, required=False)
 
 class AdvanceSettlementSerializer(BaseSettlementSerializer):
     transact_min_dt =  serializers.DateTimeField()  
@@ -36,5 +36,5 @@ class AdvanceSettlementSerializer(BaseSettlementSerializer):
     residual_exp_amt = serializers.CharField(read_only=True, max_length=20, default = "0.00")
     residual_pay_amt = serializers.CharField(read_only=True, max_length=20, default = "0.00")
     residual_calc_amt = serializers.CharField(read_only=True, max_length=20, default = "0.00")
-    residual_tx_hash = serializers.CharField(read_only=True, max_length=64, required=False)
+    residual_tx_hash = serializers.CharField(read_only=True, max_length=66, required=False)
    

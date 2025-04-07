@@ -3,15 +3,10 @@ from datetime import datetime, timezone
 
 from django import forms
 
-from api.config import ConfigManager
-
 class BaseTransactionForm(forms.Form):
     def __init__(self, *args, **kwargs):
-        initial = kwargs.pop("initial", {})
         super().__init__(*args, **kwargs)
         self.logger = logging.getLogger(__name__)
-        self.config_manager = ConfigManager()
-
 
 class TransactionForm(BaseTransactionForm):
     # Define fields

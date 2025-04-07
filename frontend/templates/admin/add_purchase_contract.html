@@ -68,7 +68,12 @@
 
         <div class="form-row flex-container funding-token-symbol-group hidden">
             <label class="required" for="{{ contract_form.funding_token_symbol.id_for_label }}">{{ contract_form.funding_token_symbol.label }}</label>
-            {{ contract_form.funding_token_symbol }}
+            <select id="id_funding_token_symbol" name="funding_token_symbol">
+                <option value="">Select a Token</option>
+                {% for value, label in contract_form.fields.funding_token_symbol.choices %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
         </div>
 
         <div class="form-row flex-container funding-account-group hidden">

@@ -4,41 +4,21 @@ from decimal import Decimal
 from hexbytes import HexBytes
 from eth_utils import to_checksum_address
 
-from web3.middleware.proof_of_authority import ExtraDataToPOAMiddleware
-from web3 import Web3
-
 from rest_framework.exceptions import ValidationError
 from rest_framework import status
 
-from api.web3 import Web3Manager
-from api.secrets import SecretsManager
-from api.config import ConfigManager
-from api.interfaces import PartyAPI
+from api.managers.app_context import AppContext
 from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import log_error, log_info, log_warning
 
 class TokenAdapter(ResponseMixin):
-    _instance = None
 
-    def __new__(cls, *args, **kwargs):
-        """Ensure that only one instance of TokenAdapter is created (Singleton pattern)."""
-        if cls._instance is None:
-            cls._instance = super(TokenAdapter, cls).__new__(cls, *args, **kwargs)
-        return cls._instance
-
-    def __init__(self):
-        if not hasattr(self, 'initialized'):
-            self.secrets_manager = SecretsManager()
-            self.config_manager = ConfigManager()
-            self.party_api = PartyAPI()
-            self.w3_manager = Web3Manager()
-            self.w3 = self.w3_manager.get_web3_instance(network="avalanche")
-            self.logger = logging.getLogger(__name__)
-
-            self.initialized = True
-
-            # Inject middleware for POA chains if necessary
-            self.w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
+    def __init__(self, context: AppContext):
+        self.context = context
+        self.config_manager = context.config_manager
+        self.secrets_manager = context.secrets_manager
+        self.domain_manager = context.domain_manager
+        self.logger = logging.getLogger(__name__)
 
     # accounts and recipients are not applicable for wallets
     def get_accounts(self):
@@ -46,21 +26,21 @@ class TokenAdapter(ResponseMixin):
     def get_recipients(self):
         return []
 
-    def get_deposits(self, start_date, end_date, token_symbol, contract_type, contract):
+    def get_deposits(self, start_date, end_date, network, token_symbol, parties):
         """Retrieve deposits using Web3 for transfers on the Avalanche chain."""
         try:
-            parties = self._get_parties(contract_type, contract["contract_idx"])
-            token_contract, decimals = self._get_token_contract(token_symbol)
+            parsed_parties = self._parse_parties(parties)
+            token_contract, decimals = self._get_token_contract(network, token_symbol)
 
-            buyer_addr = parties.get("buyer")
-            funder_addr = parties.get("funder")
-            counterparty = parties.get("counterparty")
+            buyer_addr = parsed_parties.get("buyer")
+            funder_addr = parsed_parties.get("funder")
+            counterparty = parsed_parties.get("counterparty")
 
             log_info(self.logger, f"Validating address for buyer {buyer_addr} and funder {funder_addr}")
             self._validate_addresses(buyer_addr, funder_addr)
 
             deposits = self._fetch_transfer_logs(
-                buyer_addr, funder_addr, counterparty, token_contract, decimals, start_date, end_date
+                network, buyer_addr, funder_addr, counterparty, token_contract, decimals, start_date, end_date
             )
             return deposits
 
@@ -69,50 +49,82 @@ class TokenAdapter(ResponseMixin):
             log_error(self.logger, error_message)
             raise RuntimeError(error_message) from e
 
-    def make_payment(self, contract_type, contract_idx, funder_addr, recipient_addr, token_symbol, amount):
+    def make_payment(self, contract_type, contract_idx, funder_addr, recipient_addr, network, token_symbol, amount):
         """Initiate a token payment from the funder wallet to the recipient wallet."""
+        token_contract, decimals = self._get_token_contract(network, token_symbol)
+        checksum_funder_addr = self.context.web3_manager.get_checksum_address(funder_addr)
+        checksum_recipient_addr = self.context.web3_manager.get_checksum_address(recipient_addr)
 
         try:
-            token_contract, decimals = self._get_token_contract(token_symbol)
-            smallest_unit_amount = self._convert_to_smallest_unit(amount, decimals)
+            # native payment
+            if token_contract is None:
+                transaction = self._make_native_payment(checksum_funder_addr, checksum_recipient_addr, network, amount)
+            else:
+                # erc token
+                smallest_unit_amount = self._convert_to_smallest_unit(amount, decimals)
+                transaction = self._make_token_payment(checksum_funder_addr, checksum_recipient_addr, token_contract, network, smallest_unit_amount)
 
-            checksum_funder_addr = self.w3_manager.get_checksum_address(funder_addr)
-            checksum_recipient_addr = self.w3_manager.get_checksum_address(recipient_addr)
+            log_info(self.logger, f"Sending transaction: {transaction} from {checksum_funder_addr} for contract {contract_type}:{contract_idx} on {network}")
+            tx_receipt = self.context.web3_manager.send_signed_transaction(
+                transaction,  checksum_funder_addr, contract_type, contract_idx, network=network
+            )
+            log_info(self.logger, f"Received tx_receipt: {tx_receipt}")
 
-            log_info(self.logger, f"Sending {smallest_unit_amount} tokens from {checksum_funder_addr} to {checksum_recipient_addr}")
+            if tx_receipt == 'MfaRequired':
+                log_info(self.logger,  f"Payment signed successfully. MFA approval required")
+                return 'MfaRequired'
+            elif tx_receipt["status"] == 1:
+                tx_hash = tx_receipt["transactionHash"].hex()
+                log_info(self.logger, f"Payment broadcast successful, tx_hash={tx_hash}")
+                return tx_hash
+            else:
+                error_message = f"Payment failed, transaction receipt: {tx_receipt}" 
+                log_error(self.logger, error_message)
+                raise RuntimeError(error_message)
 
+        except Exception as e:
+            error_message = f"Unexpected error during token/native payment: {e}"
+            log_error(self.logger, error_message)
+            raise RuntimeError(error_message) from e
+
+    def _make_token_payment(self, checksum_funder_addr, checksum_recipient_addr, token_contract, network, smallest_unit_amount):
+        log_info(self.logger, f"Sending {smallest_unit_amount} tokens from {checksum_funder_addr} to {checksum_recipient_addr}")
+
+        try:
             transaction = token_contract.functions.transfer(
                 checksum_recipient_addr, smallest_unit_amount
             ).build_transaction({'from': checksum_funder_addr})
 
             log_info(self.logger, f"Sending transaction {transaction}")
 
-            tx_receipt = self.w3_manager.send_signed_transaction(
-                transaction, funder_addr, contract_type, contract_idx, network="avalanche"
-            )
-
-            if tx_receipt == 'MfaRequired':
-                return 'MfaRequired'
-
-            if tx_receipt.get(["status"]) == 1:
-                log_info(self.logger,  f"Token payment successful. TX hash: {tx_receipt['transactionHash'].hex()}")
-                return tx_receipt['transactionHash'].hex()
-            else:
-                error_message = f"Token payment failed"
-                log_error(self.logger, error_message)
-                raise RuntimeError
+            return transaction
 
         except Exception as e:
             error_message = f"Unexpected error during token payment: {e}"
             log_error(self.logger, error_message)
             raise RuntimeError from e
 
+    def _make_native_payment(self, checksum_funder_addr, checksum_recipient_addr, network, amount):
+        log_info(self.logger, f"Sending {amount} native token from {checksum_funder_addr} to {checksum_recipient_addr}")
+        w3 = self.context.web3_manager.get_web3_instance(network)
+
+        try:
+            transaction = {
+                "to": checksum_recipient_addr,
+                "value": w3.to_wei(amount, 'ether')  # Always ether for native tokens
+             }
+
+            log_info(self.logger, f"Sending transaction {transaction}")
+            
+            return transaction
+
+        except Exception as e:
+            log_error(self.logger, "Native token transfer failed")
+            raise RuntimeError from e
+
     # --- Helper Methods ---
-    def _get_parties(self, contract_type, contract_idx):
+    def _parse_parties(self, parties):
         """Retrieve buyer and funder addresses from the contract parties."""
-        response = self.party_api.get_parties(contract_type, contract_idx)
-        if response["status"] == status.HTTP_200_OK:
-            parties = response["data"]
 
         buyer_addr = next((party["party_addr"] for party in parties if party["party_type"] == "buyer"), None)
         funder_addr = next((party["party_addr"] for party in parties if party["party_type"] == "funder"), None)
@@ -127,30 +139,24 @@ class TokenAdapter(ResponseMixin):
             log_error(self.logger, error_message)
             raise ValidationError(error_message)
 
-    def _get_token_contract(self, token_symbol):
+    def _get_token_contract(self, network, token_symbol):
         """Retrieve the token contract instance and decimals."""
-        token_addr = self.config_manager.get_token_address(token_symbol)
-        token_checksum_addr = self.w3_manager.get_checksum_address(token_addr)
-        log_info(self.logger, f"Token address: {token_checksum_addr}")
+        w3 = self.context.web3_manager.get_web3_instance(network)
 
-        try:
-            if not token_checksum_addr:
-                raise ValidationError(f"Token symbol {token_symbol} not found")
+        if self.domain_manager.get_native_token_symbol(network) == token_symbol:
+            return None, None
 
-            token_contract = self.w3.eth.contract(address=token_checksum_addr, abi=self._get_erc20_abi())
-            decimals = token_contract.functions.decimals().call()
-            log_info(self.logger, f"Found decimals for {token_symbol}: {decimals}")
+        token_addr = self.config_manager.get_token_address(network, token_symbol)
+        token_checksum_addr = self.context.web3_manager.get_checksum_address(token_addr)
 
-            return token_contract, decimals
+        if not token_checksum_addr:
+            raise ValidationError(f"Token symbol {token_symbol} not found")
 
-        except ValidationError as e:
-            error_message = f"Validation error getting token contract: {e}"
-            log_error(self.logger, error_message)
-            raise ValidationError(error_message) from e
-        except Exception as e:
-            error_message = f"Unexpected error getting token contract: {e}"
-            log_error(self.logger, error_message)
-            raise RuntimeError(error_message) from e
+        token_contract = w3.eth.contract(address=token_checksum_addr, abi=self._get_erc20_abi())
+        decimals = token_contract.functions.decimals().call()
+        log_info(self.logger, f"Found token contract for {token_symbol} at {token_checksum_addr}, decimals={decimals}")
+
+        return token_contract, decimals
 
     def _convert_to_smallest_unit(self, amount, decimals):
         """Convert amount to the smallest unit of the token."""
@@ -162,9 +168,11 @@ class TokenAdapter(ResponseMixin):
             log_error(self.logger, error_message)
             raise RuntimeError(error_message)
 
-    def _fetch_transfer_logs(self, buyer_addr, funder_addr, counterparty, token_contract, decimals, start_date, end_date):
+    def _fetch_transfer_logs(self, network, buyer_addr, funder_addr, counterparty, token_contract, decimals, start_date, end_date):
         """Fetch token transfer logs."""
-        transfer_signature = self.w3.keccak(text="Transfer(address,address,uint256)").hex()
+        w3 = self.context.web3_manager.get_web3_instance(network)
+
+        transfer_signature = w3.keccak(text="Transfer(address,address,uint256)").hex()
         if not transfer_signature.startswith("0x"):
             transfer_signature = f"0x{transfer_signature}"
 
@@ -173,8 +181,8 @@ class TokenAdapter(ResponseMixin):
         funder_addr = to_checksum_address(funder_addr)
 
         # Create 32-byte padded topics for buyer and funder
-        buyer_topic = self.w3.to_hex(self.w3.to_bytes(hexstr=buyer_addr).rjust(32, b'\x00'))
-        funder_topic = self.w3.to_hex(self.w3.to_bytes(hexstr=funder_addr).rjust(32, b'\x00'))
+        buyer_topic = w3.to_hex(w3.to_bytes(hexstr=buyer_addr).rjust(32, b'\x00'))
+        funder_topic = w3.to_hex(w3.to_bytes(hexstr=funder_addr).rjust(32, b'\x00'))
 
         log_info(self.logger, f"Transfer event signature: {transfer_signature}")
         log_info(self.logger, f"Buyer topic: {buyer_topic}")
@@ -182,8 +190,8 @@ class TokenAdapter(ResponseMixin):
         log_info(self.logger, f"Token contract address: {token_contract.address}")
 
         try:
-            from_block = self._get_block_from_date(start_date)
-            to_block = self._get_block_from_date(end_date)
+            from_block = self._get_block_from_date(network, start_date)
+            to_block = self._get_block_from_date(network, end_date)
             max_blocks = 2048
 
             deposits = []
@@ -192,7 +200,7 @@ class TokenAdapter(ResponseMixin):
 
                 log_info(self.logger, f"Checking blocks {start} to {end}")
 
-                logs = self.w3.eth.get_logs({
+                logs = w3.eth.get_logs({
                     "fromBlock": start,
                     "toBlock": end,
                     "address": token_contract.address,
@@ -201,7 +209,7 @@ class TokenAdapter(ResponseMixin):
 
                 log_info(self.logger, f"logs: {logs}")
 
-                deposits.extend(self._parse_logs(logs, decimals, counterparty))
+                deposits.extend(self._parse_logs(network, logs, decimals, counterparty))
 
             return deposits
 
@@ -210,7 +218,7 @@ class TokenAdapter(ResponseMixin):
             log_error(self.logger, error_message)
             raise RuntimeError(error_message)
 
-    def _parse_logs(self, logs, decimals, counterparty):
+    def _parse_logs(self, network, logs, decimals, counterparty):
         """Parse transfer logs into deposit records."""
         deposits = []
 
@@ -220,9 +228,9 @@ class TokenAdapter(ResponseMixin):
                 deposit_amt = value / (10 ** decimals)
                 deposits.append({
                     "bank": "token",
-                    "tx_hash": log["transactionHash"].hex(),
+                    "tx_hash": f"0x{log["transactionHash"].hex()}",
                     "deposit_amt": deposit_amt,
-                    "deposit_dt": self._get_date_from_block(log["blockNumber"]),
+                    "deposit_dt": self._get_date_from_block(network, log["blockNumber"]),
                     'counterparty' : counterparty
                 })
             except Exception as e:
@@ -232,19 +240,35 @@ class TokenAdapter(ResponseMixin):
 
         return deposits
 
-    def _get_block_from_date(self, date):
+    def _get_block_from_date(self, network, date):
         """Estimate the block number from a given date using Web3."""
+        log_info(self.logger, f"Retrieving blocks from date {date} for network {network}")
         timestamp = int(date.timestamp())
 
+        w3 = self.context.web3_manager.get_web3_instance(network)
+        if not w3:
+            log_error(self.logger, f"Web3 instance for network '{network}' is None!")
+            raise RuntimeError(f"Web3 not initialized for network '{network}'")
+
+        log_info(self.logger, f"Connected to Web3: {w3.client_version}")
+
         try:
-            latest_block = self.w3.eth.get_block("latest")
+            latest_block = w3.eth.get_block("latest")
             if timestamp >= latest_block.timestamp:
                 return latest_block.number
 
             start_block, end_block = 0, latest_block.number
             while start_block <= end_block:
                 mid_block = (start_block + end_block) // 2
-                mid_block_data = self.w3.eth.get_block(mid_block)
+                log_info(self.logger, f"Binary search: start={start_block}, mid={mid_block}, end={end_block}")
+
+                try:
+                    mid_block_data = w3.eth.get_block(mid_block)
+                except Exception as block_error:
+                    log_error(self.logger, f"Error retrieving block {mid_block}: {block_error}")
+                    raise
+
+                mid_block_data = w3.eth.get_block(mid_block)
                 if mid_block_data.timestamp < timestamp:
                     start_block = mid_block + 1
                 elif mid_block_data.timestamp > timestamp:
@@ -259,10 +283,12 @@ class TokenAdapter(ResponseMixin):
             log_error(self.logger, error_message)
             raise RuntimeError(error_message)
 
-    def _get_date_from_block(self, block_number):
+    def _get_date_from_block(self, network, block_number):
         """Retrieve the date from a block number."""
+        w3 = self.context.web3_manager.get_web3_instance(network)
+
         try:
-            block = self.w3.eth.get_block(block_number)
+            block = w3.eth.get_block(block_number)
             return datetime.datetime.fromtimestamp(block["timestamp"])
 
         except Exception as e:
@@ -276,3 +302,6 @@ class TokenAdapter(ResponseMixin):
             {"constant": True, "inputs": [], "name": "decimals", "outputs": [{"name": "", "type": "uint8"}], "type": "function"},
             {"constant": False, "inputs": [{"name": "_to", "type": "address"}, {"name": "_value", "type": "uint256"}], "name": "transfer", "outputs": [{"name": "", "type": "bool"}], "type": "function"},
         ]
+
+    def _get_web3(self, network):
+        return self.context.web3_manager.get_web3_instance(network)

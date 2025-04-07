@@ -7,5 +7,5 @@ class DepositSerializer(serializers.Serializer):
     counterparty = serializers.CharField(required=False,max_length=255)
     deposit_amt = serializers.CharField(max_length=40)
     deposit_dt = serializers.DateTimeField()
-    tx_hash = serializers.CharField(max_length=64) 
+    tx_hash = serializers.CharField(max_length=66) 
     dispute_reason = serializers.CharField(required=False, allow_blank=True, max_length=255)

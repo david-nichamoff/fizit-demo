@@ -1,5 +1,7 @@
 import logging
+
 from django.core.management.base import BaseCommand
+
 from api.adapters.bank import MercuryAdapter
 
 class Command(BaseCommand):
@@ -7,6 +9,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         logger = logging.getLogger(__name__)
+
         try:
             mercury_adapter = MercuryAdapter()
             mercury_adapter.reset_mercury_cache()

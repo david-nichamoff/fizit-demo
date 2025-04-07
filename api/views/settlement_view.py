@@ -8,25 +8,19 @@ from drf_spectacular.utils import extend_schema
 
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-from api.interfaces import PartyAPI
 from api.serializers import AdvanceSettlementSerializer, SaleSettlementSerializer
-from api.registry import RegistryManager
-from api.views.mixins.validation import ValidationMixin
-from api.views.mixins.permission import PermissionMixin
+from api.views.mixins import ValidationMixin, PermissionMixin
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_error, log_info, log_warning
 
 class SettlementViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
-    """
-    A ViewSet for managing settlements associated with a contract.
-    """
     authentication_classes = [AWSSecretsAPIKeyAuthentication]
     permission_classes = [HasCustomAPIKey]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.context = build_app_context()
         self.logger = logging.getLogger(__name__)
-        self.party_api = PartyAPI()
-        self.registry_manager = RegistryManager()
 
 ### **Sale Settlements**
 
@@ -97,23 +91,24 @@ class SettlementViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         log_info(self.logger, f"Fetching settlements for {contract_type}:{contract_idx}.")
 
         try:
-            contract_api = self.registry_manager.get_contract_api(contract_type)
-            self._validate_contract_type(contract_type, self.registry_manager)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
             api_key = request.auth.get("api_key")
-            response = self.party_api.get_parties(contract_type, int(contract_idx))
+            party_api = self.context.api_manager.get_party_api()
+            response = party_api.get_parties(contract_type, int(contract_idx))
 
             if response["status"] == status.HTTP_200_OK:
                 parties = response["data"]
             else:
                 return Response({"error": response["message"]}, response["status"])
 
-            settlement_api = self.registry_manager.get_settlement_api(contract_type)
+            settlement_api = self.context.api_manager.get_settlement_api(contract_type)
             response = settlement_api.get_settlements(contract_type, int(contract_idx), api_key, parties)
 
             if response["status"] == status.HTTP_200_OK:
-                serializer_class = self.registry_manager.get_settlement_serializer(contract_type)
+                serializer_class = self.context.serializer_manager.get_settlement_serializer(contract_type)
                 serializer = serializer_class(response["data"], many=True)
                 return Response(serializer.data, status=status.HTTP_200_OK)
             else:
@@ -134,20 +129,21 @@ class SettlementViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         self._validate_master_key(request.auth)
 
         try:
-            contract_api = self.registry_manager.get_contract_api(contract_type)
-            self._validate_contract_type(contract_type, self.registry_manager)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
-            serializer_class = self.registry_manager.get_settlement_serializer(contract_type)
+            serializer_class = self.context.serializer_manager.get_settlement_serializer(contract_type)
             log_info(self.logger, f"Using serializer class {serializer_class}")
 
             validated_data = self._validate_request_data(serializer_class, request.data, many=True)
             log_info(self.logger, f"Sending data to validate {validated_data}")
             self._validate_settlements(validated_data)
 
-            settlement_api = self.registry_manager.get_settlement_api(contract_type)
-            log_info(self.logger, f"Sending contract_type {contract_type}, contract_idx {contract_idx}, validated_data {validated_data}")
+            settlement_api = self.context.api_manager.get_settlement_api(contract_type)
             response = settlement_api.add_settlements(contract_type, contract_idx, validated_data)
+
+            log_info(self.logger, f"Sending contract_type {contract_type}, contract_idx {contract_idx}, validated_data {validated_data}")
 
             if response["status"] == status.HTTP_201_CREATED:
                 return Response(response["data"], status=status.HTTP_201_CREATED)
@@ -172,11 +168,11 @@ class SettlementViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
 
         try:
             self._validate_master_key(request.auth)
-            contract_api = self.registry_manager.get_contract_api(contract_type)
-            self._validate_contract_type(contract_type, self.registry_manager)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
-            settlement_api = self.registry_manager.get_settlement_api(contract_type)
+            settlement_api = self.context.api_manager.get_settlement_api(contract_type)
             response = settlement_api.delete_settlements(contract_type, contract_idx)
 
             if response["status"] == status.HTTP_204_NO_CONTENT:

@@ -8,16 +8,22 @@ document.addEventListener("DOMContentLoaded", function () {
     const settlementDropdown = document.getElementById("id_settle_idx");
     const depositForm = document.querySelector(".post-deposit-form");
 
+    // Capture initially selected values from rendered HTML
+    const initialContractType = contractTypeDropdown.value.trim().toLowerCase();
+    const initialContractIdx = contractDropdown.value;
+    const initialSettleIdx = settlementDropdown.value;
+
     function filterContracts() {
-        const selectedType = contractTypeDropdown.value.trim().toLowerCase(); // Normalize case
+        const selectedType = contractTypeDropdown.value.trim().toLowerCase();
         console.log(`Filtering contracts for type: ${selectedType}`);
 
-        const filteredContracts = contracts.filter(contract => 
-            contract.contract_type.trim().toLowerCase() === selectedType
+        const filteredContracts = contracts.filter(
+            contract => contract.contract_type.trim().toLowerCase() === selectedType
         );
 
         console.log("Filtered contracts:", filteredContracts);
 
+        const currentVal = contractDropdown.getAttribute("data-initial") || contractDropdown.value;
         contractDropdown.innerHTML = "";
 
         if (filteredContracts.length === 0) {
@@ -28,59 +34,73 @@ document.addEventListener("DOMContentLoaded", function () {
         filteredContracts.forEach(contract => {
             const option = document.createElement("option");
             option.value = contract.contract_idx;
-            option.textContent = `${contract.contract_name}`;
+            option.textContent = contract.contract_name;
+
+            if (contract.contract_idx.toString() === currentVal) {
+                option.selected = true;
+            }
+
             contractDropdown.appendChild(option);
         });
 
-        if (filteredContracts.length > 0) {
+        // If no option matched currentVal, select the first one
+        if (!filteredContracts.some(c => c.contract_idx.toString() === currentVal)) {
             contractDropdown.value = filteredContracts[0].contract_idx;
-            contractDropdown.dispatchEvent(new Event("change")); 
         }
+
+        contractDropdown.dispatchEvent(new Event("change")); // Trigger settlement refresh
     }
 
     function filterSettlements() {
         const selectedType = contractTypeDropdown.value.trim();
         const selectedContract = contractDropdown.value.trim();
-        
+
         console.log(`Filtering settlements for type: ${selectedType}, contract: ${selectedContract}`);
-        
+
         settlementDropdown.innerHTML = "";
-    
+
         if (!selectedType || !selectedContract) {
             settlementDropdown.innerHTML = `<option value="">Select a contract first</option>`;
             return;
         }
-    
-        // Use "sale_1" key format instead of tuples
+
         const key = `${selectedType}_${selectedContract}`;
-    
         console.log("Generated key for settlements:", key);
         console.log("Available settlement keys:", Object.keys(settlements));
-    
+
         if (!(key in settlements)) {
             settlementDropdown.innerHTML = `<option value="">No settlements available</option>`;
             return;
         }
-    
+
         const availableSettlements = settlements[key];
-    
         console.log("Available settlements:", availableSettlements);
-    
+
+        const currentSettleVal = settlementDropdown.value;
+
         availableSettlements.forEach(settlement => {
             const option = document.createElement("option");
             option.value = settlement.settle_idx;
             option.textContent = `Due: ${settlement.settle_due_dt}`;
+
+            if (settlement.settle_idx.toString() === currentSettleVal) {
+                option.selected = true;
+            }
+
             settlementDropdown.appendChild(option);
         });
-    
-        settlementDropdown.value = availableSettlements.length > 0 ? availableSettlements[0].settle_idx : "";
+
+        // Fallback to first if nothing matched
+        if (!availableSettlements.some(s => s.settle_idx.toString() === currentSettleVal)) {
+            settlementDropdown.value = availableSettlements.length > 0 ? availableSettlements[0].settle_idx : "";
+        }
     }
 
-    // Ensure correct default contract type is selected
-    contractTypeDropdown.value = defaultContractType;
+    // Initial load
     filterContracts();
     filterSettlements();
 
+    // Bind events
     contractTypeDropdown.addEventListener("change", function () {
         filterContracts();
         filterSettlements();
@@ -88,12 +108,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     contractDropdown.addEventListener("change", filterSettlements);
 
-    // Log form submission event
+    // Log form submission
     depositForm.addEventListener("submit", function (event) {
         console.log("Post Deposit Form Submitted!");
         console.log("Form data:", new FormData(depositForm));
 
-        // Ensure form validation passes
         if (!depositForm.checkValidity()) {
             console.log("Form validation failed.");
             event.preventDefault();

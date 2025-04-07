@@ -9,12 +9,9 @@ from drf_spectacular.utils import extend_schema
 from api.serializers.advance_serializer import AdvanceSerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-from api.registry import RegistryManager
-from api.config import ConfigManager
-from api.views.mixins.validation import ValidationMixin
-from api.views.mixins.permission import PermissionMixin
+from api.views.mixins import ValidationMixin, PermissionMixin
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_error, log_info, log_warning
-
 
 class AdvanceViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
     authentication_classes = [AWSSecretsAPIKeyAuthentication]
@@ -23,8 +20,7 @@ class AdvanceViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
     def __init__(self, *args, **kwargs):
         """Initialize the view with AdvanceAPI instance and logger."""
         super().__init__(*args, **kwargs)
-        self.registry_manager = RegistryManager()
-        self.config_manager = ConfigManager()
+        self.context = build_app_context()
         self.logger = logging.getLogger(__name__)
 
 ### **Purchase Advances**
@@ -96,12 +92,47 @@ class AdvanceViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         log_info(self.logger, f"Fetching advances for {contract_type}:{contract_idx}")
 
         try:
-            contract_api = self.registry_manager.get_contract_api(contract_type)
-            self._validate_contract_type(contract_type, self.registry_manager)
-            self._validate_contract_idx(contract_idx, contract_type, contract_api)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
 
-            advance_api = self.registry_manager.get_advance_api(contract_type)
-            response = advance_api.get_advances(contract_type, int(contract_idx))
+            # Fetch contract, transactions, parties
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
+            self._validate_contract_idx(contract_idx, contract_type, contract_api)
+            contract_response = contract_api.get_contract(contract_type, contract_idx)
+            if contract_response["status"] != status.HTTP_200_OK:
+                return Response({"error": contract_response["message"]}, contract_response["status"])
+            contract = contract_response["data"]
+
+            transaction_api = self.context.api_manager.get_transaction_api(contract_type)
+            transaction_response = transaction_api.get_transactions(contract_type, contract_idx)
+            if transaction_response["status"] != status.HTTP_200_OK:
+                return Response({"error": transaction_response["message"]}, transaction_response["status"])
+            transactions = transaction_response["data"]
+
+            party_api = self.context.api_manager.get_party_api()
+            party_response = party_api.get_parties(contract_type, contract_idx)
+            if party_response["status"] != status.HTTP_200_OK:
+                return Response({"error": party_response["message"]}, party_response["status"])
+            parties = party_response["data"]
+
+            funding_bank = contract.get("funding_instr", {}).get("bank")
+            if not funding_bank:
+                log_error(self.logger, f"Funding bank not found in contract {contract_type}:{contract_idx}")
+                return Response({"error": "Funding bank not found"}, status=status.HTTP_400_BAD_REQUEST)
+
+            account_api = self.context.api_manager.get_account_api()
+            accounts_response = account_api.get_accounts(funding_bank)
+            if accounts_response["status"] != status.HTTP_200_OK:
+                return Response({"error": accounts_response["message"]}, accounts_response["status"])
+            accounts = accounts_response["data"]
+
+            recipient_api = self.context.api_manager.get_recipient_api()
+            recipients_response = recipient_api.get_recipients(funding_bank)
+            if recipients_response["status"] != status.HTTP_200_OK:
+                return Response({"error": recipients_response["message"]}, recipients_response["status"])
+            recipients = recipients_response["data"]
+
+            advance_api = self.context.api_manager.get_advance_api(contract_type)
+            response = advance_api.get_advances(contract, transactions, parties, accounts, recipients)
 
             if response["status"] == status.HTTP_200_OK:
                 serializer = AdvanceSerializer(response["data"], many=True)
@@ -121,15 +152,16 @@ class AdvanceViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
 
         try:
             self._validate_master_key(request.auth)
-            contract_api = self.registry_manager.get_contract_api(contract_type)
-            self._validate_contract_type(contract_type, self.registry_manager)
+
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
             serializer = AdvanceSerializer(data=request.data, many=True)
             serializer.is_valid(raise_exception=True)
 
             log_info(self.logger, f"Validated advance payment data for {contract_type}:{contract_idx}")
-            advance_api = self.registry_manager.get_advance_api(contract_type)
+            advance_api = self.context.api_manager.get_advance_api(contract_type)
             response = advance_api.add_advances(contract_type, int(contract_idx), serializer.validated_data)
 
             if response["status"] == status.HTTP_201_CREATED:

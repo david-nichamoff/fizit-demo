@@ -6,37 +6,36 @@ from decimal import Decimal
 
 from django.test import TestCase
 
-from api.secrets import SecretsManager
-from api.config import ConfigManager
 from api.operations import (
     ContractOperations, PartyOperations, SettlementOperations,
     TransactionOperations, CsrfOperations, BankOperations, EventOperations
 )
 
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
 
 class PurchaseTokenTest(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.logger = logging.getLogger(__name__)
-        cls.secrets_manager = SecretsManager()
-        cls.config_manager = ConfigManager()
+        pass
 
     def setUp(self):
-        """Set up authentication headers and initialize operations."""
+        self.context = build_app_context()
+        self.logger = logging.getLogger(__name__)
+
         self.headers = {
-            'Authorization': f'Api-Key {self.secrets_manager.get_master_key()}',
+            'Authorization': f'Api-Key {self.context.secrets_manager.get_master_key()}',
             'Content-Type': 'application/json'
         }
-        self.csrf_ops = CsrfOperations(self.headers, self.config_manager.get_base_url())
+        self.csrf_ops = CsrfOperations(self.headers, self.context.config_manager.get_base_url())
         self.csrf_token = self.csrf_ops.get_csrf_token()
 
-        self.payment_ops = BankOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
-        self.contract_ops = ContractOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
-        self.party_ops = PartyOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
-        self.settlement_ops = SettlementOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
-        self.transaction_ops = TransactionOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
-        self.event_ops = EventOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
+        self.payment_ops = BankOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
+        self.contract_ops = ContractOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
+        self.party_ops = PartyOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
+        self.settlement_ops = SettlementOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
+        self.transaction_ops = TransactionOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
+        self.event_ops = EventOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
 
     def test_token_payments(self):
         """Test full lifecycle for token-based payments."""
@@ -87,8 +86,8 @@ class PurchaseTokenTest(TestCase):
         self.assertGreater(response["count"], 0)
         log_info(self.logger, f"Advances processed: {response}")
         
-        from_addr = self.config_manager.get_wallet_address("Transactor")
-        to_addr = self.config_manager.get_contract_address("purchase")
+        from_addr = self.context.config_manager.get_wallet_address("Transactor")
+        to_addr = self.context.config_manager.get_contract_address("purchase")
         self._validate_event_log("AdvancePaid", contract_type, contract_idx, from_addr=from_addr, to_addr=to_addr)
 
     def _validate_event_log(self, event_type, contract_type, contract_idx, from_addr=None, to_addr=None):
@@ -97,7 +96,6 @@ class PurchaseTokenTest(TestCase):
 
         event = None
         max_attempts = 5  # Increase retries to 5
-        wait_time = 10  # Wait 10 seconds between attempts
 
         for attempt in range(max_attempts):
             events = self.event_ops.get_events(
@@ -117,7 +115,7 @@ class PurchaseTokenTest(TestCase):
             else:
                 log_warning(self.logger, f"Waiting for event {event_type} (attempt {attempt + 1}/{max_attempts})...")
 
-            time.sleep(wait_time)  # Wait before retrying
+            time.sleep(self.context.config_manager.get_network_sleep_time())
 
         self.assertIsNotNone(event, f"Event {event_type} not found for contract {contract_idx}")
         self.assertEqual(event["status"], "complete", f"Event status incorrect: {event['status']}")

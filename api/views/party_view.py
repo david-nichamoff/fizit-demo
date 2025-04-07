@@ -6,14 +6,11 @@ from rest_framework import viewsets, status
 
 from drf_spectacular.utils import extend_schema
 
-from api.serializers.party_serializer import PartySerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-from api.config import ConfigManager
-from api.registry import RegistryManager
-from api.views.mixins.validation import ValidationMixin
-from api.views.mixins.permission import PermissionMixin
-from api.interfaces import PartyAPI
+from api.serializers import PartySerializer
+from api.views.mixins import ValidationMixin, PermissionMixin
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_error, log_info, log_warning
 
 class PartyViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
@@ -25,9 +22,7 @@ class PartyViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.config_manager = ConfigManager()
-        self.registry_manager = RegistryManager()
-        self.party_api = PartyAPI()
+        self.context = build_app_context()
         self.logger = logging.getLogger(__name__)
 
 ### **Purchase Contracts**
@@ -123,18 +118,15 @@ class PartyViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
 ### **Core Functions**
 
     def _list_parties(self, request, contract_type=None, contract_idx=None):
-        """
-        Retrieve a list of parties for a given contract.
-        """
         log_info(self.logger, f"Fetching parties for {contract_type}:{contract_idx}")
 
         try:
-            contract_api = self.registry_manager.get_contract_api(contract_type)
-            self._validate_contract_type(contract_type, self.registry_manager)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
-            response = self.party_api.get_parties(contract_type, int(contract_idx))
-
+            party_api = self.context.api_manager.get_party_api()
+            response = party_api.get_parties(contract_type, int(contract_idx))
             if response["status"] == status.HTTP_200_OK:
                 serializer = PartySerializer(response["data"], many=True)
                 return Response(serializer.data, status=status.HTTP_200_OK)
@@ -153,15 +145,16 @@ class PartyViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
 
         try:
             self._validate_master_key(request.auth)
-            self._validate_contract_type(contract_type, self.registry_manager)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
 
-            contract_api = self.registry_manager.get_contract_api(contract_type)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
             validated_data = self._validate_request_data(PartySerializer, request.data, many=True)
-            self._validate_parties(validated_data, self.config_manager)
+            self._validate_parties(validated_data, self.context.config_manager)
 
-            response = self.party_api.add_parties(contract_type, int(contract_idx), validated_data)
+            party_api = self.context.api_manager.get_party_api()
+            response = party_api.add_parties(contract_type, int(contract_idx), validated_data)
             log_info(self.logger, f"Successfully added parties to {contract_type}:{contract_idx}")
 
             if response["status"] == status.HTTP_201_CREATED:
@@ -183,12 +176,13 @@ class PartyViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         log_info(self.logger, f"Attempting to delete all parties for {contract_type}:{contract_idx}")
 
         try:
-            contract_api = self.registry_manager.get_contract_api(contract_type)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
             self._validate_master_key(request.auth)
-            self._validate_contract_type(contract_type, self.registry_manager)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
-            response = self.party_api.delete_parties(contract_type, int(contract_idx))
+            party_api = self.context.api_manager.get_party_api()
+            response = party_api.delete_parties(contract_type, int(contract_idx))
 
             if response["status"] == status.HTTP_204_NO_CONTENT:
                 return Response(response["data"], status=status.HTTP_204_NO_CONTENT)

@@ -5,40 +5,33 @@ from django.test import TestCase
 from rest_framework import status
 
 from api.operations import ContractOperations, CsrfOperations
-from api.secrets import SecretsManager
-from api.config import ConfigManager
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_error
-
 
 class AdvanceValidationTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        # Load contract fixture data.
-        cls.logger = logging.getLogger(__name__)
-        cls.secrets_manager = SecretsManager()
-        cls.config_manager = ConfigManager()
 
         fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures', 'advance_fiat.json')
 
         try:
             with open(fixture_path, 'r') as file:
                 cls.valid_contract_data = json.load(file)
-            log_info(cls.logger, "Validation test data loaded successfully.")
         except FileNotFoundError as e:
-            log_error(cls.logger, f"Test data file not found: {e}")
             raise
         except json.JSONDecodeError as e:
-            log_error(cls.logger, f"Error decoding JSON data: {e}")
             raise
 
     def setUp(self):
-        # Set up authentication headers and initialize contract operations.
+        self.context = build_app_context()
+        self.logger = logging.getLogger(__name__)
+
         self.headers = {
-            'Authorization': f'Api-Key {self.secrets_manager.get_master_key()}',
+            'Authorization': f'Api-Key {self.context.secrets_manager.get_master_key()}',
             'Content-Type': 'application/json'
         }
-        self.base_url = self.config_manager.get_base_url()
+        self.base_url = self.context.config_manager.get_base_url()
         self.csrf_ops = CsrfOperations(self.headers, self.base_url)
         self.csrf_token = self.csrf_ops.get_csrf_token()
         self.contract_ops = ContractOperations(self.headers, self.base_url, self.csrf_token)

@@ -1,37 +1,24 @@
 import requests
 import uuid
 import logging
-from datetime import datetime, timedelta
 
 from rest_framework.exceptions import ValidationError
 from rest_framework import status
-from django.core.cache import cache
 
-from api.secrets import SecretsManager
-from api.config import ConfigManager
-from api.cache import CacheManager
+from api.managers.app_context import AppContext
 from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import log_error, log_info, log_warning
 
 class MercuryAdapter(ResponseMixin):
-    _instance = None
 
-    def __new__(cls, *args, **kwargs):
-        """Singleton instance for MercuryAdapter."""
-        if cls._instance is None:
-            cls._instance = super(MercuryAdapter, cls).__new__(cls, *args, **kwargs)
-        return cls._instance
-
-    def __init__(self):
-        if not hasattr(self, 'initialized'):
-            self.secrets_manager = SecretsManager()
-            self.config_manager = ConfigManager()
-            self.cache_manager = CacheManager()
-            self.initialized = True
-            self.logger = logging.getLogger(__name__)
-
-            self.account_cache_key = self.cache_manager.get_account_cache_key("mercury")
-            self.recipient_cache_key = self.cache_manager.get_recipient_cache_key("mercury")
+    def __init__(self, context: AppContext):
+        self.context = context
+        self.secrets_manager = context.secrets_manager
+        self.config_manager = context.config_manager
+        self.cache_manager = context.cache_manager
+        self.account_cache_key = self.cache_manager.get_account_cache_key("mercury")
+        self.recipient_cache_key = self.cache_manager.get_recipient_cache_key("mercury")
+        self.logger = logging.getLogger(__name__)
 
     def _build_headers(self):
         """Helper to build request headers."""
@@ -46,7 +33,6 @@ class MercuryAdapter(ResponseMixin):
         """Helper to send an API request."""
         try:
             log_info(self.logger, f"Sending {method.upper()} request to {url} with {kwargs}")
-
             response = requests.request(method, url, auth=(self.secrets_manager.get_mercury_key(), ''), **kwargs)
             response.raise_for_status()
             return response.json()
@@ -58,10 +44,9 @@ class MercuryAdapter(ResponseMixin):
 
     def get_accounts(self):
         """Fetch accounts from the Mercury API and cache results."""
-        cached_accounts = cache.get(self.account_cache_key)
+        cached_accounts = self.cache_manager.get(self.account_cache_key)
 
         if cached_accounts:
-            log_info(self.logger, "Returning accounts for cache")
             return cached_accounts
 
         url = self._build_url('accounts')
@@ -80,8 +65,7 @@ class MercuryAdapter(ResponseMixin):
             ]
 
             # store in Redis cache
-            cache.set(self.account_cache_key, account_list, timeout=None)
-            log_warning(self.logger, f"Fetched and cached {len(account_list)} accounts.")
+            self.cache_manager.set(self.account_cache_key, account_list, timeout=None)
             return account_list
 
         except Exception as e:
@@ -91,7 +75,7 @@ class MercuryAdapter(ResponseMixin):
 
     def get_recipients(self):
         """Fetch recipients from the Mercury API and cache results."""
-        cached_recipients = cache.get(self.recipient_cache_key)
+        cached_recipients = self.cache_manager.get(self.recipient_cache_key)
 
         if cached_recipients:
             log_info(self.logger, "Returning cached recipients.")
@@ -111,8 +95,7 @@ class MercuryAdapter(ResponseMixin):
                 } for recipient in recipients
             ]
 
-            cache.set(self.recipient_cache_key, recipient_list, timeout=None)
-            log_warning(self.logger, f"Fetched and cached {len(recipient_list)} recipients.")
+            self.cache_manager.set(self.recipient_cache_key, recipient_list, timeout=None)
             return recipient_list
 
         except Exception as e:
@@ -180,5 +163,5 @@ class MercuryAdapter(ResponseMixin):
             raise RuntimeError(error_message) from e
 
     def reset_mercury_cache(self):
-        cache.delete(self.account_cache_key)
-        cache.delete(self.recipient_cache_key)
+        self.cache_manager.delete(self.account_cache_key)
+        self.cache_manager.delete(self.recipient_cache_key)

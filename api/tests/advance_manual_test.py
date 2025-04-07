@@ -6,43 +6,39 @@ import uuid
 from datetime import datetime
 
 from django.test import TestCase
-from rest_framework import status
 
-from api.secrets import SecretsManager
-from api.config import ConfigManager
-from api.registry import RegistryManager
 from api.operations import (
     ContractOperations, PartyOperations, SettlementOperations,
     TransactionOperations, CsrfOperations, BankOperations
 )
 
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
-
 
 class AdvanceManualTest(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.logger = logging.getLogger(__name__)
-        cls.secrets_manager = SecretsManager()
-        cls.config_manager = ConfigManager()
-        cls.registry_manager = RegistryManager()
+        pass
 
     def setUp(self):
+        self.context = build_app_context()
+        self.logger = logging.getLogger(__name__)
+
         self.headers = {
-            'Authorization': f'Api-Key {self.secrets_manager.get_master_key()}',
+            'Authorization': f'Api-Key {self.context.secrets_manager.get_master_key()}',
             'Content-Type': 'application/json'
         }
         self.current_date = datetime.now().replace(microsecond=0).isoformat()
 
-        self.csrf_ops = CsrfOperations(self.headers, self.config_manager.get_base_url())
+        self.csrf_ops = CsrfOperations(self.headers, self.context.config_manager.get_base_url())
         self.csrf_token = self.csrf_ops.get_csrf_token()
 
         # Initialize operations
-        self.payment_ops = BankOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
-        self.contract_ops = ContractOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
-        self.party_ops = PartyOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
-        self.settlement_ops = SettlementOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
-        self.transaction_ops = TransactionOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
+        self.payment_ops = BankOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
+        self.contract_ops = ContractOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
+        self.party_ops = PartyOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
+        self.settlement_ops = SettlementOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
+        self.transaction_ops = TransactionOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
 
     def test_manual_payments(self):
         filename = os.path.join(os.path.dirname(__file__), 'fixtures', 'advance_manual.json')
@@ -115,7 +111,8 @@ class AdvanceManualTest(TestCase):
         log_info(self.logger, f"Response from process_advances: {response}")
         self.assertGreater(response["count"], 0)
         log_info(self.logger, f"Advances processed for contract {contract_idx}. Waiting for processing...")
-        time.sleep(10)
+
+        time.sleep(self.context.config_manager.get_network_sleep_time())
 
     def _post_manual_deposits(self, contract_type, contract_idx, deposits):
         """Post deposits directly from the input file without retrieval."""

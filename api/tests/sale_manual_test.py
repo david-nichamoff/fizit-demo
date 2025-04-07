@@ -7,41 +7,38 @@ from datetime import datetime
 
 from django.test import TestCase
 
-from api.secrets import SecretsManager
-from api.config import ConfigManager
-from api.registry import RegistryManager
 from api.operations import (
     ContractOperations, PartyOperations, SettlementOperations,
     TransactionOperations, CsrfOperations, BankOperations
 )
 
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_error
-
 
 class SaleManualTest(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.logger = logging.getLogger(__name__)
-        cls.secrets_manager = SecretsManager()
-        cls.config_manager = ConfigManager()
-        cls.registry_manager = RegistryManager()
+        pass
 
     def setUp(self):
+        self.context = build_app_context()
+        self.logger = logging.getLogger(__name__)
+
         self.headers = {
-            'Authorization': f'Api-Key {self.secrets_manager.get_master_key()}',
+            'Authorization': f'Api-Key {self.context.secrets_manager.get_master_key()}',
             'Content-Type': 'application/json'
         }
         self.current_date = datetime.now().replace(microsecond=0).isoformat()
 
-        self.csrf_ops = CsrfOperations(self.headers, self.config_manager.get_base_url())
+        self.csrf_ops = CsrfOperations(self.headers, self.context.config_manager.get_base_url())
         self.csrf_token = self.csrf_ops.get_csrf_token()
 
         # Initialize operations
-        self.payment_ops = BankOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
-        self.contract_ops = ContractOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
-        self.party_ops = PartyOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
-        self.settlement_ops = SettlementOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
-        self.transaction_ops = TransactionOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
+        self.payment_ops = BankOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
+        self.contract_ops = ContractOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
+        self.party_ops = PartyOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
+        self.settlement_ops = SettlementOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
+        self.transaction_ops = TransactionOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
 
     def test_manual_sale_payments(self):
         """Test full lifecycle of a manual sale contract: create, add transactions, load settlements, process deposits, and process distributions."""
@@ -123,7 +120,8 @@ class SaleManualTest(TestCase):
         log_info(self.logger, f"Response from post_distributions: {response}")
         self.assertGreater(response["count"], 0, f"Expected distributions to be processed but got {response}")
         log_info(self.logger, f"Distributions processed for contract {contract_idx}. Waiting for processing...")
-        time.sleep(10)
+
+        time.sleep(self.context.config_manager.get_network_sleep_time())
 
     def _generate_tx_hash(self):
         """Generate a random transaction hash."""

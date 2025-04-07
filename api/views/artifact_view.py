@@ -9,11 +9,8 @@ from drf_spectacular.utils import extend_schema
 from api.serializers.artifact_serializer import ArtifactSerializer
 from api.permissions import HasCustomAPIKey
 from api.authentication import AWSSecretsAPIKeyAuthentication
-from api.interfaces import ArtifactAPI
-from api.interfaces import PartyAPI
-from api.registry import RegistryManager
-from api.views.mixins.validation import ValidationMixin
-from api.views.mixins.permission import PermissionMixin
+from api.views.mixins import ValidationMixin, PermissionMixin
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_error, log_info, log_warning
 from api.utilities.validation import is_valid_list, is_valid_url
 
@@ -24,9 +21,7 @@ class ArtifactViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.registry_manager = RegistryManager()
-        self.artifact_api = ArtifactAPI(self.registry_manager)
-        self.party_api = PartyAPI()
+        self.context = build_app_context()
         self.logger = logging.getLogger(__name__)
 
 ### **Purchase Artifacts**
@@ -124,19 +119,19 @@ class ArtifactViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
     def _list_artifacts(self, request, contract_type, contract_idx):
         log_info(self.logger, f"Fetching artifacts for {contract_type} contract {contract_idx}")
         try:
-            contract_api = self.registry_manager.get_contract_api(contract_type)
-            self._validate_contract_type(contract_type, self.registry_manager)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
             api_key = request.auth.get("api_key")
-            response = self.party_api.get_parties(contract_type, int(contract_idx))
-
+            response = self.context.api_manager.get_party_api().get_parties(contract_type, int(contract_idx))
             if response["status"] == status.HTTP_200_OK:
                 parties = response["data"]
             else:
                 return Response({"error": response["message"]}, response["status"])
 
-            response = self.artifact_api.get_artifacts(contract_type, int(contract_idx), api_key, parties)
+            artifact_api = self.context.api_manager.get_artifact_api()
+            response = artifact_api.get_artifacts(contract_type, int(contract_idx), api_key, parties)
 
             if response["status"] == status.HTTP_200_OK:
                 serializer = ArtifactSerializer(response["data"], many=True)
@@ -155,8 +150,8 @@ class ArtifactViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         log_info(self.logger, f"Adding artifacts for {contract_type} contract {contract_idx}")
         try:
             self._validate_master_key(request.auth)
-            self._validate_contract_type(contract_type, self.registry_manager)
-            contract_api = self.registry_manager.get_contract_api(contract_type)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
             artifact_urls = request.data
@@ -167,7 +162,8 @@ class ArtifactViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
                 if not is_valid_url(artifact_url):
                     raise ValidationError(f"Invalid URL: {artifact_url}")
 
-            response = self.artifact_api.add_artifacts(contract_type, int(contract_idx), artifact_urls)
+            artifact_api = self.context.api_manager.get_artifact_api()
+            response = artifact_api.add_artifacts(contract_type, int(contract_idx), artifact_urls)
 
             if response["status"] == status.HTTP_201_CREATED:
                 log_info(self.logger, f"Successfully added artifacts for {contract_type} contract {contract_idx}")
@@ -189,11 +185,12 @@ class ArtifactViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         log_info(self.logger, f"Deleting artifacts for {contract_type} contract {contract_idx}")
         try:
             self._validate_master_key(request.auth)
-            self._validate_contract_type(contract_type, self.registry_manager)
-            contract_api = self.registry_manager.get_contract_api(contract_type)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
-            response = self.artifact_api.delete_artifacts(contract_type, int(contract_idx))
+            artifact_api = self.context.api_manager.get_artifact_api()
+            response = artifact_api.delete_artifacts(contract_type, int(contract_idx))
 
             if response["status"] == status.HTTP_204_NO_CONTENT:
                 log_info(self.logger, f"Successfully deleted artifacts for {contract_type} contract {contract_idx}")

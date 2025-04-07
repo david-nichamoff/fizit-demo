@@ -8,4 +8,4 @@ from .settlement_api import SaleSettlementAPI, AdvanceSettlementAPI
 from .deposit_api import SaleDepositAPI, AdvanceDepositAPI
 from .advance_api import PurchaseAdvanceAPI, AdvanceAdvanceAPI
 from .distribution_api import SaleDistributionAPI
-from .residual_api import PurchaseResidualAPI, SaleResidualAPI, AdvanceResidualAPI
+from .residual_api import AdvanceResidualAPI

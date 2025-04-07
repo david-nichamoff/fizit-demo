@@ -7,39 +7,35 @@ from datetime import datetime
 from django.contrib import messages
 from django.shortcuts import render, redirect
 
-from api.config import ConfigManager
-from api.secrets import SecretsManager
-from api.registry import RegistryManager
 from api.operations import CsrfOperations, BankOperations, ContractOperations
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
 
 logger = logging.getLogger(__name__)
 
 # Helper function to initialize headers and configuration
 def initialize_backend_services():
-    secrets_manager = SecretsManager()
-    config_manager = ConfigManager()
-    registry_manager = RegistryManager()
+    context = build_app_context()
 
     headers = {
-        'Authorization': f"Api-Key {secrets_manager.get_master_key()}",
+        'Authorization': f"Api-Key {context.secrets_manager.get_master_key()}",
         'Content-Type': 'application/json',
     }
 
-    csrf_ops = CsrfOperations(headers, config_manager.get_base_url())
+    csrf_ops = CsrfOperations(headers, context.config_manager.get_base_url())
     csrf_token = csrf_ops.get_csrf_token()
 
-    return headers, registry_manager, config_manager, csrf_token
+    return headers, context, csrf_token
 
-def fetch_all_distributions(headers, base_url, registry_manager, csrf_token):
+def fetch_all_distributions(headers, context, base_url, csrf_token):
     bank_ops = BankOperations(headers, base_url, csrf_token)
     contract_ops = ContractOperations(headers, base_url, csrf_token)
 
-    contract_types = registry_manager.get_contract_types()
+    contract_types = context.domain_manager.get_contract_types()
     distributions=[]
 
     for contract_type in contract_types:
-        if registry_manager.get_distribution_api(contract_type):
+        if context.api_manager.get_distribution_api(contract_type):
             log_info(logger, f"Retrieving distributions for contract_type {contract_type}")
 
             try:
@@ -93,8 +89,8 @@ def handle_post_request(request, headers, base_url, csrf_token):
 
 # Main view
 def add_distribution_view(request, extra_context=None):
-    headers, registry_manager, config_manager, csrf_token = initialize_backend_services()
-    base_url = config_manager.get_base_url()
+    headers, context, csrf_token = initialize_backend_services()
+    base_url = context.config_manager.get_base_url()
 
     # Extract contract_type from the GET parameters
     contract_type = request.GET.get("contract_type")
@@ -105,14 +101,14 @@ def add_distribution_view(request, extra_context=None):
         return handle_post_request(request, headers, base_url, csrf_token)
 
     # Fetch all contracts with prepopulated transact_data
-    distributions = fetch_all_distributions(headers, base_url, registry_manager, csrf_token)
+    distributions = fetch_all_distributions(headers, context, base_url, csrf_token)
     log_info(logger, f"Retrieved distributions {distributions}")
 
-    context = {
+    form_context = {
         "distributions": distributions 
     }
 
     if extra_context:
-        context.update(extra_context)
+        form_context.update(extra_context)
 
-    return render(request, "admin/add_distribution.html", context)
+    return render(request, "admin/add_distribution.html", form_context)

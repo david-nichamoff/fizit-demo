@@ -10,26 +10,20 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-from api.interfaces import PartyAPI
 from api.serializers import AdvanceTransactionSerializer, SaleTransactionSerializer, PurchaseTransactionSerializer
-from api.registry import RegistryManager
-from api.views.mixins.validation import ValidationMixin
-from api.views.mixins.permission import PermissionMixin
+from api.views.mixins import ValidationMixin, PermissionMixin
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_error, log_info, log_warning
 
 
 class TransactionViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
-    """
-    A ViewSet for managing transactions associated with a contract.
-    """
     authentication_classes = [AWSSecretsAPIKeyAuthentication]
     permission_classes = [HasCustomAPIKey]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.context = build_app_context()
         self.logger = logging.getLogger(__name__)
-        self.party_api = PartyAPI()
-        self.registry_manager = RegistryManager()
 
 ### **Purchase Transactions**
 
@@ -139,26 +133,27 @@ class TransactionViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         log_info(self.logger, f"Fetching transactions for {contract_type}:{contract_idx}.")
 
         try:
-            contract_api = self.registry_manager.get_contract_api(contract_type)
-            self._validate_contract_type(contract_type, self.registry_manager)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
             transact_min_dt = self._parse_optional_date(request.query_params.get('transact_min_dt'))
             transact_max_dt = self._parse_optional_date(request.query_params.get('transact_max_dt'))
 
-            response = self.party_api.get_parties(contract_type, int(contract_idx))
+            party_api = self.context.api_manager.get_party_api()
+            response = party_api.get_parties(contract_type, int(contract_idx))
             if response["status"] != status.HTTP_200_OK:
                 return Response({"error": response["message"]}, response["status"])
             parties = response["data"]
 
-            transaction_api = self.registry_manager.get_transaction_api(contract_type)
+            transaction_api = self.context.api_manager.get_transaction_api(contract_type)
             response = transaction_api.get_transactions(
                 contract_type, int(contract_idx), request.auth.get("api_key"), parties,
                 transact_min_dt=transact_min_dt, transact_max_dt=transact_max_dt
             )
 
             if response["status"] == status.HTTP_200_OK:
-                serializer_class = self.registry_manager.get_transaction_serializer(contract_type)
+                serializer_class = self.context.serializer_manager.get_transaction_serializer(contract_type)
                 serializer = serializer_class(response["data"], many=True)
                 return Response(serializer.data, status=status.HTTP_200_OK)
             else:
@@ -176,17 +171,17 @@ class TransactionViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
 
         try:
             self._validate_master_key(request.auth)
-            contract_api = self.registry_manager.get_contract_api(contract_type)
-            self._validate_contract_type(contract_type, self.registry_manager)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
-            serializer_class = self.registry_manager.get_transaction_serializer(contract_type)
+            serializer_class = self.context.serializer_manager.get_transaction_serializer(contract_type)
             validated_data = self._validate_request_data(serializer_class, request.data, many=True)
             self._validate_transactions(validated_data)
 
             contract = contract_api.get_contract(contract_type, contract_idx, request.auth.get("api_key"))
             transact_logic = contract["data"]["transact_logic"]
-            transaction_api = self.registry_manager.get_transaction_api(contract_type)
+            transaction_api = self.context.api_manager.get_transaction_api(contract_type)
 
             log_info(self.logger, f"Calling integration with the following parameters: ")
             log_info(self.logger, f"Contract_type: {contract_type}, Contract_idx: {contract_idx}")
@@ -215,11 +210,11 @@ class TransactionViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
 
         try:
             self._validate_master_key(request.auth)
-            contract_api = self.registry_manager.get_contract_api(contract_type)
-            self._validate_contract_type(contract_type, self.registry_manager)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
-            transaction_api = self.registry_manager.get_transaction_api(contract_type)
+            transaction_api = self.context.api_manager.get_transaction_api(contract_type)
             response = transaction_api.delete_transactions(contract_type, contract_idx)
 
             if response["status"] == status.HTTP_204_NO_CONTENT:

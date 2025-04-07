@@ -4,43 +4,39 @@ import logging
 import time
 
 from django.test import TestCase
+
 from api.operations import (
     ContractOperations, PartyOperations, SettlementOperations, 
     TransactionOperations, ArtifactOperations, EventOperations, CsrfOperations
 )
-from api.secrets import SecretsManager
-from api.config import ConfigManager
-from api.utilities.logging import log_info, log_error
 
+from api.utilities.bootstrap import build_app_context
+from api.utilities.logging import log_info, log_error
 
 class AdvanceLifecycleTest(TestCase):
     @classmethod
     def setUpTestData(cls):
         """Load contract fixture data."""
-        cls.logger = logging.getLogger(__name__)
-        cls.secrets_manager = SecretsManager()
-        cls.config_manager = ConfigManager()
-
         contract_file = os.path.join(os.path.dirname(__file__), 'fixtures', 'advance_fiat.json')
 
         try:
             with open(contract_file, 'r') as file:
                 cls.contract_data = json.load(file)
-            log_info(cls.logger, "Advance contract test data loaded successfully.")
         except FileNotFoundError as e:
-            log_error(cls.logger, f"Advance contract test data file not found: {e}")
             raise
         except json.JSONDecodeError as e:
-            log_error(cls.logger, f"Error decoding advance contract JSON data: {e}")
             raise
 
     def setUp(self):
-        """Set up authentication headers and initialize operations."""
+        self.context = build_app_context()
+        self.logger = logging.getLogger(__name__)
+        self.retries = 10
+
         self.headers = {
-            'Authorization': f'Api-Key {self.secrets_manager.get_master_key()}',
+            'Authorization': f'Api-Key {self.context.secrets_manager.get_master_key()}',
             'Content-Type': 'application/json'
         }
-        self.base_url = self.config_manager.get_base_url()
+        self.base_url = self.context.config_manager.get_base_url()
         self.csrf_ops = CsrfOperations(self.headers, self.base_url)
         self.csrf_token = self.csrf_ops.get_csrf_token()
 
@@ -118,8 +114,16 @@ class AdvanceLifecycleTest(TestCase):
         self._validate_event(contract_idx, "ContractUpdated")
 
         # Step 11: Retrieve contract and confirm update
-        contract_response = self.contract_ops.get_contract(self.contract_type, contract_idx)
-        self.assertEqual(contract_response["notes"], "Updated by Unit Test", "Contract note update failed.")
+        for attempt in range(self.retries):
+                contract_response = self.contract_ops.get_contract(self.contract_type, contract_idx)
+
+                if contract_response["notes"] == update_data["notes"]:
+                    break
+
+                log_info(self.logger, f"Retrying event check for update (attempt {attempt+1}/{self.retries})...")
+                time.sleep(self.context.config_manager.get_network_sleep_time())
+
+        self.assertEqual(contract_response["notes"], update_data["notes"], "Contract note update failed.")
 
         # Step 12: Delete artifacts, transactions, settlements, parties
         self._delete_and_validate(contract_idx, "ArtifactsDeleted", self.artifact_ops.delete_artifacts)
@@ -132,10 +136,9 @@ class AdvanceLifecycleTest(TestCase):
 
     def _validate_event(self, contract_idx, event_type):
         """Check for an event with retries, filtering by contract_type, contract_idx, and to_addr."""
-        retries = 5
-        to_addr = self.config_manager.get_contract_address("advance")
+        to_addr = self.context.config_manager.get_contract_address("advance")
 
-        for attempt in range(retries):
+        for attempt in range(self.retries):
             events = self.event_ops.get_events(contract_type="advance", contract_idx=contract_idx, to_addr=to_addr)
             event_found = any(e["event_type"] == event_type for e in events)
 
@@ -143,8 +146,8 @@ class AdvanceLifecycleTest(TestCase):
                 log_info(self.logger, f"Validated {event_type} for contract {contract_idx}.")
                 return
 
-            log_info(self.logger, f"Retrying event check for {event_type} (attempt {attempt+1}/{retries})...")
-            time.sleep(3)
+            log_info(self.logger, f"Retrying event check for {event_type} (attempt {attempt+1}/{self.retries})...")
+            time.sleep(self.context.config_manager.get_network_sleep_time())
 
         self.fail(f"{event_type} event not found for contract {contract_idx}")
 

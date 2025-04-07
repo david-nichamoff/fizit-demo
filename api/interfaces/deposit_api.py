@@ -3,64 +3,58 @@ from decimal import Decimal
 
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from django.core.cache import cache
 
-from api.web3 import Web3Manager
-from api.config import ConfigManager
-from api.cache import CacheManager
+from api.managers.app_context import AppContext
 from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
 
 class BaseDepositAPI(ResponseMixin):
-    _instance = None
 
-    def __new__(cls, *args, **kwargs):
-        """Ensure the class is a singleton."""
-        if not cls._instance:
-            cls._instance = super(BaseDepositAPI, cls).__new__(cls)
-        return cls._instance
+    def __init__(self, context: AppContext):
+        self.context = context
+        self.config_manager = context.config_manager
+        self.domain_manager = context.domain_manager
+        self.cache_manager = context.cache_manager
+        self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
+        self.logger = logging.getLogger(__name__)
 
-    def __init__(self, registry_manager=None):
-        """Initialize the class with config, Web3, and logger."""
-        if not hasattr(self, "initialized"):
-            self.logger = logging.getLogger(__name__)
-            self.config_manager = ConfigManager()
-            self.w3_manager = Web3Manager()
-            self.cache_manager = CacheManager()
-            self.w3 = self.w3_manager.get_web3_instance()
-            self.registry_manager = registry_manager
-            self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
-            self.initialized = True
-
-    def get_deposits(self, start_date, end_date, contract_type, contract_idx):
+    def get_deposits(self, start_date, end_date, contract_type, contract_idx, parties):
         """Retrieve deposits for a contract."""
         try:
-            contract_api = self.registry_manager.get_contract_api(contract_type)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
             response = contract_api.get_contract(contract_type, contract_idx)
             contract = response.get("data", {})
             log_info(self.logger, f"Contract to retrieve deposits: {contract}")
 
             bank = contract.get("deposit_instr", {}).get("bank")
-            log_info(self.logger, f"Bank: {bank}")
-
             log_info(self.logger, f"Validate bank {bank} for {contract_type}:{contract_idx}")
 
             # Get the appropriate adapter
-            adapter = self.registry_manager.get_bank_adapter(bank)
-            required_fields = self.registry_manager.get_bank_deposit_fields(bank)
+            adapter = self.context.adapter_manager.get_bank_adapter(bank)
+            required_fields = self.domain_manager.get_bank_deposit_fields(bank)
 
-            payment_params = {"start_date": start_date, "end_date": end_date, "contract": contract}
+            payment_params = {"start_date": start_date, "end_date": end_date}
 
             if "token_symbol" in required_fields:
                 token_symbol = contract["funding_instr"].get("token_symbol", "unknown")
                 payment_params.update({"token_symbol" : token_symbol})
 
+            if "network" in required_fields:
+                network = contract["funding_instr"].get("network", "unknown")
+                payment_params.update({"network" : network})
+
+            if "contract" in required_fields:
+                payment_params.update({"contract" : contract})
+
             if "contract_type" in required_fields:
                 payment_params.update({"contract_type" : contract_type})
+
+            if "parties" in required_fields:
+                payment_params.update({"parties" : parties})
             
             # Call the make_payment method dynamically
             deposits = adapter.get_deposits(**payment_params)
-            return self._format_success(deposits, f"Retried deposits for contract {contract_idx}", status.HTTP_200_OK)
+            return self._format_success(deposits, f"Retrieved deposits for contract {contract_type}:{contract_idx}", status.HTTP_200_OK)
 
         except ValidationError as e:
             error_message = f"Data error retrieving deposits for contract {contract_idx}: {str(e)}"
@@ -75,9 +69,9 @@ class BaseDepositAPI(ResponseMixin):
 
         try:
             cache_key = self.cache_manager.get_transaction_cache_key(contract_type, contract_idx)
-            cache.delete(cache_key)
+            self.cache_manager.delete(cache_key)
             cache_key = self.cache_manager.get_settlement_cache_key(contract_type, contract_idx)
-            cache.delete(cache_key)
+            self.cache_manager.delete(cache_key)
 
             self._process_deposit(contract_type, contract_idx, deposit)
             return self._format_success({"count": 1},"Added deposit",status.HTTP_201_CREATED)
@@ -100,12 +94,11 @@ class BaseDepositAPI(ResponseMixin):
             log_error(self.logger, error_message)
             raise ValidationError(error_message) from e
 
-
-
     def _send_transaction(self, transaction, contract_type, contract_idx):
         """Send a signed transaction to the blockchain."""
         try:
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, "fizit")
+            network = self.domain_manager.get_contract_network()
+            tx_receipt = self.context.web3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, network)
 
             if tx_receipt["status"] != 1:
                 raise RuntimeError(f"Transaction failed with status: {tx_receipt['status']}")
@@ -137,8 +130,9 @@ class AdvanceDepositAPI(BaseDepositAPI):
     def _build_transaction(self, contract_type, contract_idx, settle_idx, settlement_timestamp, payment_amt, tx_hash, dispute_reason):
 
         try:
-            w3_contract = self.w3_manager.get_web3_contract(contract_type)
-            return w3_contract.functions.postSettlement(
+            network = self.domain_manager.get_contract_network()
+            web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
+            return web3_contract.functions.postSettlement(
                 contract_idx, settle_idx, settlement_timestamp, payment_amt, tx_hash, dispute_reason
             ).build_transaction()
         except Exception as e:
@@ -169,8 +163,9 @@ class SaleDepositAPI(BaseDepositAPI):
     def _build_transaction(self, contract_type, contract_idx, settle_idx, settlement_timestamp, payment_amt, tx_hash):
 
         try:
-            w3_contract = self.w3_manager.get_web3_contract(contract_type)
-            return w3_contract.functions.postSettlement(
+            network = self.domain_manager.get_contract_network()
+            web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
+            return web3_contract.functions.postSettlement(
                 contract_idx, settle_idx, settlement_timestamp, payment_amt, tx_hash
             ).build_transaction()
         except Exception as e:

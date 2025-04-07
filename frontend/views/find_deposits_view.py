@@ -5,10 +5,8 @@ from datetime import datetime, timedelta
 from django.contrib import messages
 from django.shortcuts import render, redirect
 
-from api.config import ConfigManager
-from api.secrets import SecretsManager
-from api.registry import RegistryManager
 from api.operations import BankOperations, ContractOperations, CsrfOperations
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
 
 from frontend.forms import FindDepositsForm
@@ -17,20 +15,17 @@ logger = logging.getLogger(__name__)
 
 # Helper function to initialize headers and configuration
 def initialize_backend_services():
-    secrets_manager = SecretsManager()
-    config_manager = ConfigManager()
-    registry_manager = RegistryManager()
+    context = build_app_context()
 
     headers = {
-        'Authorization': f"Api-Key {secrets_manager.get_master_key()}",
+        'Authorization': f"Api-Key {context.secrets_manager.get_master_key()}",
         'Content-Type': 'application/json',
     }
 
-    csrf_ops = CsrfOperations(headers, config_manager.get_base_url())
+    csrf_ops = CsrfOperations(headers, context.config_manager.get_base_url())
     csrf_token = csrf_ops.get_csrf_token()
 
-    return headers, registry_manager, config_manager, csrf_token
-
+    return headers, context, csrf_token
 
 # Helper function to fetch all contracts
 def fetch_all_contracts(request, headers, base_url, csrf_token):
@@ -95,8 +90,8 @@ def handle_find_deposits(request, headers, base_url, csrf_token, contracts):
 
 # View for finding deposits
 def find_deposits_view(request, extra_context=None):
-    headers, registry_manager, config_manager, csrf_token = initialize_backend_services()
-    base_url = config_manager.get_base_url()
+    headers, context, csrf_token = initialize_backend_services()
+    base_url = context.config_manager.get_base_url()
     deposits = []
 
     # Fetch contracts for dropdown
@@ -109,7 +104,7 @@ def find_deposits_view(request, extra_context=None):
             "contract_name": c["contract_name"]
         }
         for c in raw_contracts
-        if registry_manager.get_deposit_api(c["contract_type"]) is not None 
+        if context.api_manager.get_deposit_api(c["contract_type"]) is not None 
     ]
 
     # Initialize form and variables
@@ -123,16 +118,16 @@ def find_deposits_view(request, extra_context=None):
 
     contract_types = sorted(set(contract["contract_type"] for contract in contracts))
 
-    # Prepare context for the template
-    context = {
+    # Prepare form_context for the template
+    form_context = {
         "contracts": contracts,
         "deposits": deposits,
         "contract_types": contract_types,
-        "default_contract_type": registry_manager.get_default_contract_type(),
+        "default_contract_type": context.domain_manager.get_default_contract_type(),
         "find_deposits_form": find_deposits_form
     }
 
     if extra_context:
-        context.update(extra_context)
+        form_context.update(extra_context)
 
-    return render(request, "admin/find_deposits.html", context)
+    return render(request, "admin/find_deposits.html", form_context)

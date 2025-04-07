@@ -1,20 +1,11 @@
 from django.urls import path
 
 from api.views import (
-    ContractViewSet,
-    AccountViewSet,
-    RecipientViewSet,
-    PartyViewSet,
-    TransactionViewSet,
-    SettlementViewSet,
-    ArtifactViewSet,
-    AdvanceViewSet,
-    ResidualViewSet,
-    DistributionViewSet,
-    DepositViewSet,
-    EventViewSet,
-    StatsView,
-    get_csrf_token
+    ContractViewSet, AccountViewSet, RecipientViewSet,
+    PartyViewSet, TransactionViewSet, SettlementViewSet,
+    ArtifactViewSet, AdvanceViewSet, ResidualViewSet,
+    DistributionViewSet, DepositViewSet, EventViewSet,
+    StatsView, get_csrf_token
 )
 
 urlpatterns = [

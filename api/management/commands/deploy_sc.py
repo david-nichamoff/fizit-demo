@@ -1,14 +1,12 @@
 import os
 import json
-from datetime import datetime
+import logging
 
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from django.utils import timezone
 
-from api.config import ConfigManager
-from api.web3 import Web3Manager
-from api.registry import RegistryManager
+from api.utilities.bootstrap import build_app_context
 from api.models import SmartContract
 
 class Command(BaseCommand):
@@ -24,13 +22,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         contract_type = kwargs['contract_type']
+        self.context = build_app_context()
+        self.logger = logging.getLogger(__name__)
 
         # Initialize managers
-        web3_manager = Web3Manager()
-        w3 = web3_manager.get_web3_instance(network="fizit")
-
-        config_manager = ConfigManager()
-        registry_manager = RegistryManager()
+        w3 = self.context.web3_manager.get_web3_instance(network="fizit")
 
         # Ensure Web3 connection
         if not w3.is_connected():
@@ -41,7 +37,7 @@ class Command(BaseCommand):
         self.stdout.write(f"Connected to network with Chain ID: {chain_id}")
 
         # Validate contract_type
-        if contract_type not in registry_manager.get_contract_types():
+        if contract_type not in self.context.domain_manager.get_contract_types():
             raise ValueError(f"Invalid contract_type '{contract_type}'.")
 
         self.stdout.write(f"Using contract type: {contract_type}")
@@ -51,7 +47,7 @@ class Command(BaseCommand):
         wallet_key = "Admin"
 
         # Fetch wallet address associated with "Admin"
-        wallet_address = config_manager.get_wallet_address(wallet_key)
+        wallet_address = self.context.config_manager.get_wallet_address(wallet_key)
         wallet_address = w3.to_checksum_address(wallet_address)
 
         if not wallet_address:
@@ -64,12 +60,12 @@ class Command(BaseCommand):
         self.stdout.write(f"Wallet balance: {w3.from_wei(balance, 'ether')} FIZIT")
 
         # Save the current contract address in a temporary variable
-        current_contract_addr = config_manager.get_contract_address(contract_type)
+        current_contract_addr = self.context.config_manager.get_contract_address(contract_type)
         if not current_contract_addr:
             raise ValueError(f"Current contract address for type '{contract_type}' not found in configuration.")
 
         # Get the current contract release in a temporary variable
-        current_contract_release = config_manager.get_contract_release(contract_type)
+        current_contract_release = self.context.config_manager.get_contract_release(contract_type)
         if current_contract_release is None:
             raise ValueError(f"Current contract release for type '{contract_type}' not found in configuration.")
 
@@ -96,7 +92,7 @@ class Command(BaseCommand):
 
         # Deploy the contract using Web3Manager
         try:
-            tx_receipt = web3_manager.send_contract_deployment(
+            tx_receipt = self.context.web3_manager.send_contract_deployment(
                 bytecode=bytecode,
                 wallet_addr=wallet_address,
                 network=network
@@ -164,8 +160,7 @@ class Command(BaseCommand):
 
     def update_config(self, contract_type, new_contract_addr, new_contract_release):
         """Update the contract address in config.json for the given contract_type."""
-        config_manager = ConfigManager()
-        config_manager.update_contract_address(contract_type, new_contract_addr, new_contract_release)
+        self.context.config_manager.update_contract_address(contract_type, new_contract_addr, new_contract_release)
 
     # Compile the Solidity contract
     def compile_contract(self, contract_file_path):

@@ -7,26 +7,20 @@ from rest_framework import viewsets, status
 
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
-from api.serializers.recipient_serializer import RecipientSerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-from api.interfaces import RecipientAPI
-from api.registry import RegistryManager
-from api.views.mixins.validation import ValidationMixin
-from api.views.mixins.permission import PermissionMixin
+from api.serializers.recipient_serializer import RecipientSerializer
+from api.views.mixins import ValidationMixin, PermissionMixin
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_error, log_info
 
 class RecipientViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
-    """
-    A ViewSet for managing recipients.
-    """
     authentication_classes = [AWSSecretsAPIKeyAuthentication]
     permission_classes = [IsAuthenticated | HasCustomAPIKey]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.registry_manager = RegistryManager()
-        self.recipient_api = RecipientAPI(self.registry_manager)
+        self.context = build_app_context()
         self.logger = logging.getLogger(__name__)
 
     @extend_schema(
@@ -50,13 +44,14 @@ class RecipientViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         log_info(self.logger, f"Fetching recipients with query parameters: {request.query_params}")
 
         try:
-            if bank not in self.registry_manager.get_banks():
+            if bank not in self.context.domain_manager.get_banks():
                 raise ValidationError("Invalid bank")
 
             self._validate_master_key(request.auth)
 
             # Fetch recipients from RecipientAPI
-            response = self.recipient_api.get_recipients(bank)
+            recipient_api = self.context.api_manager.get_recipient_api()
+            response = recipient_api.get_recipients(bank)
 
             if response["status"] == status.HTTP_200_OK:
                 # Serialize and return the data

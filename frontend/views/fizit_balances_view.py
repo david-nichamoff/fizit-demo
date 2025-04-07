@@ -1,57 +1,29 @@
 import logging
+from django.shortcuts import render, redirect
 from eth_utils import to_checksum_address
-from django.shortcuts import render
-from api.config import ConfigManager
-from api.web3 import Web3Manager
+from django.contrib import messages
+
+from api.adapters.bank import TokenAdapter
+from api.operations import CsrfOperations
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
+from frontend.forms import TransferFundsForm
 
 logger = logging.getLogger(__name__)
 
-ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+def initialize_backend_services():
+    context = build_app_context()
 
-def fizit_balances_view(request, extra_context=None):
-    """
-    Custom view to view native FIZIT balances.
-    """
-    try:
-        log_info(logger, "FIZIT Balances view accessed")
+    headers = {
+        'Authorization': f"Api-Key {context.secrets_manager.get_master_key()}",
+        'Content-Type': 'application/json',
+    }
 
-        # Initialize Config and Web3 managers
-        config_manager = ConfigManager()
-        web3_manager = Web3Manager()
-        w3 = web3_manager.get_web3_instance(network="fizit")  # Adjust network name if needed
+    csrf_token = CsrfOperations(headers, context.config_manager.get_base_url()).get_csrf_token()
+    return headers, context, csrf_token
 
-        # Collect FIZIT balances
-        balances = {
-            "wallets": _get_fizit_balances(config_manager.get_wallet_addresses(), "Wallet", w3, logger),
-            "parties": _get_fizit_balances(config_manager.get_party_addresses(), "Party", w3, logger),
-        }
-
-        if not balances["wallets"] and not balances["parties"]:
-            log_warning(logger, "No balances found for wallets or parties.")
-            context = {"balances": {}, "error": "No balances found."}
-        else:
-            context = {"balances": balances}
-
-        # Merge with extra_context if provided
-        if extra_context:
-            context.update(extra_context)
-
-        return render(request, "admin/fizit_balances.html", context)
-
-    except Exception as e:
-        log_error(logger, f"Error in fizit_balances_view: {e}")
-        return render(
-            request,
-            "admin/fizit_balances.html",
-            {"error": f"An error occurred: {str(e)}"},
-            status=500,
-        )
-
-def _get_fizit_balances(addresses, label, w3, logger):
-    """Helper to retrieve FIZIT native token balances for wallets or parties."""
+def get_fizit_balances(addresses, label, w3, context, logger):
     results = []
-
     if not addresses:
         log_warning(logger, f"No addresses found for {label}s.")
         return results
@@ -60,29 +32,70 @@ def _get_fizit_balances(addresses, label, w3, logger):
         item_label = item.get("key", "Unknown")
         item_addr = item.get("value")
 
-        log_info(logger, f"Processing {label} - Label: {item_label}, Address: {item_addr}")
-
-        if not item_addr or item_addr.lower() == ZERO_ADDRESS:
+        if not item_addr or item_addr.lower() == context.web3_manager.get_zero_address():
             log_warning(logger, f"Skipping invalid or zero address for {item_label}.")
             continue
 
         try:
-            checksum_item_addr = to_checksum_address(item_addr)
-            log_info(logger, f"Checksum address: {checksum_item_addr}")
-
-            # Fetch FIZIT native token balance
-            balance_wei = w3.eth.get_balance(checksum_item_addr)
+            checksum_addr = to_checksum_address(item_addr)
+            balance_wei = w3.eth.get_balance(checksum_addr)
             readable_balance = w3.from_wei(balance_wei, 'ether')
-            log_info(logger, f"FIZIT Balance for {item_label} ({checksum_item_addr}): {readable_balance}")
-
             results.append({
                 "label": item_label,
-                "address": checksum_item_addr,
+                "address": checksum_addr,
                 "balance": readable_balance
             })
-
         except Exception as e:
-            log_error(logger, f"Error checking FIZIT balance for {item_label} ({item_addr}): {e}")
+            log_error(logger, f"Error checking FIZIT balance for {item_label}: {e}")
             results.append({"label": item_label, "address": item_addr, "balance": "Error"})
-
     return results
+
+def handle_post_request(request, context, headers, csrf_token):
+    from_address = request.POST.get("from_address")
+    to_address = request.POST.get("to_address")
+    amount = request.POST.get("amount")
+    log_info(logger, f"Send {amount} from {to_address} to {from_address}")
+
+    token_adapter = TokenAdapter(context)
+
+    tx_hash = token_adapter.make_payment(
+        contract_type=None,
+        contract_idx=None,
+        funder_addr=from_address,
+        recipient_addr=to_address,
+        network="fizit",
+        token_symbol="FIZIT",  
+        amount=amount
+    )
+
+    if tx_hash == 'MfaRequired':
+        messages.success(request, f"Transaction signed successfully, approval required.")
+    else:
+        messages.success(request, f"Transaction posted successfully with tx_hash {tx_hash}.")
+
+    return redirect(request.path)
+
+def fizit_balances_view(request, extra_context=None):
+    headers, context, csrf_token = initialize_backend_services()
+    base_url = context.config_manager.get_base_url()
+    w3 = context.web3_manager.get_web3_instance(network="fizit")
+
+    if request.method == 'POST':
+        return handle_post_request(request, context, headers, csrf_token)
+
+    balances = {
+        "wallets": get_fizit_balances(context.config_manager.get_wallet_addresses(), "Wallet", w3, context, logger),
+        "parties": get_fizit_balances(context.config_manager.get_party_addresses(), "Party", w3, context, logger),
+    }
+
+    transfer_funds_form = TransferFundsForm()
+
+    form_context = {
+        "balances": balances,
+        "transfer_funds_form": transfer_funds_form
+    }
+
+    if extra_context:
+        form_context.update(extra_context)
+
+    return render(request, "admin/fizit_balances.html", form_context)

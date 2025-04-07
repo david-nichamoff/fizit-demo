@@ -1,4 +1,5 @@
 import logging
+import json
 
 class ColorFormatter(logging.Formatter):
     """Custom formatter to add color to log messages based on level."""
@@ -16,21 +17,37 @@ class ColorFormatter(logging.Formatter):
         message = super().format(record)
         return f"{log_color}{message}{self.RESET}"
 
-def log_error(logger, error_message):
+def log_error(logger, error_message, extra=None):
     if logger:
-        logger.error(error_message)
+        full_message = _compose_message(error_message, extra)
+        logger.error(full_message)
 
-def log_info(logger, info_message):
+def log_info(logger, info_message, extra=None):
     if logger:
-        logger.info(info_message)
+        full_message = _compose_message(info_message, extra)
+        logger.info(full_message)
 
-def log_warning(logger, warning_message):
+def log_warning(logger, warning_message, extra=None):
     if logger:
-        logger.warning(warning_message)
+        full_message = _compose_message(warning_message, extra)
+        logger.warning(full_message)
 
-def log_debug(logger, debug_message):
+def log_debug(logger, debug_message, extra=None):
     if logger:
-        logger.debug(debug_message)
+        full_message = _compose_message(debug_message, extra)
+        logger.debug(full_message)
+
+def _compose_message(message, extra):
+    if extra:
+        if isinstance(extra, dict):
+            try:
+                details = json.dumps(extra, default=str)
+            except Exception:
+                details = str(extra)
+        else:
+            details = str(extra)
+        return f"{message} | {details}"
+    return message
 
 def setup_logger(name="project_logger", level=logging.DEBUG):
     """

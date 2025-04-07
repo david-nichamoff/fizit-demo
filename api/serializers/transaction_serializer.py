@@ -16,7 +16,7 @@ class PurchaseTransactionSerializer(BaseTransactionSerializer):
     advance_amt = serializers.CharField(read_only=True, max_length=20, default = "0.00")
     advance_pay_dt = serializers.DateTimeField(read_only=True)
     advance_pay_amt = serializers.CharField(read_only=True, max_length=20, default = "0.00")
-    advance_tx_hash = serializers.CharField(read_only=True, max_length=64) 
+    advance_tx_hash = serializers.CharField(read_only=True, max_length=66) 
 
 class SaleTransactionSerializer(BaseTransactionSerializer):
     pass
@@ -27,4 +27,4 @@ class AdvanceTransactionSerializer(BaseTransactionSerializer):
     advance_amt = serializers.CharField(read_only=True, max_length=20, default = "0.00")
     advance_pay_dt = serializers.DateTimeField(read_only=True)
     advance_pay_amt = serializers.CharField(read_only=True, max_length=20, default = "0.00")
-    advance_tx_hash = serializers.CharField(read_only=True, max_length=64) 
+    advance_tx_hash = serializers.CharField(read_only=True, max_length=66) 

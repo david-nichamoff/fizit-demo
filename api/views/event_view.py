@@ -8,31 +8,29 @@ from rest_framework import viewsets, status
 
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
-from api.serializers.event_serializer import EventSerializer
-from api.models import Event
-from api.registry import RegistryManager
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
+from api.serializers.event_serializer import EventSerializer
+from api.models import Event
 from api.views.mixins.validation import ValidationMixin
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
 
 class EventViewSet(viewsets.ViewSet, ValidationMixin):
-    """
-    A ViewSet for managing event-related operations.
-    """
     authentication_classes = [AWSSecretsAPIKeyAuthentication]
     permission_classes = [HasCustomAPIKey]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.context = build_app_context()
         self.logger = logging.getLogger(__name__)
-        self.registry_manager = RegistryManager()
 
     @extend_schema(
         tags=["Admin"],
         parameters=[
             OpenApiParameter(name='contract_idx', description='Contract index for filtering events', required=True, type=int),
             OpenApiParameter(name='contract_type', description='Contract type for filtering events', required=True, type=str),
+            OpenApiParameter(name='contract_release', description='Contract release for filtering events', required=True, type=str),
             OpenApiParameter(name='from_addr', description='Source address for filtering events', required=False, type=str),
             OpenApiParameter(name='to_addr', description='Destination address for filtering events', required=False, type=str),
         ],
@@ -41,9 +39,6 @@ class EventViewSet(viewsets.ViewSet, ValidationMixin):
         responses={status.HTTP_200_OK: EventSerializer(many=True)},
     )
     def list(self, request):
-        """
-        Retrieve a list of events filtered by optional query parameters.
-        """
         log_info(self.logger, f"Listing events with query parameters: {request.query_params}")
 
         try:
@@ -61,24 +56,24 @@ class EventViewSet(viewsets.ViewSet, ValidationMixin):
             return Response({"error": f"Unexpected error {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def _filter_queryset(self, query_params):
-        """
-        Apply filters to the Event queryset based on query parameters.
-        """
         queryset = Event.objects.all()
 
         contract_type = query_params.get('contract_type')
+        contract_release = query_params.get('contract_release')
         contract_idx = query_params.get('contract_idx')
 
         if contract_idx:
             contract_idx = int(contract_idx)
-            contract_api = self.registry_manager.get_contract_api(contract_type)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
             queryset = queryset.filter(contract_idx=contract_idx)
 
         if contract_type:
-            self._validate_contract_type(contract_type, self.registry_manager)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
             queryset = queryset.filter(contract_type=contract_type)
 
+        if contract_release:
+            queryset = queryset.filter(contract_release=contract_release)
 
         if from_addr := query_params.get('from_addr'):
             queryset = queryset.filter(from_addr=from_addr)

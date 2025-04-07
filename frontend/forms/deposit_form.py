@@ -3,23 +3,35 @@ from datetime import datetime, timezone, timedelta
 
 from django import forms
 
-from api.config import ConfigManager
 from api.utilities.logging import log_info, log_warning, log_error
 
 class BaseDepositForm(forms.Form):
     """Common fields for deposit-related forms"""
-    def __init__(self, *args, **kwargs):
-        contracts = kwargs.pop("contracts", [])
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, contracts=None, **kwargs):
         self.logger = logging.getLogger(__name__)
-        self.config_manager = ConfigManager()
+        self.contracts = contracts or []
 
-        self.fields['contract_idx'].choices = [
-            (contract['contract_idx'], contract['contract_name']) for contract in contracts
+        # Build choices before calling super().__init__ so they are available for binding
+        contract_idx_choices = [
+            (str(contract['contract_idx']), contract['contract_name']) for contract in self.contracts
         ]
+        contract_type_choices = sorted(set(
+            (contract["contract_type"], contract["contract_type"].title()) for contract in self.contracts
+        ))
 
-        contract_types = sorted(set(contract["contract_type"] for contract in contracts))
-        self.fields['contract_type'].choices = [(ct, ct.title()) for ct in contract_types]
+        log_info(self.logger, f"Contract idx choices: {contract_idx_choices}")
+        log_info(self.logger, f"Contract type choices: {contract_type_choices}")
+
+        # Inject them into kwargs so Django can handle initial selection
+        kwargs.setdefault('initial', {})
+        form_initial = kwargs['initial']
+        if 'contract_idx' in form_initial:
+            form_initial['contract_idx'] = str(form_initial['contract_idx'])
+
+        super().__init__(*args, **kwargs)
+
+        self.fields['contract_idx'].choices = contract_idx_choices
+        self.fields['contract_type'].choices = contract_type_choices
 
     contract_idx = forms.ChoiceField(
         required=True,
@@ -58,18 +70,9 @@ class FindDepositsForm(BaseDepositForm):
 
 class PostDepositForm(BaseDepositForm):
 
-    def __init__(self, *args, **kwargs):
-        settlements = kwargs.pop("settlements", {})
-        contracts = kwargs.pop("contracts", [])
+    def __init__(self, *args, settlements=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['settle_idx'].choices = []
-
-        self.fields['contract_idx'].choices = [
-            (contract['contract_idx'], contract['contract_name']) for contract in contracts
-        ]
-
-        contract_types = sorted(set(contract["contract_type"] for contract in contracts))
-        self.fields['contract_type'].choices = [(ct, ct.title()) for ct in contract_types]
 
         if settlements:
             for key, settlement_list in settlements.items():

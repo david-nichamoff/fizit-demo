@@ -44,7 +44,4 @@ class EventOperations:
 
         response = requests.get(url, headers=self.headers, params=params)
 
-        log_info(self.logger, f"Response status code: {response.status_code}")
-        log_info(self.logger, f"Response content: {response.content}")
-
         return self._process_response(response)

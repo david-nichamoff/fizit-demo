@@ -4,27 +4,22 @@ from datetime import datetime, timezone
 from eth_abi import decode
 
 from web3 import Web3
-from web3.middleware import ExtraDataToPOAMiddleware
 
 from django.core.management.base import BaseCommand
 
 from api.models.event_model import Event
-from api.web3 import Web3Manager
-from api.config import ConfigManager
-from api.registry import RegistryManager
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_error, log_info, log_warning
 
 class Command(BaseCommand):
     help = 'Listen to contract events and update them in the database'
 
     def handle(self, *args, **kwargs):
+        self.context = build_app_context()
         self.logger = logging.getLogger(__name__)
-        self.config_manager = ConfigManager()
-        self.w3_manager = Web3Manager()
-        self.registry_manager = RegistryManager()
 
         # Web3 instances for both networks
-        self.fizit_w3 = self.w3_manager.get_web3_instance(network="fizit")
+        self.fizit_w3 = self.context.web3_manager.get_web3_instance(network="fizit")
 
         # Keep track of last known contract address
         self.current_contract_address = {}
@@ -38,14 +33,14 @@ class Command(BaseCommand):
                 # if not fizit_filters
                 if not fizit_filters:
                     log_error(self.logger, "Failed to create one or more event filters...")
-                    time.sleep(self.config_manager.get_listen_sleep_time())
+                    time.sleep(self.context.config_manager.get_listen_sleep_time())
                     continue
 
                 log_info(self.logger, 'Started listening for contract events on Fizit network...')
 
                 while True:
                     try:
-                        time.sleep(self.config_manager.get_listen_sleep_time())  # Pause before processing events
+                        time.sleep(self.context.config_manager.get_listen_sleep_time())  # Pause before processing events
 
                         #  Check for contract config changes in the inner loop
                         if self.contracts_changed():
@@ -62,13 +57,13 @@ class Command(BaseCommand):
 
             except Exception as e:
                 log_error(self.logger, f"Unexpected error: {str(e)}. Retrying in 5 seconds...")
-                time.sleep(self.config_manager.get_listen_sleep_time())
+                time.sleep(self.context.config_manager.get_listen_sleep_time())
 
     def contracts_changed(self):
-        contract_types = self.registry_manager.get_contract_types()
+        contract_types = self.context.domain_manager.get_contract_types()
 
         for contract_type in contract_types:
-            latest_address = self.config_manager.get_contract_address(contract_type)
+            latest_address = self.context.config_manager.get_contract_address(contract_type)
         
             if not latest_address:
                 continue
@@ -84,15 +79,15 @@ class Command(BaseCommand):
     def load_contracts(self):
         """Load all contract instances from configuration based on contract_type."""
         contracts = {}
-        contract_types = self.registry_manager.get_contract_types()
+        contract_types = self.context.domain_manager.get_contract_types()
 
         for contract_type in contract_types:
-            contract_address = self.config_manager.get_contract_address(contract_type)
+            contract_address = self.context.config_manager.get_contract_address(contract_type)
 
             if contract_address:
                 contract_instance = self.fizit_w3.eth.contract(
                     address=Web3.to_checksum_address(contract_address),
-                    abi=self.config_manager.get_contract_abi(contract_type)  # Ensure ABI is loaded correctly
+                    abi=self.context.config_manager.get_contract_abi(contract_type)  # Ensure ABI is loaded correctly
                 )
                 contracts[contract_type] = contract_instance
                 self.current_contract_address[contract_type] = contract_address
@@ -149,7 +144,7 @@ class Command(BaseCommand):
                 gas_used = receipt.get("gasUsed") if receipt else None
                 block_timestamp = self.fizit_w3.eth.get_block(block_number).timestamp
 
-                time.sleep(self.config_manager.get_listen_sleep_time())
+                time.sleep(self.context.config_manager.get_listen_sleep_time())
 
                 existing_event = Event.objects.filter(tx_hash=tx_hash).first()
                 if existing_event:

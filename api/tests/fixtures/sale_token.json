@@ -3,10 +3,10 @@
     "contract": {
         "extended_data": {"Contract #": 100},
         "contract_name": "Sale Contract",
-        "funding_instr": {"bank": "token", "token_symbol": "USDC" },
-        "deposit_instr": {"bank": "token", "token_symbol": "USDC" },        
+        "funding_instr": {"bank": "token", "token_symbol": "USDC", "network": "avalanche" },
+        "deposit_instr": {"bank": "token", "token_symbol": "USDC", "network": "avalanche" },        
         "service_fee_pct": "0.0200",
-        "service_fee_amt": "10.00",
+        "service_fee_amt": "0.10",
         "late_fee_pct": "0.2200",
         "transact_logic": { "*": [{ "var": "barrels" }, {"var": "price"}]},
         "notes": "Valid sale contract",
@@ -44,7 +44,7 @@
     "deposits" : {
         "settle_idx": 0,
         "dispute_reason": "delayed payment",
-        "tx_hash" : "3d2efe51c62d63bab13e987f7fbb1691dc022cd813e711d2aeb7744e0432e414",
+        "tx_hash" : "0x3d2efe51c62d63bab13e987f7fbb1691dc022cd813e711d2aeb7744e0432e414",
         "bank": "token",
         "deposit_amt": 1.0,
         "deposit_dt": "2025-01-01T13:53:10"

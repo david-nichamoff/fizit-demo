@@ -10,8 +10,8 @@ from api.operations import (
     ContractOperations, PartyOperations, SettlementOperations, 
     TransactionOperations, CsrfOperations
 )
-from api.secrets import SecretsManager
-from api.config import ConfigManager
+
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
 
 class SaleAuthorizationTest(TestCase):
@@ -20,33 +20,27 @@ class SaleAuthorizationTest(TestCase):
     def setUpTestData(cls):
         """Load authorization test data from sale fixture file."""
         contract_file = os.path.join(os.path.dirname(__file__), 'fixtures', 'sale_fiat.json')
-        cls.logger = logging.getLogger(__name__)
 
         try:
             with open(contract_file, 'r') as file:
                 cls.contract_data = json.load(file)
-            log_info(cls.logger, "Sale contract test data loaded successfully.")
         except FileNotFoundError as e:
-            log_error(cls.logger, f"Sale contract test data file not found: {e}")
             raise
         except json.JSONDecodeError as e:
-            log_error(cls.logger, f"Error decoding sale contract JSON data: {e}")
             raise
 
     def setUp(self):
-        """Set up authentication headers, CSRF tokens, and contract operations."""
-        log_info(self.logger, "Setting up test environment for sale contract...")
-        self.secrets_manager = SecretsManager()
-        self.config_manager = ConfigManager()
+        self.context = build_app_context()
+        self.logger = logging.getLogger(__name__)
 
         self.headers = {'Content-Type': 'application/json'}
-        self.csrf_ops = CsrfOperations(self.headers, self.config_manager.get_base_url())
+        self.csrf_ops = CsrfOperations(self.headers, self.context.config_manager.get_base_url())
         self.csrf_token = self.csrf_ops.get_csrf_token()
 
-        self.contract_ops = ContractOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
-        self.party_ops = PartyOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
-        self.settlement_ops = SettlementOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
-        self.transaction_ops = TransactionOperations(self.headers, self.config_manager.get_base_url(), self.csrf_token)
+        self.contract_ops = ContractOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
+        self.party_ops = PartyOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
+        self.settlement_ops = SettlementOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
+        self.transaction_ops = TransactionOperations(self.headers, self.context.config_manager.get_base_url(), self.csrf_token)
 
         log_info(self.logger, "Sale contract test environment setup complete.")
 
@@ -57,10 +51,10 @@ class SaleAuthorizationTest(TestCase):
              "detail": 'Authorization header missing or empty'},
             {'key': 'XXXXXXX', 'post_status': "Unauthorized", 'get_status': 'Unauthorized',
              "detail": 'Invalid API key'},
-            {'key': self.secrets_manager.get_partner_api_key("Affiliate"), 'post_status': "Unauthorized",
+            {'key': self.context.secrets_manager.get_partner_api_key("Affiliate"), 'post_status': "Unauthorized",
              'get_status': 'Authorized', "detail": 'You do not have permission to perform this action.'},
-            {'key': self.secrets_manager.get_master_key(), 'post_status': "Authorized", 'get_status': 'Authorized',
-             'message': f"FIZIT_MASTER_KEY should succeed."}
+            {'key': self.context.secrets_manager.get_master_key(), 'post_status': "Authorized", 'get_status': 'Authorized',
+             'message': f"MASTER_KEY should succeed."}
         ]
 
     def test_authorization_failures(self):

@@ -41,33 +41,38 @@ document.addEventListener("DOMContentLoaded", function () {
     function filterSettlements() {
         const selectedType = contractTypeDropdown.value.trim();
         const selectedContract = contractDropdown.value.trim();
-
+        
         console.log(`Filtering settlements for type: ${selectedType}, contract: ${selectedContract}`);
-
+        
         settlementDropdown.innerHTML = "";
-
+    
         if (!selectedType || !selectedContract) {
             settlementDropdown.innerHTML = `<option value="">Select a contract first</option>`;
             return;
         }
-
+    
+        // Use "sale_1" key format instead of tuples
         const key = `${selectedType}_${selectedContract}`;
-        const availableSettlements = settlements[key] || [];
-
-        console.log("Available settlements:", availableSettlements);
-
-        if (availableSettlements.length === 0) {
+    
+        console.log("Generated key for settlements:", key);
+        console.log("Available settlement keys:", Object.keys(settlements));
+    
+        if (!(key in settlements)) {
             settlementDropdown.innerHTML = `<option value="">No settlements available</option>`;
             return;
         }
-
+    
+        const availableSettlements = settlements[key];
+    
+        console.log("Available settlements:", availableSettlements);
+    
         availableSettlements.forEach(settlement => {
             const option = document.createElement("option");
             option.value = settlement.settle_idx;
             option.textContent = `Due: ${settlement.settle_due_dt}`;
             settlementDropdown.appendChild(option);
         });
-
+    
         settlementDropdown.value = availableSettlements.length > 0 ? availableSettlements[0].settle_idx : "";
     }
 

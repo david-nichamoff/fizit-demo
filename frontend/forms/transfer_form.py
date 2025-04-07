@@ -1,35 +1,43 @@
-import logging
-from datetime import datetime, timezone
-
 from django import forms
-
-from api.config import ConfigManager
+import logging
 
 class TransferFundsForm(forms.Form):
     def __init__(self, *args, **kwargs):
-        initial = kwargs.pop("initial", {})
+        networks = kwargs.pop("networks", [])
+        tokens_by_network = kwargs.pop("tokens_by_network", {})
         super().__init__(*args, **kwargs)
         self.logger = logging.getLogger(__name__)
-        self.config_manager = ConfigManager()
+
+        # Set token choices for all networks (flattened list)
+        token_choices = []
+        for network, tokens in tokens_by_network.items():
+            for token in tokens:
+                token_choices.append((f"{network}:{token}", f"{token} ({network})"))
+        self.fields["token_symbol"].choices = token_choices
+
+    token_symbol = forms.ChoiceField(
+        required=False,
+        label='Token:',
+        choices=[],  # Will be populated with ["avalanche:USDT", "fizit:FZT"]
+        widget=forms.Select(attrs={'class': 'token-select', 'id': 'id_token_symbol'}),
+    )
 
     from_address = forms.CharField(
-        required=False,
+        required=True,
         label='From Address:',
         max_length=42,
-        widget=forms.TextInput(attrs={'class':'text-input','id':'id_from',  'style':"width: 350px"}),
-        help_text="The address to send funds from"
+        widget=forms.TextInput(attrs={'class':'text-input','id':'id_from','style':"width: 350px"})
     )
 
     to_address = forms.CharField(
-        required=False,
+        required=True,
         label='To Address:',
         max_length=42,
-        widget=forms.TextInput(attrs={'class':'text-input','id':'id_to', 'style':"width: 350px"}),
-        help_text="The address to send funds to"
+        widget=forms.TextInput(attrs={'class':'text-input','id':'id_to','style':"width: 350px"})
     )
 
     amount = forms.DecimalField(
-        required=False,
+        required=True,
         label='Amount:',
         min_value=0.0,
         decimal_places=18,

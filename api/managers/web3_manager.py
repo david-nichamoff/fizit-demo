@@ -3,49 +3,35 @@ import os
 import json
 import requests
 import urllib.parse
-from datetime import datetime
 
 from eth_utils import keccak, to_checksum_address
 from web3 import Web3, HTTPProvider
 from web3.middleware.proof_of_authority import ExtraDataToPOAMiddleware
-from django.core.cache import cache
 
-from api.secrets import SecretsManager
-from api.config import ConfigManager
-from api.cache import CacheManager
 from api.models.event_model import Event
 from api.utilities.logging import log_error, log_info, log_warning
 
 class Web3Manager():
 
-    _instance = None
+    ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
     _web3_instances = {}
 
-    def __new__(cls, *args, **kwargs):
-        """Ensure that the class is a singleton."""
-        if not cls._instance:
-            cls._instance = super(Web3Manager, cls).__new__(cls, *args, **kwargs)
-        return cls._instance
+    def __init__(self, context):
+        self.logger = logging.getLogger(__name__)
+        self.context = context
 
-    def __init__(self):
-        if not hasattr(self, 'initialized'):
-            self.initialized = True
-            self.secrets_manager = SecretsManager()
-            self.config_manager = ConfigManager()
-            self.cache_manager = CacheManager()
-            self.logger = logging.getLogger(__name__)
-
-    def get_web3_instance(self, network="fizit"):
+    def get_web3_instance(self, network):
         """Retrieve or create a Web3 instance for a given network """
         if network not in self._web3_instances:
-            rpc_url = self._get_rpc_url(network)  # Always get from ConfigManager
+            rpc_url = self._get_rpc_url(network)  
+            log_info(self.logger, f"Retrieved rpc_url {rpc_url}")
             self._web3_instances[network] = self._initialize_web3_instance(rpc_url, network)
 
         return self._web3_instances[network]
 
     def _get_rpc_url(self, network):
         """Retrieve the RPC URL for the specified network from the configuration."""
-        rpc_config = self.config_manager.get_rpc_url()
+        rpc_config = self.context.config_manager.get_rpc_url()
         if not isinstance(rpc_config, list):
             raise ValueError("'rpc' configuration is not a list.")
         rpc_entry = next((rpc for rpc in rpc_config if rpc.get("key") == network), None)
@@ -58,29 +44,32 @@ class Web3Manager():
         web3_instance = Web3(HTTPProvider(rpc_url))
         if not web3_instance.is_connected():
             raise ConnectionError(f"Failed to connect to the RPC for network '{network}'")
-        if network == "fizit":
+
+        if self.context.domain_manager.is_poa_chain(network):
             web3_instance.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
+
         log_info(self.logger, f"Web3 connection established for {network}")
         return web3_instance
 
-    def get_web3_contract(self, contract_type, network="fizit"):
-        cache_key = self.cache_manager.get_contract_abi_cache_key(contract_type)
-        abi = cache.get(cache_key)
+    def get_web3_contract(self, contract_type, network):
+        cache_key = self.context.cache_manager.get_contract_abi_cache_key(contract_type)
+        abi = self.context.cache_manager.get(cache_key)
 
         if not abi:
             abi = self.load_abi(contract_type)
-            cache.set(cache_key, abi, timeout=None)  # Store ABI in Redis
+            self.context.cache_manager.set(cache_key, abi, timeout=None) 
             log_info(self.logger, f"Cached ABI for {contract_type}")
 
+        log_info(self.logger, f"Retrieving web3_instance for network {network}")
         web3_instance = self.get_web3_instance(network)
-        contract_address = self.config_manager.get_contract_address(contract_type)
+        contract_address = self.context.config_manager.get_contract_address(contract_type)
 
         if not contract_address:
             raise ValueError("Contract address is missing in configuration")
 
         return web3_instance.eth.contract(abi=abi, address=contract_address)
 
-    def get_nonce(self, wallet_addr, network="fizit"):
+    def get_nonce(self, wallet_addr, network):
         """Get the transaction nonce for a wallet."""
         web3_instance = self.get_web3_instance(network)
         return web3_instance.eth.get_transaction_count(to_checksum_address(wallet_addr))
@@ -90,11 +79,10 @@ class Web3Manager():
         return to_checksum_address(wallet_addr)
 
     def load_abi(self, contract_type):
-        cache_key = self.cache_manager.get_contract_abi_cache_key(contract_type)
-        abi = cache.get(cache_key)
+        cache_key = self.context.cache_manager.get_contract_abi_cache_key(contract_type)
+        abi = self.context.cache_manager.get(cache_key)
 
         if abi:
-            log_info(self.logger, f"Loaded ABI for {contract_type}")
             return abi
 
         abi_file_path = os.path.join(os.path.dirname(__file__), f"../contract/abi/{contract_type}.json")
@@ -106,9 +94,7 @@ class Web3Manager():
         try:
             with open(abi_file_path, "r") as abi_file:
                 abi = json.load(abi_file)
-
-                cache.set(cache_key, abi, timeout=None)
-                log_info(self.logger, f"Loaded ABI for {contract_type} and cached")
+                self.context.cache_manager.set(cache_key, abi, timeout=None)
 
                 return abi
 
@@ -119,13 +105,10 @@ class Web3Manager():
             log_error(self.logger, f"Error loading ABI: {e}")
             raise
 
-    def send_signed_transaction(self, transaction, wallet_addr, contract_type, contract_idx, network="fizit"):
-        """Send a signed transaction using the signing API."""
-        """Note that contract_type and contract_idx could be none, which means its a manual transfer of funds"""
-
+    def send_signed_transaction(self, transaction, wallet_addr, contract_type, contract_idx, network):
         web3_instance = self.get_web3_instance(network)
         wallet_addr = to_checksum_address(wallet_addr)
-        chain_id = self.config_manager.get_chain_id(network)
+        chain_id = self.context.config_manager.get_chain_id(network)
 
         if not web3_instance.is_connected():
             log_error(self.logger, "Web3 instance is not connected")
@@ -162,11 +145,10 @@ class Web3Manager():
                 tx_hash_hex = Web3.to_hex(tx_hash)
 
                 if contract_type is not None and contract_idx is not None:
-                    contract_release = self.config_manager.get_contract_release(contract_type)
+                    contract_release = self.context.config_manager.get_contract_release(contract_type)
                     self._log_event(transaction, tx_hash_hex, wallet_addr, contract_type, contract_idx, contract_release, network)
 
             elif error_code == 'MfaRequired':
-                # Simulate a successful response
                 tx_receipt = 'MfaRequired'
             else:
                 raise RuntimeError(f"Error broadcasting transaction with error code: {error_code}")
@@ -177,11 +159,11 @@ class Web3Manager():
             log_error(self.logger, f"Error sending signed transaction: {e}")
             raise
 
-    def send_contract_deployment(self, bytecode, wallet_addr, network="fizit"):
+    def send_contract_deployment(self, bytecode, wallet_addr, network):
 
         web3_instance = self.get_web3_instance(network)
         wallet_addr = to_checksum_address(wallet_addr)
-        chain_id = self.config_manager.get_chain_id(network)
+        chain_id = self.context.config_manager.get_chain_id(network)
 
         if not web3_instance.is_connected():
             logging.error(f"Web3 instance is not connected to the {network} network.")
@@ -250,8 +232,8 @@ class Web3Manager():
 
     def _sign_transaction(self, tx_data, wallet_addr):
         """Sign a transaction using the signing API."""
-        cs_url = self.config_manager.get_cs_url()
-        org_id = self.config_manager.get_cs_org_id()
+        cs_url = self.context.config_manager.get_cs_url()
+        org_id = self.context.config_manager.get_cs_org_id()
         encoded_org_id = urllib.parse.quote(org_id, safe='')
 
         # used lower() to workaround a Cubesigner bug where it was not allowing me to submit
@@ -261,7 +243,7 @@ class Web3Manager():
         headers = {
             "Content-Type": "application/json",
             "accept": "application/json",
-            "Authorization": self.secrets_manager.get_cs_role_session_token(),
+            "Authorization": self.context.secrets_manager.get_cs_role_session_token(),
         }
 
         response = requests.post(api_url, json=tx_data, headers=headers)
@@ -301,7 +283,6 @@ class Web3Manager():
             logging.error(f"Error occurred: {str(e)}")
             raise
 
-
     def _build_transaction(self, from_addr, to_addr=None, value=0, data="0x", nonce=None, gas_limit=None, max_fee_per_gas=None, max_priority_fee_per_gas=None, chain_id=None):
         """Build a basic EIP-1559 transaction dict."""
         return {
@@ -316,11 +297,14 @@ class Web3Manager():
             "data": data
         }
 
+    def get_zero_address(self):
+        return self.ZERO_ADDRESS
+
     def _hexify_tx(self, tx):
         """Convert int values in tx dict to hex strings."""
         return {k: (hex(v) if isinstance(v, int) else v) for k, v in tx.items()}
 
     def reset_web3_cache(self):
         """Clear all Web3-related caches."""
-        cache.delete_pattern(self.cache_manager.get_contract_abi_cache_key("*"))
-        log_info(self.logger, "Cleared all Web3-related caches.")
+        for contract_type in self.context.domain_manager.get_contract_types():
+            self.context.cache_manager.delete(self.context.cache_manager.get_contract_abi_cache_key(contract_type))

@@ -2,26 +2,21 @@ import logging
 from rest_framework import status
 from django.shortcuts import render
 
-from api.config import ConfigManager
-from api.secrets import SecretsManager
 from api.operations import BankOperations
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
 
 logger = logging.getLogger(__name__)
 
 def mercury_balances_view(request, extra_context=None):
-    """
-    Custom view to display Mercury account balances.
-    """
+    context = build_app_context()
+
     try:
         log_info(logger, "Mercury Balances view accessed")
 
         # Initialize Config and Secrets Managers
-        config_manager = ConfigManager()
-        secrets_manager = SecretsManager()
-
         # Fetch the API key from secrets
-        api_key = secrets_manager.get_master_key()
+        api_key = context.secrets_manager.get_master_key()
         if not api_key:
             log_error(logger, "API key not found in secrets.")
             return render(
@@ -37,7 +32,7 @@ def mercury_balances_view(request, extra_context=None):
         }
 
         # Initialize BankOperations
-        bank_ops = BankOperations(headers, config_manager.get_base_url())  
+        bank_ops = BankOperations(headers, context.config_manager.get_base_url())  
 
         # Fetch Mercury accounts
         accounts = bank_ops.get_accounts("mercury")
@@ -62,14 +57,14 @@ def mercury_balances_view(request, extra_context=None):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        # Prepare the context
-        context = {"accounts": accounts}
+        # Prepare the form_context
+        form_context = {"accounts": accounts}
 
         # Merge with extra_context if provided
         if extra_context:
-            context.update(extra_context)
+            form_context.update(extra_context)
 
-        return render(request, "admin/mercury_balances.html", context)
+        return render(request, "admin/mercury_balances.html", form_context)
 
     except Exception as e:
         log_error(logger, f"Error in mercury_balances_view: {e}")

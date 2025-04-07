@@ -5,25 +5,20 @@ from rest_framework import viewsets, status
 
 from drf_spectacular.utils import extend_schema
 
-from api.serializers.distribution_serializer import DistributionSerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-from api.registry import RegistryManager
-from api.views.mixins.validation import ValidationMixin
-from api.views.mixins.permission import PermissionMixin
+from api.serializers import DistributionSerializer
+from api.views.mixins import ValidationMixin, PermissionMixin
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_error, log_info, log_warning
 
-
 class DistributionViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
-    """
-    A ViewSet for managing distributions associated with different contract types.
-    """
     authentication_classes = [AWSSecretsAPIKeyAuthentication]
     permission_classes = [HasCustomAPIKey]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.registry_manager = RegistryManager()
+        self.context = build_app_context()
         self.logger = logging.getLogger(__name__)
 
 ### **Sale Contract Distributions**
@@ -53,12 +48,30 @@ class DistributionViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         log_info(self.logger, f"Fetching distributions for {contract_type}:{contract_idx}.")
 
         try:
-            self._validate_contract_type(contract_type, self.registry_manager)
-            contract_api = self.registry_manager.get_contract_api(contract_type)
-            self._validate_contract_idx(contract_idx, contract_type, contract_api)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
 
-            distribution_api = self.registry_manager.get_distribution_api(contract_type)
-            response = distribution_api.get_distributions(contract_type, int(contract_idx))
+            # Fetch contract, transactions, parties
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
+            self._validate_contract_idx(contract_idx, contract_type, contract_api)
+            contract_response = contract_api.get_contract(contract_type, contract_idx)
+            if contract_response["status"] != status.HTTP_200_OK:
+                return Response({"error": contract_response["message"]}, contract_response["status"])
+            contract = contract_response["data"]
+
+            party_api = self.context.api_manager.get_party_api()
+            party_response = party_api.get_parties(contract_type, contract_idx)
+            if party_response["status"] != status.HTTP_200_OK:
+                return Response({"error": party_response["message"]}, party_response["status"])
+            parties = party_response["data"]
+
+            settlement_api = self.context.api_manager.get_settlement_api(contract_type)
+            settlement_response = settlement_api.get_settlements(contract_type, contract_idx)
+            if settlement_response["status"] != status.HTTP_200_OK:
+                return Response({"error": settlement_response["message"]}, settlement_response["status"])
+            settlements = settlement_response["data"]
+
+            distribution_api = self.context.api_manager.get_distribution_api(contract_type)
+            response = distribution_api.get_distributions(contract, parties, settlements)
 
             if response["status"] == status.HTTP_200_OK:
                 serializer = DistributionSerializer(response["data"], many=True)
@@ -78,14 +91,14 @@ class DistributionViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
 
         try:
             self._validate_master_key(request.auth)
-            self._validate_contract_type(contract_type, self.registry_manager)
-            contract_api = self.registry_manager.get_contract_api(contract_type)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
             serializer = DistributionSerializer(data=request.data, many=True)
             serializer.is_valid(raise_exception=True)
 
-            distribution_api = self.registry_manager.get_distribution_api(contract_type)
+            distribution_api = self.context.api_manager.get_distribution_api(contract_type)
             response = distribution_api.add_distributions(contract_type, int(contract_idx), serializer.validated_data)
 
             if response["status"] == status.HTTP_201_CREATED:

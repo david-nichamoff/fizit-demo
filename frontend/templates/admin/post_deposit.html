@@ -8,7 +8,7 @@
     const settlements = {{ settlements|default:"{}"|safe }};
     let defaultContractType = "{{ default_contract_type|escapejs }}";
 </script>
-<script src="{% static 'js/post_deposit.js' %}?v1.15"></script>
+<script src="{% static 'js/post_deposit.js' %}?v1.16"></script>
 {% endblock %}
 
 {% block content %}
@@ -16,24 +16,24 @@
 <form method="post" class="post-deposit-form">
     {% csrf_token %}
     <fieldset class="module aligned">
+
         <!-- Select Contract Type -->
         <div class="form-row">
             <div class="flex-container">
-                <label class="required" for="id_contract_type">Contract Type:</label>
-                <select id="id_contract_type" name="contract_type">
-                    {% for contract_type in contract_types %}
-                        <option value="{{ contract_type }}" {% if contract_type == default_contract_type %}selected{% endif %}>
-                            {{ contract_type|title }}
-                        </option>
-                    {% endfor %}
-                </select>
+                <label class="required" for="{{ post_deposit_form.contract_type.id_for_label }}">
+                    {{ post_deposit_form.contract_type.label }}
+                </label>
+                {{ post_deposit_form.contract_type }}
             </div>
+            <div class="help">{{ post_deposit_form.contract_type.help_text }}</div>
         </div>
 
         <!-- Select Contract -->
         <div class="form-row">
             <div class="flex-container">
-                <label class="required" for="{{ post_deposit_form.contract_idx.id_for_label }}">{{ post_deposit_form.contract_idx.label }}</label>
+                <label class="required" for="{{ post_deposit_form.contract_idx.id_for_label }}">
+                    {{ post_deposit_form.contract_idx.label }}
+                </label>
                 {{ post_deposit_form.contract_idx }}
             </div>
             <div class="help">{{ post_deposit_form.contract_idx.help_text }}</div>
@@ -42,7 +42,9 @@
         <!-- Settlement Index -->
         <div class="form-row">
             <div class="flex-container">
-                <label class="required" for="{{ post_deposit_form.settle_idx.id_for_label }}">{{ post_deposit_form.settle_idx.label }}</label>
+                <label class="required" for="{{ post_deposit_form.settle_idx.id_for_label }}">
+                    {{ post_deposit_form.settle_idx.label }}
+                </label>
                 {{ post_deposit_form.settle_idx }}
             </div>
             <div class="help">{{ post_deposit_form.settle_idx.help_text }}</div>
@@ -51,7 +53,9 @@
         <!-- Dispute Reason -->
         <div class="form-row">
             <div class="flex-container">
-                <label class="optional" for="{{ post_deposit_form.dispute_reason.id_for_label }}">{{ post_deposit_form.dispute_reason.label }}</label>
+                <label class="optional" for="{{ post_deposit_form.dispute_reason.id_for_label }}">
+                    {{ post_deposit_form.dispute_reason.label }}
+                </label>
                 {{ post_deposit_form.dispute_reason }}
             </div>
             <div class="help">{{ post_deposit_form.dispute_reason.help_text }}</div>
@@ -60,7 +64,9 @@
         <!-- Transaction Hash -->
         <div class="form-row">
             <div class="flex-container">
-                <label class="optional" for="{{ post_deposit_form.tx_hash.id_for_label }}">{{ post_deposit_form.tx_hash.label }}</label>
+                <label class="optional" for="{{ post_deposit_form.tx_hash.id_for_label }}">
+                    {{ post_deposit_form.tx_hash.label }}
+                </label>
                 {{ post_deposit_form.tx_hash }}
             </div>
             <div class="help">{{ post_deposit_form.tx_hash.help_text }}</div>
@@ -69,7 +75,9 @@
         <!-- Deposit Date -->
         <div class="form-row">
             <div class="flex-container">
-                <label class="optional" for="{{ post_deposit_form.deposit_dt.id_for_label }}">{{ post_deposit_form.deposit_dt.label }}</label>
+                <label class="optional" for="{{ post_deposit_form.deposit_dt.id_for_label }}">
+                    {{ post_deposit_form.deposit_dt.label }}
+                </label>
                 {{ post_deposit_form.deposit_dt }}
             </div>
             <div class="help">{{ post_deposit_form.deposit_dt.help_text }}</div>
@@ -78,7 +86,9 @@
         <!-- Deposit Amount -->
         <div class="form-row">
             <div class="flex-container">
-                <label class="optional" for="{{ post_deposit_form.deposit_amt.id_for_label }}">{{ post_deposit_form.deposit_amt.label }}</label>
+                <label class="optional" for="{{ post_deposit_form.deposit_amt.id_for_label }}">
+                    {{ post_deposit_form.deposit_amt.label }}
+                </label>
                 {{ post_deposit_form.deposit_amt }}
             </div>
             <div class="help">{{ post_deposit_form.deposit_amt.help_text }}</div>
@@ -89,5 +99,4 @@
         <input type="submit" value="Post Deposit" class="default" />
     </div>
 </form>
-
 {% endblock %}

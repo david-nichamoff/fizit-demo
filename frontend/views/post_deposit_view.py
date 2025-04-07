@@ -1,15 +1,12 @@
 import logging
 import json
-import requests
 
-from datetime import datetime
+from datetime import datetime, timezone
 from django.contrib import messages
 from django.shortcuts import render, redirect
 
-from api.config import ConfigManager
-from api.secrets import SecretsManager
-from api.registry import RegistryManager
 from api.operations import BankOperations, ContractOperations, SettlementOperations, CsrfOperations
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
 
 from frontend.forms import PostDepositForm
@@ -18,19 +15,17 @@ logger = logging.getLogger(__name__)
 
 # Initialize API connections
 def initialize_backend_services():
-    secrets_manager = SecretsManager()
-    config_manager = ConfigManager()
-    registry_manager = RegistryManager()
+    context = build_app_context()
 
     headers = {
-        'Authorization': f"Api-Key {secrets_manager.get_master_key()}",
+        'Authorization': f"Api-Key {context.secrets_manager.get_master_key()}",
         'Content-Type': 'application/json',
     }
 
-    csrf_ops = CsrfOperations(headers, config_manager.get_base_url())
+    csrf_ops = CsrfOperations(headers, context.config_manager.get_base_url())
     csrf_token = csrf_ops.get_csrf_token()
 
-    return headers, registry_manager, config_manager, csrf_token
+    return headers, context, csrf_token
 
 # Fetch contracts for dropdown selection
 def fetch_all_contracts(request, headers, base_url, csrf_token):
@@ -76,10 +71,10 @@ def fetch_all_settlements(request, headers, base_url, csrf_token, contracts):
         return {}
 
 # Handle POST deposit submission
-def handle_post_deposit(request, headers, base_url, csrf_token, context):
+def handle_post_deposit(request, headers, base_url, csrf_token, form_context):
 
-    contracts = context["contracts"]
-    settlements = json.loads(context["settlements"]) if isinstance(context["settlements"], str) else context["settlements"]
+    contracts = form_context["contracts"]
+    settlements = json.loads(form_context["settlements"]) if isinstance(form_context["settlements"], str) else form_context["settlements"]
 
     form = PostDepositForm(request.POST, contracts=contracts, settlements=settlements)
 
@@ -120,8 +115,8 @@ def handle_post_deposit(request, headers, base_url, csrf_token, context):
 
 # Main view
 def post_deposit_view(request, extra_context=None):
-    headers, registry_manager, config_manager, csrf_token = initialize_backend_services()
-    base_url = config_manager.get_base_url()
+    headers, context, csrf_token = initialize_backend_services()
+    base_url = context.config_manager.get_base_url()
 
     # Fetch contracts for dropdown
     raw_contracts = fetch_all_contracts(request, headers, base_url, csrf_token)
@@ -133,31 +128,63 @@ def post_deposit_view(request, extra_context=None):
             "contract_name": c["contract_name"]
         }
         for c in raw_contracts
-        if registry_manager.get_deposit_api(c["contract_type"]) is not None 
+
+        if context.api_manager.get_deposit_api(c["contract_type"]) is not None 
     ]
 
     # Fetch settlements where `settle_pay_dt` is null
     settlements = fetch_all_settlements(request, headers, base_url, csrf_token, contracts)
 
-    # Initialize form and variables
-    post_deposit_form = PostDepositForm(contracts=contracts, initial={
+    log_info(logger, f"Settlements: {settlements}")
+    log_info(logger, f"Contracts: {contracts}")
+
+    initial_data = {
         "deposit_dt": datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
-    })
+    }
+
+    # If coming from the "Find Deposits" screen
+    prefill_keys = ["contract_idx", "contract_type", "tx_hash", "deposit_amt", "deposit_dt"]
+
+    for key in prefill_keys:
+        value = request.GET.get(key)
+        if value is None:
+            continue
+
+        if key == "deposit_dt":
+            try:
+                dt = datetime.fromisoformat(value).replace(tzinfo=timezone.utc)
+                initial_data[key] = dt.strftime('%Y-%m-%dT%H:%M')  # HTML datetime-local format
+            except ValueError:
+                log_warning(logger, f"Invalid deposit_dt format: {value}")
+                continue
+        else:
+            initial_data[key] = value
+
+    log_info(logger, f"Initial data: {initial_data}")
+
+    post_deposit_form = PostDepositForm(
+        request.POST or None,
+        contracts=contracts,
+        settlements=settlements,
+        initial=initial_data
+    )
 
     contract_types = sorted(set(contract["contract_type"] for contract in contracts))
 
-    context = {
+    log_info(logger, f"Contract types: {contract_types}")
+
+    form_context = {
         "contracts": contracts,
         "contract_types": contract_types,
-        "default_contract_type": registry_manager.get_default_contract_type(),
+        "default_contract_type": context.domain_manager.get_default_contract_type(),
         "settlements": json.dumps(settlements),
         "post_deposit_form": post_deposit_form
     }
 
     if request.method == 'POST':
-        return handle_post_deposit(request, headers, base_url, csrf_token, context)
+        return handle_post_deposit(request, headers, base_url, csrf_token, form_context)
 
     if extra_context:
-        context.update(extra_context)
+        form_context.update(extra_context)
 
-    return render(request, "admin/post_deposit.html", context)
+    return render(request, "admin/post_deposit.html", form_context)

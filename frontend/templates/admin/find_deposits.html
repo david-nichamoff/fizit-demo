@@ -13,6 +13,7 @@
 {% endblock %}
 
 {% block content %}
+<div id="content-main">
     <h1 class="title">Find Deposits</h1>
     <form method="post" class="find-deposits-form" >
         {% csrf_token %}
@@ -64,40 +65,46 @@
             <input type="submit" value="Find Deposits" class="default" />
         </div>
     </form>
-</div>
 
-<!-- Deposits Table -->
-{% if deposits %}
-<div class="module">
-    <h2 class="title">Deposits Found</h2>
-    <table class="table table-striped results" id="deposits-table">
-        <thead>
-            <tr>
-                <th scope="col">Counterparty</th>
-                <th scope="col">Amount</th>
-                <th scope="col">Date</th>
-                <th scope="col">TX Hash</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% if deposits %}
-                {% for deposit in deposits %}
+    <!-- Deposits Table -->
+    {% if deposits %}
+    <div class="module">
+        <h2 class="title">Deposits Found</h2>
+        <table class="table table-striped results" id="deposits-table">
+            <thead>
                 <tr>
-                    <td>{{ deposit.counterparty }}</td>
-                    <td>{{ deposit.deposit_amt }}</td>
-                    <td>{{ deposit.deposit_dt }}</td>
-                    <td>{{ deposit.tx_hash }}</td>
+                    <th scope="col">Counterparty</th>
+                    <th scope="col">Amount</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">TX Hash</th>
+                    <th scope="col">Post</th>
                 </tr>
-                {% endfor %}
-            {% else %}
-                <tr>
-                    <td colspan="3" class="no-deposits">No deposits found.</td>
-                </tr>
-            {% endif %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% if deposits %}
+                    {% for deposit in deposits %}
+                    <tr>
+                        <td>{{ deposit.counterparty }}</td>
+                        <td>{{ deposit.deposit_amt }}</td>
+                        <td>{{ deposit.deposit_dt }}</td>
+                        <td>{{ deposit.tx_hash }}</td>
+                        <td>
+                            <a class="button default"
+                               href="/admin/post-deposit/?contract_idx={{ find_deposits_form.cleaned_data.contract_idx }}&contract_type={{ find_deposits_form.cleaned_data.contract_type }}&deposit_amt={{ deposit.deposit_amt }}&deposit_dt={{ deposit.deposit_dt }}&tx_hash={{ deposit.tx_hash }}">
+                                Post this Deposit
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="empty-result">No deposits found.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% else %}
-<p>No deposits found.</p>
 {% endif %}
 {% endblock %}

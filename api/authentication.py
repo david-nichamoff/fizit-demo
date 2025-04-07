@@ -5,7 +5,7 @@ from rest_framework.exceptions import AuthenticationFailed, ValidationError
 from drf_spectacular.extensions import OpenApiAuthenticationExtension
 
 from api.utilities.logging import  log_error, log_info, log_warning
-from api.secrets.secrets_manager import SecretsManager  
+from api.managers.secrets_manager import SecretsManager  
 
 # Configure logger
 logger = logging.getLogger(__name__)

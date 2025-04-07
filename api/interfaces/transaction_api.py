@@ -8,49 +8,35 @@ from json_logic import jsonLogic
 
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from django.core.cache import cache
 
-from api.web3 import Web3Manager
-from api.config import ConfigManager
-from api.cache import CacheManager
+from api.managers.app_context import AppContext
 from api.interfaces.encryption_api import get_encryptor, get_decryptor
 from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
 from api.utilities.formatting import from_timestamp
 
 class BaseTransactionAPI(ResponseMixin):
-    _instance = None
 
-    def __new__(cls, *args, **kwargs):
-        """Ensure the class is a singleton."""
-        if not cls._instance:
-            cls._instance = super(BaseTransactionAPI, cls).__new__(cls)
-        return cls._instance
-
-    def __init__(self, registry_manager=None):
+    def __init__(self, context: AppContext):
         """Initialize TransactionAPI with Web3 and configuration settings."""
-        if not hasattr(self, "initialized"):
-            self.config_manager = ConfigManager()
-            self.registry_manager = registry_manager
-            self.w3_manager = Web3Manager()
-            self.cache_manager = CacheManager()
-            self.w3 = self.w3_manager.get_web3_instance()
-            self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
-            self.checksum_wallet_addr = self.w3_manager.get_checksum_address(self.wallet_addr)
-
-            self.logger = logging.getLogger(__name__)
-            self.initialized = True
+        self.context = context
+        self.config_manager = context.config_manager
+        self.domain_manager = context.domain_manager
+        self.cache_manager = context.cache_manager
+        self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
+        self.checksum_wallet_addr = self.context.web3_manager.get_checksum_address(self.wallet_addr)
+        self.logger = logging.getLogger(__name__)
 
     def get_transactions(self, contract_type, contract_idx, api_key=None, parties=[], transact_min_dt=None, transact_max_dt=None):
         """Retrieve transactions while ensuring only encrypted values are cached."""
         try:
             cache_key = self.cache_manager.get_transaction_cache_key(contract_type, contract_idx)
-            cached_transactions = cache.get(cache_key)
+            cached_transactions = self.cache_manager.get(cache_key)
 
             success_message = f"Successfully retrieved transactions for {contract_type}:{contract_idx}"
             decryptor = get_decryptor(api_key, parties)
 
-            contract_api = self.registry_manager.get_contract_api(contract_type)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
             contract = contract_api.get_contract(contract_type, contract_idx, api_key, parties).get("data")
 
             if cached_transactions is not None:
@@ -62,12 +48,12 @@ class BaseTransactionAPI(ResponseMixin):
                 return self._format_success(parsed_transactions, success_message, status.HTTP_200_OK)
 
             log_info(self.logger, f"Retrieving transactions for {contract_type}:{contract_idx} from chain")
-            w3_contract = self.w3_manager.get_web3_contract(contract_type) 
-            raw_transactions = w3_contract.functions.getTransactions(contract_idx).call()
+            network = self.domain_manager.get_contract_network()
+            web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
+            raw_transactions = web3_contract.functions.getTransactions(contract_idx).call()
             log_info(self.logger, f"Retrieve {raw_transactions} from chain")
 
-            cache.set(cache_key, raw_transactions, timeout=None)
-            log_warning(self.logger, f"Cached transactions for {contract_type}:{contract_idx} in Redis")
+            self.cache_manager.set(cache_key, raw_transactions, timeout=None)
 
             parsed_transactions = [
                 self._decrypt_fields(contract_type, contract, idx, raw_transaction, decryptor)
@@ -117,8 +103,10 @@ class BaseTransactionAPI(ResponseMixin):
                 transaction = self._build_transaction(transaction_dict)
                 log_info(self.logger, f"Built transaction: {transaction}")
 
-                w3_contract = self.w3_manager.get_web3_contract(contract_type)
-                tx = w3_contract.functions.addTransaction(
+                network = self.domain_manager.get_contract_network()
+                web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
+                
+                tx = web3_contract.functions.addTransaction(
                     contract_idx,
                     transaction["extended_data"],
                     transaction["transact_dt"],
@@ -132,9 +120,9 @@ class BaseTransactionAPI(ResponseMixin):
             time.sleep(self.config_manager.get_network_sleep_time())
 
             cache_key = self.cache_manager.get_transaction_cache_key(contract_type, contract_idx)
-            cache.delete(cache_key)
+            self.cache_manager.delete(cache_key)
             cache_key = self.cache_manager.get_settlement_cache_key(contract_type, contract_idx)
-            cache.delete(cache_key)
+            self.cache_manager.delete(cache_key)
 
             success_message = f"Successfully added transactions for {contract_type}:{contract_idx}"
             return self._format_success({"count": len(transactions)}, success_message, status.HTTP_201_CREATED)
@@ -149,17 +137,19 @@ class BaseTransactionAPI(ResponseMixin):
     def delete_transactions(self, contract_type, contract_idx):
         """Delete all transactions for a contract from the blockchain."""
         try:
-            w3_contract = self.w3_manager.get_web3_contract(contract_type)
-            tx = w3_contract.functions.deleteTransactions(contract_idx).build_transaction()
+            network = self.domain_manager.get_contract_network()
+            web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
+
+            tx = web3_contract.functions.deleteTransactions(contract_idx).build_transaction()
             self._send_transaction(tx, contract_type, contract_idx, "deleteTransactions")
 
             # Sleep to give time for transaction to complete
             time.sleep(self.config_manager.get_network_sleep_time())
 
             cache_key = self.cache_manager.get_transaction_cache_key(contract_type, contract_idx)
-            cache.delete(cache_key)
+            self.cache_manager.delete(cache_key)
             cache_key = self.cache_manager.get_settlement_cache_key(contract_type, contract_idx)
-            cache.delete(cache_key)
+            self.cache_manager.delete(cache_key)
 
             success_message = f"Successfully deleted transactions for {contract_type}:{contract_idx}"
             return self._format_success({ "contract_idx":contract_idx}, success_message, status.HTTP_204_NO_CONTENT)
@@ -187,7 +177,7 @@ class BaseTransactionAPI(ResponseMixin):
     def _send_transaction(self, tx, contract_type, contract_idx, operation):
         """Send a signed transaction to the blockchain."""
         try:
-            tx_receipt = self.w3_manager.send_signed_transaction(tx, self.wallet_addr, contract_type, contract_idx, "fizit")
+            tx_receipt = self.context.web3_manager.send_signed_transaction(tx, self.wallet_addr, contract_type, contract_idx, "fizit")
 
             if tx_receipt["status"] != 1:
                 error_message = f"Blockchain {operation} failed for contract {contract_idx}" 

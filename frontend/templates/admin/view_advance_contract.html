@@ -126,6 +126,7 @@
             <!-- Add New Party Form -->
             <div class="inline-group">
                 <h3 class="subhead">Add a New Party</h3>
+                <p class="help">A seller, buyer and funder are required for advance contracts.</p>
                 <form method="post" action="#">
                     {% csrf_token %}
                     <input type="hidden" name="form_type" value="parties">

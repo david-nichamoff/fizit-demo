@@ -1,6 +1,8 @@
 import logging
+
 from django.core.management.base import BaseCommand
-from api.library import LibraryManager
+
+from api.managers.library_manager import LibraryManager
 
 class Command(BaseCommand):
     help = "Reload the library cache from the JSON file."

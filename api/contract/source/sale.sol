@@ -202,9 +202,12 @@ contract Advance {
 
     function postSettlement(uint contract_idx, uint settle_idx, uint settle_pay_dt, int settle_pay_amt, string memory settle_tx_hash) public {
         require(contract_idx < contracts.length, "Invalid contract index");
+
         settlements[contract_idx][settle_idx].settle_pay_dt = settle_pay_dt;
         settlements[contract_idx][settle_idx].settle_pay_amt = settle_pay_amt;
         settlements[contract_idx][settle_idx].settle_tx_hash = settle_tx_hash;
+
+        int settle_exp_amt = settlements[contract_idx][settle_idx].settle_exp_amt; 
 
         if (settle_pay_dt > settlements[contract_idx][settle_idx].settle_due_dt) {
             settlements[contract_idx][settle_idx].days_late = (settle_pay_dt - settlements[contract_idx][settle_idx].settle_due_dt) / 60 / 60 / 24;
@@ -212,14 +215,15 @@ contract Advance {
             // Convert necessary values to int to match types and avoid errors
             int days_late = int(settlements[contract_idx][settle_idx].days_late);
             int late_fee_pct = int(contracts[contract_idx].late_fee_pct);
-            settlements[contract_idx][settle_idx].late_fee_amt = (days_late * ((late_fee_pct * 100000) / 365) * settle_pay_amt) / 1000000000;
+            settlements[contract_idx][settle_idx].late_fee_amt = (days_late * ((late_fee_pct * 100000) / 365) * settle_exp_amt) / 1000000000;
         }
 
+        int service_fee_amt = int((contracts[contract_idx].service_fee_pct * uint(settle_exp_amt)) / 10000) + int(contracts[contract_idx].service_fee_amt);
         int late_fee_amt = settlements[contract_idx][settle_idx].late_fee_amt;
         int principal_amt = settlements[contract_idx][settle_idx].principal_amt;
 
-        if (settle_pay_amt - late_fee_amt - principal_amt > 0) {
-            settlements[contract_idx][settle_idx].dist_calc_amt = settle_pay_amt - late_fee_amt - principal_amt;
+        if (settle_pay_amt - late_fee_amt - principal_amt - service_fee_amt > 0) {
+            settlements[contract_idx][settle_idx].dist_calc_amt = settle_pay_amt - late_fee_amt - principal_amt - service_fee_amt;
         } else {
             settlements[contract_idx][settle_idx].dist_calc_amt = 0;
         }

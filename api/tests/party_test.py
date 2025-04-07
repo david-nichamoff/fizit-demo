@@ -6,24 +6,23 @@ import time
 from django.test import TestCase
 
 from api.operations import ContractOperations, PartyOperations, CsrfOperations
-from api.secrets import SecretsManager
-from api.config import ConfigManager
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_error
 
 class PartyTest(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.logger = logging.getLogger(__name__)
-        cls.secrets_manager = SecretsManager()
-        cls.config_manager = ConfigManager()
+        pass
 
     def setUp(self):
-        """Set up authentication headers and initialize operations."""
+        self.context = build_app_context()
+        self.logger = logging.getLogger(__name__)
+
         self.headers = {
-            'Authorization': f'Api-Key {self.secrets_manager.get_master_key()}',
+            'Authorization': f'Api-Key {self.context.secrets_manager.get_master_key()}',
             'Content-Type': 'application/json'
         }
-        self.base_url = self.config_manager.get_base_url()
+        self.base_url = self.context.config_manager.get_base_url()
         self.csrf_ops = CsrfOperations(self.headers, self.base_url)
         self.csrf_token = self.csrf_ops.get_csrf_token()
         self.contract_ops = ContractOperations(self.headers, self.base_url, self.csrf_token)
@@ -58,7 +57,7 @@ class PartyTest(TestCase):
 
             log_info(self.logger, f"Created contract {contract_type}:{contract_idx} from {filename}")
 
-            time.sleep(5)
+            time.sleep(self.context.config_manager.get_network_sleep_time())
 
             # Step 2: Add parties
             add_response = self.party_ops.post_parties(contract_type, contract_idx, party_list)
@@ -68,7 +67,7 @@ class PartyTest(TestCase):
 
             log_info(self.logger, f"Added {party_list} to {contract_type}:{contract_idx} from {filename}")
 
-            time.sleep(5)
+            time.sleep(self.context.config_manager.get_network_sleep_time())
 
             # Step 3: Retrieve parties and validate
             retrieved_parties = self.party_ops.get_parties(contract_type, contract_idx)
@@ -93,7 +92,7 @@ class PartyTest(TestCase):
 
             log_info(self.logger, f"Deleted parties from {contract_type}:{contract_idx} from {filename}")
 
-            time.sleep(5)
+            time.sleep(self.context.config_manager.get_network_sleep_time())
 
             # Step 5: Verify deletion
             get_response_after_delete = self.party_ops.get_parties(contract_type, contract_idx)

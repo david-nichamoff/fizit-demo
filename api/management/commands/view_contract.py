@@ -3,9 +3,7 @@ import requests
 
 from django.core.management.base import BaseCommand
 
-from api.config import ConfigManager
-from api.secrets import SecretsManager
-
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import  log_error, log_info, log_warning
 
 class Command(BaseCommand):
@@ -19,22 +17,37 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         contract_idx = kwargs['contract_idx']
         contract_type = kwargs['contract_type']
+
+        self.context = build_app_context()
         self.logger = logging.getLogger(__name__)
 
-        # Initialize managers and headers
-        self._initialize()
+        self.headers = {
+            'Authorization': f'Api-Key {self.context.secrets_manager.get_master_key()}',
+            'Content-Type': 'application/json'
+        }
 
         try:
             log_info(self.logger, f"Fetching formatted data for {contract_type}:{contract_idx}")
             contract_data = self.get_contract(contract_type, contract_idx)
-            settlements = self.get_settlements(contract_type, contract_idx)
+            log_info(self.logger, f"Contract: {contract_data}")
+
+            if self.context.api_manager.get_settlement_api(contract_type):
+                settlements = self.get_settlements(contract_type, contract_idx)
+                log_info(self.logger, f"Settlements: {settlements}")
+
             parties = self.get_parties(contract_type, contract_idx)
+            log_info(self.logger, f"Parties: {parties}")
             transactions = self.get_transactions(contract_type, contract_idx)
+            log_info(self.logger, f"Transactions: {transactions}")
             artifacts = self.get_artifacts(contract_type, contract_idx)
+            log_info(self.logger, f"Artifacts: {artifacts}")
 
             # Print the data
             self.display_contract_data(contract_data)
-            self.display_settlements(settlements)
+
+            if self.context.api_manager.get_settlement_api(contract_type):
+                self.display_settlements(settlements)
+
             self.display_parties(parties)
             self.display_transactions(transactions)
             self.display_artifacts(artifacts)
@@ -43,22 +56,10 @@ class Command(BaseCommand):
             self.stderr.write(self.style.ERROR(f"Error retrieving data: {str(e)}"))
             log_error(self.logger, f"Error retrieving data for {contract_type}:{contract_idx}: {str(e)}")
 
-    def _initialize(self):
-        """Initialize ConfigManager, SecretsManager, and request headers."""
-        self.logger = logging.getLogger(__name__)
-        self.config_manager = ConfigManager()
-        self.secrets_manager = SecretsManager()
-
-        # Prepare headers with the correct format
-        self.headers = {
-            'Authorization': f'Api-Key {self.secrets_manager.get_master_key()}',
-            'Content-Type': 'application/json'
-        }
-
     def get_contract(self, contract_type, contract_idx):
         """Retrieve formatted contract data from the API."""
         response = requests.get(
-            f"{self.config_manager.get_base_url()}/api/contracts/{contract_type}/{contract_idx}/",
+            f"{self.context.config_manager.get_base_url()}/api/contracts/{contract_type}/{contract_idx}/",
             headers=self.headers
         )
         response.raise_for_status()
@@ -67,7 +68,7 @@ class Command(BaseCommand):
     def get_settlements(self, contract_type, contract_idx):
         """Retrieve formatted settlements data from the API."""
         response = requests.get(
-            f"{self.config_manager.get_base_url()}/api/contracts/{contract_type}/{contract_idx}/settlements/",
+            f"{self.context.config_manager.get_base_url()}/api/contracts/{contract_type}/{contract_idx}/settlements/",
             headers=self.headers
         )
         response.raise_for_status()
@@ -76,7 +77,7 @@ class Command(BaseCommand):
     def get_parties(self, contract_type, contract_idx):
         """Retrieve formatted parties data from the API."""
         response = requests.get(
-            f"{self.config_manager.get_base_url()}/api/contracts/{contract_type}/{contract_idx}/parties/",
+            f"{self.context.config_manager.get_base_url()}/api/contracts/{contract_type}/{contract_idx}/parties/",
 
             headers=self.headers
         )
@@ -86,7 +87,7 @@ class Command(BaseCommand):
     def get_transactions(self, contract_type, contract_idx):
         """Retrieve formatted transactions data from the API."""
         response = requests.get(
-            f"{self.config_manager.get_base_url()}/api/contracts/{contract_type}/{contract_idx}/transactions/",
+            f"{self.context.config_manager.get_base_url()}/api/contracts/{contract_type}/{contract_idx}/transactions/",
             headers=self.headers
         )
         response.raise_for_status()
@@ -95,7 +96,7 @@ class Command(BaseCommand):
     def get_artifacts(self, contract_type, contract_idx):
         """Retrieve formatted artifacts data from the API."""
         response = requests.get(
-            f"{self.config_manager.get_base_url()}/api/contracts/{contract_type}/{contract_idx}/artifacts/",
+            f"{self.context.config_manager.get_base_url()}/api/contracts/{contract_type}/{contract_idx}/artifacts/",
             headers=self.headers
         )
         response.raise_for_status()

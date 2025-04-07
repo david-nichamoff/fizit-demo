@@ -7,25 +7,20 @@ from rest_framework import viewsets, status
 
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
-from api.serializers.deposit_serializer import DepositSerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-from api.registry import RegistryManager
-from api.views.mixins.validation import ValidationMixin
-from api.views.mixins.permission import PermissionMixin
+from api.serializers.deposit_serializer import DepositSerializer
+from api.views.mixins import ValidationMixin, PermissionMixin
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
 
-
 class DepositViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
-    """
-    A ViewSet for managing deposit-related operations for different contract types.
-    """
     authentication_classes = [AWSSecretsAPIKeyAuthentication]
     permission_classes = [HasCustomAPIKey]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.registry_manager = RegistryManager()
+        self.context = build_app_context()
         self.logger = logging.getLogger(__name__)
 
 ### **Purchase Contract Deposits**
@@ -148,13 +143,19 @@ class DepositViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         log_info(self.logger, f"Retrieving deposits for {contract_type}:{contract_idx}")
 
         try:
-            self._validate_contract_type(contract_type, self.registry_manager)
-            contract_api = self.registry_manager.get_contract_api(contract_type)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
+            party_api = self.context.api_manager.get_party_api()
+            party_response = party_api.get_parties(contract_type, contract_idx)
+            if party_response["status"] != status.HTTP_200_OK:
+                return Response({"error": party_response["message"]}, party_response["status"])
+            parties = party_response["data"]
+
             start_date, end_date = self._parse_date_range(request)
-            deposit_api = self.registry_manager.get_deposit_api(contract_type)
-            response = deposit_api.get_deposits(start_date, end_date, contract_type, int(contract_idx))
+            deposit_api = self.context.api_manager.get_deposit_api(contract_type)
+            response = deposit_api.get_deposits(start_date, end_date, contract_type, int(contract_idx), parties)
 
             if response["status"] == status.HTTP_200_OK:
                 serializer = DepositSerializer(response["data"], many=True)
@@ -174,12 +175,12 @@ class DepositViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
 
         try:
             self._validate_master_key(request.auth)
-            self._validate_contract_type(contract_type, self.registry_manager)
-            contract_api = self.registry_manager.get_contract_api(contract_type)
+            self._validate_contract_type(contract_type, self.context.domain_manager)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
             validated_data = self._validate_request_data(DepositSerializer, request.data)
-            deposit_api = self.registry_manager.get_deposit_api(contract_type)
+            deposit_api = self.context.api_manager.get_deposit_api(contract_type)
             response = deposit_api.add_deposit(contract_type, int(contract_idx), validated_data)
 
             if response["status"] == status.HTTP_201_CREATED:

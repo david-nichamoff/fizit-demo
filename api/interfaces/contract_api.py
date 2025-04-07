@@ -5,51 +5,37 @@ from decimal import Decimal
 
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from django.core.cache import cache
 
-from api.web3 import Web3Manager
-from api.config import ConfigManager
-from api.cache import CacheManager
 from api.interfaces.mixins import ResponseMixin
-from api.utilities.logging import  log_error, log_info, log_warning
-from api.utilities.validation import is_valid_amount, is_valid_percentage, is_valid_json
+from api.managers.app_context import AppContext
 from api.interfaces.encryption_api import get_encryptor, get_decryptor
+from api.utilities.logging import  log_error, log_info, log_warning
 
 class BaseContractAPI(ResponseMixin):
-    _instances = {}
-
-    def __new__(cls, *args, **kwargs):
-        """Ensure that each subclass remains a singleton."""
-        if cls not in cls._instances:
-            cls._instances[cls] = super(BaseContractAPI, cls).__new__(cls)
-        return cls._instances[cls]
-
-    def __init__(self, registry_manager=None):
-        """Initialize ContractAPI with necessary dependencies."""
-        if not hasattr(self, "initialized"):
-            self.config_manager = ConfigManager()
-            self.w3_manager = Web3Manager()
-            self.cache_manager = CacheManager()
-            self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
-            self.logger = logging.getLogger(__name__)
-            self.initialized = True
+    def __init__(self, context: AppContext):
+        self.context = context
+        self.config_manager = context.config_manager
+        self.domain_manager = context.domain_manager
+        self.cache_manager = context.cache_manager
+        self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
+        self.logger = logging.getLogger(__name__)
 
     def get_contract_count(self, contract_type):
         """Retrieve the total number of contracts from cache or Web3."""
         try:
             cache_key = self.cache_manager.get_contract_count_cache_key(contract_type)
-            cached_count = cache.get(cache_key)
+            count = self.cache_manager.get(cache_key)
 
-            if cached_count is not None:
-                log_info(self.logger, f"Loaded contract count for {contract_type} from cache: {cached_count}")
-                return self._format_success({"count": cached_count}, f"Retrieved count of contracts for {contract_type} (cached)", status.HTTP_200_OK)
+            if count is not None:
+                log_info(self.logger, f"Loaded contract count for {contract_type} from cache: {count}")
+                return self._format_success({"count": count}, f"Retrieved count of contracts for {contract_type} (cached)", status.HTTP_200_OK)
 
             # Fetch from blockchain if not in cache
-            w3_contract = self.w3_manager.get_web3_contract(contract_type)
-            log_warning(self.logger, "Getting count from chain")
-            count = w3_contract.functions.getContractCount().call()
+            network = self.domain_manager.get_contract_network()
+            web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
+            count = web3_contract.functions.getContractCount().call()
 
-            cache.set(cache_key, count, timeout=None)
+            self.cache_manager.set(cache_key, count, timeout=None)
             log_info(self.logger, f"Cached contract count for {contract_type}: {count}")
 
             return self._format_success({"count": count}, f"Retrieved count of contracts for {contract_type}", status.HTTP_200_OK)
@@ -61,7 +47,7 @@ class BaseContractAPI(ResponseMixin):
         """Retrieve a specific contract."""
         try:
             cache_key = self.cache_manager.get_contract_cache_key(contract_type, contract_idx)
-            cached_contract = cache.get(cache_key)
+            cached_contract = self.cache_manager.get(cache_key)
             decryptor = get_decryptor(api_key, parties)
 
             if cached_contract:
@@ -70,12 +56,12 @@ class BaseContractAPI(ResponseMixin):
                 return self._format_success(parsed_contract, f"Retrieved {contract_type}:{contract_idx} (cached)", status.HTTP_200_OK)
 
             log_info(self.logger, f"Retrieving contract {contract_type}:{contract_idx} for parties {parties}")
-            w3_contract = self.w3_manager.get_web3_contract(contract_type)
-            raw_contract = w3_contract.functions.getContract(contract_idx).call()
+            network = self.domain_manager.get_contract_network()
+            web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
+            raw_contract = web3_contract.functions.getContract(contract_idx).call()
 
             # Store contract data in Redis cache
-            cache.set(cache_key, raw_contract, timeout=None)
-            log_warning(self.logger, f"Cached contract {contract_type}:{contract_idx} in Redis")
+            self.cache_manager.set(cache_key, raw_contract, timeout=None)
 
             parsed_contract = self._decrypt_fields(contract_idx, raw_contract, decryptor)
 
@@ -97,17 +83,19 @@ class BaseContractAPI(ResponseMixin):
             log_info(self.logger, f"Built contract {contract}")
 
             log_info(self.logger, f"Adding {contract_type}:{contract_idx} with data {contract}")
-            w3_contract = self.w3_manager.get_web3_contract(contract_type)
+            network = self.domain_manager.get_contract_network()
+            web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
 
-            transaction = w3_contract.functions.addContract(contract).build_transaction()
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, "fizit")
+            transaction = web3_contract.functions.addContract(contract).build_transaction()
+            network = self.domain_manager.get_contract_network()
+            tx_receipt = self.context.web3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, network)
 
             if tx_receipt["status"] == 1:
                 # Sleep to give time for transaction to complete
                 time.sleep(self.config_manager.get_network_sleep_time())
 
                 cache_key = self.cache_manager.get_contract_count_cache_key(contract_type)
-                cache.delete(cache_key)
+                self.cache_manager.delete(cache_key)
                 return self._format_success({"contract_idx": contract_idx}, f"Contract {contract_type}:{contract_idx} created", status.HTTP_201_CREATED)
             else:
                 raise RuntimeError("Error adding contract")
@@ -120,19 +108,22 @@ class BaseContractAPI(ResponseMixin):
     def update_contract(self, contract_type, contract_idx, contract_dict):
         try:
             contract = self._build_contract(contract_dict)
-            w3_contract = self.w3_manager.get_web3_contract(contract_type)
-            transaction = w3_contract.functions.updateContract(contract_idx, contract).build_transaction()
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, "fizit")
+            network = self.domain_manager.get_contract_network()
+            web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
+            transaction = web3_contract.functions.updateContract(contract_idx, contract).build_transaction()
+            network = self.domain_manager.get_contract_network()
+
+            tx_receipt = self.context.web3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, network)
     
             if tx_receipt["status"] == 1:
                 # Sleep to give time for transaction to complete
                 time.sleep(self.config_manager.get_network_sleep_time())
 
                 cache_key = self.cache_manager.get_contract_cache_key(contract_type, contract_idx)
-                cache.delete(cache_key)
+                self.cache_manager.delete(cache_key)
                 return self._format_success({"contract_idx": contract_idx}, f"Contract {contract_type}:{contract_idx} updated", status.HTTP_200_OK)
             else:
-                raise RuntimeError("Error adding contract")
+                raise RuntimeError("Error updating contract")
 
         except Exception as e:
             return self._format_error(f"Error adding contract: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -140,16 +131,19 @@ class BaseContractAPI(ResponseMixin):
     def delete_contract(self, contract_type, contract_idx):
         """Delete a contract from the blockchain."""
         try:
-            w3_contract = self.w3_manager.get_web3_contract(contract_type)
-            transaction = w3_contract.functions.deleteContract(contract_idx).build_transaction()
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, "fizit")
+            network = self.domain_manager.get_contract_network()
+            web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
+            transaction = web3_contract.functions.deleteContract(contract_idx).build_transaction()
+            network = self.domain_manager.get_contract_network()
+
+            tx_receipt = self.context.web3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, network)
 
             if tx_receipt["status"] == 1:
                 # Sleep to give time for transaction to complete
                 time.sleep(self.config_manager.get_network_sleep_time())
 
                 cache_key = self.cache_manager.get_contract_cache_key(contract_type, contract_idx)
-                cache.delete(cache_key)
+                self.cache_manager.delete(cache_key)
                 return self._format_success( {"contract_idx":contract_idx}, f"Contract {contract_type}:{contract_idx} deleted", status.HTTP_204_NO_CONTENT)
             else:
                 raise RuntimeError(f"Transaction failed for {contract_type}:{contract_idx}.")

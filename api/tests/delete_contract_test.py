@@ -6,24 +6,23 @@ import time
 from django.test import TestCase
 
 from api.operations import ContractOperations, CsrfOperations
-from api.secrets import SecretsManager
-from api.config import ConfigManager
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_error
-
 
 class DeleteContractTest(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.logger = logging.getLogger(__name__)
-        cls.secrets_manager = SecretsManager()
-        cls.config_manager = ConfigManager()
+        pass
 
     def setUp(self):
+        self.context = build_app_context()
+        self.logger = logging.getLogger(__name__)
+
         self.headers = {
-            'Authorization': f'Api-Key {self.secrets_manager.get_master_key()}',
+            'Authorization': f'Api-Key {self.context.secrets_manager.get_master_key()}',
             'Content-Type': 'application/json'
         }
-        self.base_url = self.config_manager.get_base_url()
+        self.base_url = self.context.config_manager.get_base_url()
         self.csrf_ops = CsrfOperations(self.headers, self.base_url)
         self.csrf_token = self.csrf_ops.get_csrf_token()
         self.contract_ops = ContractOperations(self.headers, self.base_url, self.csrf_token)
@@ -57,7 +56,7 @@ class DeleteContractTest(TestCase):
             contract_records.append((contract_type, contract_idx))
             log_info(self.logger, f"Created contract {contract_type}:{contract_idx}")
 
-            time.sleep(15)
+            time.sleep(self.context.config_manager.get_network_sleep_time())
 
         # Step 2: Delete each contract
         for contract_type, contract_idx in contract_records:

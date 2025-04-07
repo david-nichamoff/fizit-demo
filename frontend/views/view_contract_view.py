@@ -5,39 +5,32 @@ from decimal import Decimal
 from django.shortcuts import render, redirect
 from django.contrib import messages
 
-from api.config import ConfigManager
-from api.interfaces import ArtifactAPI
-from api.secrets import SecretsManager
-from api.registry import RegistryManager
 from api.operations import ContractOperations, SettlementOperations, TransactionOperations
 from api.operations import CsrfOperations, PartyOperations, ArtifactOperations
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
 
-from frontend.forms import PartyForm, ArtifactForm
-from frontend.forms import AdvanceSettlementForm, SaleSettlementForm
-from frontend.forms import AdvanceContractForm, SaleContractForm, PurchaseContractForm
+from frontend.forms import PartyForm, ArtifactForm, AdvanceContractForm
 
 logger = logging.getLogger(__name__)
 
 # Helper function to initialize headers and configuration
 def initialize_backend_services():
-    secrets_manager = SecretsManager()
-    registry_manager = RegistryManager()
-    config_manager = ConfigManager()
+    context = build_app_context()
 
     headers = {
-        'Authorization': f"Api-Key {secrets_manager.get_master_key()}",
+        'Authorization': f"Api-Key {context.secrets_manager.get_master_key()}",
         'Content-Type': 'application/json',
     }
 
-    csrf_ops = CsrfOperations(headers, config_manager.get_base_url())
+    csrf_ops = CsrfOperations(headers, context.config_manager.get_base_url())
     csrf_token = csrf_ops.get_csrf_token()
 
-    return headers, registry_manager, config_manager, csrf_token
+    return headers, context, csrf_token
 
 # Main view
 def view_contract_view(request, extra_context=None):
-    headers, registry_manager, config_manager, csrf_token = initialize_backend_services()
+    headers, context, csrf_token = initialize_backend_services()
     contract_idx = request.GET.get("contract_idx")
     contract_type = request.GET.get("contract_type")
 
@@ -51,17 +44,17 @@ def view_contract_view(request, extra_context=None):
         messages.error(request, "Missing contract type.")
         return redirect("custom_admin:list_contracts")
 
-    base_url = config_manager.get_base_url()
+    base_url = context.config_manager.get_base_url()
 
     if request.method == 'POST':
-        return handle_post_request(request, registry_manager, contract_type, contract_idx, headers, base_url, csrf_token)
+        return handle_post_request(request, context, contract_type, contract_idx, headers, base_url, csrf_token)
 
-    # Prepare context and render the appropriate template
-    context = prepare_view_context(request, registry_manager, contract_type, contract_idx, headers, base_url, csrf_token, extra_context)
-    return render(request, f"admin/view_{contract_type}_contract.html", context)
+    # Prepare form_context and render the appropriate template
+    form_context = prepare_view_form_context(request, context, contract_type, contract_idx, headers, base_url, csrf_token, extra_context)
+    return render(request, f"admin/view_{contract_type}_contract.html", form_context)
 
 # Handle POST requests for different forms
-def handle_post_request(request, registry_manager, contract_type, contract_idx, headers, base_url, csrf_token):
+def handle_post_request(request, context, contract_type, contract_idx, headers, base_url, csrf_token):
     form_type = request.POST.get("form_type")
 
     log_info(logger, f"Handling form submission: {form_type}")
@@ -75,13 +68,13 @@ def handle_post_request(request, registry_manager, contract_type, contract_idx, 
 
     handler = form_handlers.get(form_type)
     if handler:
-        return handler(request, registry_manager, contract_type, contract_idx, headers, base_url, csrf_token)
+        return handler(request, context, contract_type, contract_idx, headers, base_url, csrf_token)
 
     messages.error(request, "Invalid form type. Please correct the form and try again.")
     return redirect(f"/admin/view-contract/?contract_idx={contract_idx}?contract_type={contract_type}")
 
-# Prepare context for rendering the view
-def prepare_view_context(request, registry_manager, contract_type, contract_idx, headers, base_url, csrf_token, extra_context=None):
+# Prepare form_context for rendering the view
+def prepare_view_form_context(request, context, contract_type, contract_idx, headers, base_url, csrf_token, extra_context=None):
     contract_ops = ContractOperations(headers, base_url, csrf_token)
 
     try:
@@ -92,11 +85,29 @@ def prepare_view_context(request, registry_manager, contract_type, contract_idx,
         messages.error(request, f"Failed to fetch {contract_type} contract {contract_idx}")
         return {}
 
+    # Extract fields from funding_instr
+    funding_instr = contract.get("funding_instr", {})
+    if funding_instr.get("bank") == "token":
+        symbol = funding_instr.get("token_symbol")
+        network = funding_instr.get("network")
+        if symbol and network:
+            contract["funding_token_symbol"] = f"{network}:{symbol}"
+            contract["funding_token_network"] = network
+
+    # Extract fields from deposit_instr
+    deposit_instr = contract.get("deposit_instr", {})
+    if deposit_instr.get("bank") == "token":
+        symbol = deposit_instr.get("token_symbol")
+        network = deposit_instr.get("network")
+        if symbol and network:
+            contract["deposit_token_symbol"] = f"{network}:{symbol}"
+            contract["deposit_token_network"] = network
+
     # Fetch related data
     try:
         log_info(logger, "Fetching settlements")
         settlements=[]
-        if registry_manager.get_settlement_api(contract_type):
+        if context.api_manager.get_settlement_api(contract_type):
             settlements = fetch_settlements(contract_type, contract_idx, headers, base_url)
             log_info(logger, f"Retrieved settlements for {contract_type}:{contract_idx}: {settlements}")
 
@@ -112,27 +123,40 @@ def prepare_view_context(request, registry_manager, contract_type, contract_idx,
     # Generate presigned URLs for artifacts
     for artifact in artifacts:
         try:
-            artifact['presigned_url'] = generate_presigned_url(artifact)
+            artifact['presigned_url'] = generate_presigned_url(artifact, context.api_manager)
         except Exception as e:
             log_error(logger, f"Failed to generate presigned URL for artifact {artifact['doc_title']}: {e}")
             artifact['presigned_url'] = None
             messages.error(request, f"Failed to generate presigned URL for {artifact['doc_title']}.")
 
     # Choose the correct contract form based on type
-    contract_form_template  = registry_manager.get_contract_form(contract_type)
-    contract_form = contract_form_template(initial=contract)
+    banks = context.domain_manager.get_banks()
+
+    token_list = []
+    token_config = context.config_manager.get_all_token_addresses()
+    for entry in token_config:
+        network = entry["key"]
+        for token in entry.get("value", []):
+            symbol = token["key"]
+            token_list.append(f"{network}:{symbol}")
+
+    contract_form_template  = context.form_manager.get_contract_form(contract_type)
+    contract_form = contract_form_template(initial=contract, banks=banks, token_list=token_list)
 
     settlement_form = None
-    if registry_manager.get_settlement_form(contract_type):
-        settlement_form_template = registry_manager.get_settlement_form(contract_type)
+    if context.form_manager.get_settlement_form(contract_type):
+        settlement_form_template = context.form_manager.get_settlement_form(contract_type)
         settlement_form = settlement_form_template(initial=contract)
 
-    # Prepare context
-    context = {
+    party_codes = context.config_manager.get_party_codes()
+    party_types = context.domain_manager.get_party_types()
+
+    # Prepare form_context
+    form_context = {
         'contract_idx': contract_idx,
         'contract_type': contract_type,
         'contract_form': contract_form,
-        'party_form': PartyForm(),
+        'party_form': PartyForm(party_codes=party_codes, party_types=party_types),
         'settlement_form': settlement_form,
         'artifact_form': ArtifactForm(),
         'settlements': settlements,
@@ -142,13 +166,15 @@ def prepare_view_context(request, registry_manager, contract_type, contract_idx,
     }
 
     if extra_context:
-        context.update(extra_context)
+        form_context.update(extra_context)
 
-    return context
+    return form_context
 
 # Generate presigned URL for artifacts
-def generate_presigned_url(artifact):
-    artifact_api = ArtifactAPI()
+def generate_presigned_url(artifact, api_manager):
+
+    artifact_api = api_manager.get_artifact_api()
+
     return artifact_api.generate_presigned_url(
         s3_bucket=artifact['s3_bucket'],
         s3_object_key=artifact['s3_object_key'],
@@ -156,7 +182,7 @@ def generate_presigned_url(artifact):
     )
 
 # Update contract
-def _update_contract(request, registry_manager, contract_type, contract_idx, headers, base_url, csrf_token):
+def _update_contract(request, context, contract_type, contract_idx, headers, base_url, csrf_token):
     contract_form = AdvanceContractForm(request.POST, view_mode=True)
 
     if contract_form.is_valid():
@@ -179,8 +205,11 @@ def _update_contract(request, registry_manager, contract_type, contract_idx, hea
     return redirect(f"/admin/view-contract/?contract_idx={contract_idx}&contract_type={contract_type}")
 
 # Update parties
-def _update_parties(request, registry_manager, contract_type, contract_idx, headers, base_url, csrf_token):
-    party_form = PartyForm(request.POST)
+def _update_parties(request, context, contract_type, contract_idx, headers, base_url, csrf_token):
+
+    party_codes = context.config_manager.get_party_codes()
+    party_types = context.domain_manager.get_party_types()
+    party_form = PartyForm(request.POST, party_codes=party_codes, party_types=party_types)
 
     if party_form.is_valid():
         payload = [party_form.cleaned_data]
@@ -203,8 +232,8 @@ def _update_parties(request, registry_manager, contract_type, contract_idx, head
     return redirect(f"/admin/view-contract/?contract_idx={contract_idx}&contract_type={contract_type}")
 
 # Update settlements
-def _update_settlements(request, registry_manager, contract_type, contract_idx, headers, base_url, csrf_token):
-    settlement_form_type = registry_manager.get_settlement_form(contract_type)
+def _update_settlements(request, context, contract_type, contract_idx, headers, base_url, csrf_token):
+    settlement_form_type = context.form_manager.get_settlement_form(contract_type)
     settlement_form = settlement_form_type(request.POST)
 
     if settlement_form.is_valid():
@@ -245,7 +274,7 @@ def _update_settlements(request, registry_manager, contract_type, contract_idx, 
     return redirect(f"/admin/view-contract/?contract_idx={contract_idx}&contract_type={contract_type}")
 
 # Update artifacts
-def _update_artifacts(request, registry_manager, contract_type, contract_idx, headers, base_url, csrf_token):
+def _update_artifacts(request, context, contract_type, contract_idx, headers, base_url, csrf_token):
     artifact_url = request.POST.getlist("artifact_url")
 
     if not artifact_url:

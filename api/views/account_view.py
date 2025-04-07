@@ -9,10 +9,8 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from api.serializers.account_serializer import AccountSerializer
 from api.authentication import AWSSecretsAPIKeyAuthentication
 from api.permissions import HasCustomAPIKey
-from api.interfaces import AccountAPI
-from api.registry import RegistryManager
-from api.views.mixins.validation import ValidationMixin
-from api.views.mixins.permission import PermissionMixin
+from api.views.mixins import ValidationMixin, PermissionMixin
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_error, log_info, log_warning
 
 class AccountViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
@@ -22,9 +20,8 @@ class AccountViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
     def __init__(self, **kwargs):
         """Initialize the view with AccountAPI instance and logger."""
         super().__init__(**kwargs)
-        self.registry_manager = RegistryManager()
+        self.context = build_app_context() 
         self.logger = logging.getLogger(__name__)
-        self.account_api = AccountAPI(registry_manager=self.registry_manager)
 
     @extend_schema(
         tags=["Bank"],
@@ -46,13 +43,14 @@ class AccountViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         log_info(self.logger, f"Received request to list accounts for bank: {bank}")
 
         try:
-            if bank not in self.registry_manager.get_banks():
+            if bank not in self.context.domain_manager.get_banks():
                 raise ValidationError("Invalid bank")
 
             self._validate_master_key(request.auth)
 
-            log_info(self.logger, f"Getting accounts from api {self.account_api} from bank {bank}")
-            response = self.account_api.get_accounts(bank)
+            log_info(self.logger, f"Getting accounts from bank {bank}")
+            account_api = self.context.api_manager.get_account_api()
+            response = account_api.get_accounts(bank)
             log_info(self.logger, f"Response from api: {response}")
 
             if response["status"] == status.HTTP_200_OK:

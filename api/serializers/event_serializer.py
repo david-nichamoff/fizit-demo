@@ -5,4 +5,4 @@ from api.models.event_model import Event
 class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event 
-        fields = ['event_idx', 'contract_type', 'contract_idx', 'network', 'from_addr', 'to_addr', 'tx_hash', 'gas_used', 'event_type', 'event_dt', 'details', 'status']
+        fields = ['event_idx', 'contract_type', 'contract_release', 'contract_idx', 'network', 'from_addr', 'to_addr', 'tx_hash', 'gas_used', 'event_type', 'event_dt', 'details', 'status']

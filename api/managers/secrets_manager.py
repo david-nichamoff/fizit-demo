@@ -3,47 +3,32 @@ import json
 import os
 import logging
 from botocore.exceptions import ClientError
-from datetime import datetime, timedelta
+from datetime import datetime
 
-from django.core.cache import cache
-
-from api.cache import CacheManager
+from api.managers.cache_manager import CacheManager
 from api.utilities.logging import log_error, log_info, log_warning
 
 class SecretsManager:
-    """Secrets Manager for retrieving AWS Secrets securely with caching."""
-    
-    _instance = None
-
-    def __new__(cls, *args, **kwargs):
-        """Ensure Singleton instance for SecretsManager."""
-        if cls._instance is None:
-            cls._instance = super(SecretsManager, cls).__new__(cls, *args, **kwargs)
-        return cls._instance
 
     def __init__(self, region_name="us-east-1"):
-        """Initialize SecretsManager with AWS region and logging."""
-        if not hasattr(self, "_initialized"):
-            self.region_name = region_name
-            self._initialized = True
-            self.cache_manager = CacheManager()
-            self.logger = logging.getLogger(__name__)
+        self.region_name = region_name
+        self.cache_manager = CacheManager()
+        self.cache_key = self.cache_manager.get_secret_cache_key()
+        self.logger = logging.getLogger(__name__)
+        self.client = boto3.client(service_name="secretsmanager", region_name=self.region_name)
 
-            fizit_env = os.getenv("FIZIT_ENV")
-            if not fizit_env or fizit_env not in {"dev", "test", "main"}:
-                raise EnvironmentError("FIZIT_ENV must be set to 'dev', 'test', or 'main'.")
+        fizit_env = os.getenv("FIZIT_ENV")
+        if not fizit_env or fizit_env not in {"dev", "test", "main"}:
+            raise EnvironmentError("FIZIT_ENV must be set to 'dev', 'test', or 'main'.")
 
-            self.secret_prefix = {
-                "dev": "devnet",
-                "test": "testnet",
-                "main": "mainnet"
-            }[fizit_env]
+        self.secret_prefix = {
+            "dev": "devnet",
+            "test": "testnet",
+            "main": "mainnet"
+        }[fizit_env]
 
-            self.cache_key = self.cache_manager.get_secret_cache_key()
-
-    def _load_secrets(self):
-        """(Internal) Load secrets from AWS Secrets Manager with caching."""
-        secrets = cache.get(self.cache_key)
+    def _load_secrets(self, extra=None):
+        secrets = self.cache_manager.get(self.cache_key, extra={"key" : extra})
 
         if secrets:
             return secrets
@@ -54,15 +39,11 @@ class SecretsManager:
         secrets = {}
 
         try:
-            # Load secrets
             secrets["aes_key"] = self._fetch_secret(f"{self.secret_prefix}/contract-key", "aes_key")
             secrets["static_keys"] = self._fetch_secret(f"{self.secret_prefix}/static-keys")
             secrets["cs_keys"] = self._fetch_secret(f"{self.secret_prefix}/cs-keys")
             secrets["partner_keys"] = self._fetch_partner_api_keys(self.secret_prefix)
-
-            # Store in Redis with no expiration (timeout=None)
-            cache.set(self.cache_key, secrets, timeout=None)
-            log_info(self.logger, "Secrets reloaded from AWS and cached in Redis.")
+            self.cache_manager.set(self.cache_key, secrets, timeout=None)
 
             return secrets
 
@@ -71,11 +52,9 @@ class SecretsManager:
             raise RuntimeError("Failed to load secrets.") from e
 
     def _fetch_secret(self, secret_name, key=None):
-        """(Internal) Fetch a single secret from AWS Secrets Manager."""
-        client = boto3.client(service_name="secretsmanager", region_name=self.region_name)
 
         try:
-            response = client.get_secret_value(SecretId=secret_name)
+            response = self.client.get_secret_value(SecretId=secret_name)
             secret_string = response.get("SecretString")
             if not secret_string:
                 log_error(self.logger, f"No SecretString found for {secret_name}.")
@@ -90,11 +69,10 @@ class SecretsManager:
 
     def _fetch_partner_api_keys(self, secret_prefix):
         """(Internal) Fetch partner API keys from AWS Secrets Manager."""
-        client = boto3.client(service_name="secretsmanager", region_name=self.region_name)
         partner_keys = {}
 
         try:
-            response = client.list_secrets(Filters=[{"Key": "name", "Values": [f"{secret_prefix}/api-key-"]}])
+            response = self.client.list_secrets(Filters=[{"Key": "name", "Values": [f"{secret_prefix}/api-key-"]}])
             for secret in response.get("SecretList", []):
                 secret_name = secret["Name"]
                 partner_code = secret_name.split(f"{secret_prefix}/api-key-")[-1]
@@ -114,25 +92,23 @@ class SecretsManager:
 
     def reset_secret_cache(self):
         """Clear secrets cache and reload from AWS."""
-        cache.delete(self.cache_key)
-        log_info(self.logger, "Secrets cache cleared.")
+        self.cache_manager.delete(self.cache_key)
         return self._reload_secrets_from_aws()
 
     # --- Public API Methods ---
 
     def get_master_key(self):
-        """Always fetch the FIZIT Master Key directly from AWS.
-        This eliminate possibility of a break during a key rotation"""
+        log_info(self.logger, f"Fetching master key")
         secret_name = f"{self.secret_prefix}/master-key"
         return self._fetch_secret(secret_name, key="api_key")
 
     def get_aes_key(self):
         """Retrieve the AES contract encryption key."""
-        return self._load_secrets().get("aes_key")
+        return self._load_secrets(extra="aes_key").get("aes_key")
 
     def _get_static_keys(self):
         """Retrieve static keys from AWS Secrets Manager."""
-        return self._load_secrets().get("static_keys", {})
+        return self._load_secrets(extra="static_keys").get("static_keys", {})
 
     def get_mercury_key(self):
         """Retrieve the mercury banking key"""
@@ -140,12 +116,12 @@ class SecretsManager:
 
     def get_cs_role_session_token(self):
         """Retrieve Cubist (CS) signing keys."""
-        return self._load_secrets().get("cs_keys", {}).get("role_session_token")
+        return self._load_secrets(extra="cs_keys").get("cs_keys", {}).get("role_session_token")
 
     def get_partner_api_key(self, partner_code):
         """Retrieve API key for a specific partner."""
-        return self._load_secrets().get("partner_keys", {}).get(partner_code)
+        return self._load_secrets(extra="partner_keys").get("partner_keys", {}).get(partner_code)
 
     def get_all_partner_keys(self):
         """Retrieve all partner API keys."""
-        return self._load_secrets().get("partner_keys", {})
+        return self._load_secrets(extra="partner_keys").get("partner_keys", {})

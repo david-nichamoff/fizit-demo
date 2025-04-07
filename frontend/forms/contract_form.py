@@ -1,42 +1,34 @@
 import logging
-
 from django import forms
 
-from api.config import ConfigManager
-from api.registry import RegistryManager
 from api.utilities.logging import log_info, log_error, log_warning
 
 class BaseContractForm(forms.Form):
     """Base form for contracts with shared fields and dynamic configurations."""
 
-    def __init__(self, *args, **kwargs):
-        initial = kwargs.get("initial", {})
+    def __init__(self, *args, banks=None, token_list=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.logger = logging.getLogger(__name__)
-        self.config_manager = ConfigManager()
-        self.registry_manager = RegistryManager()
 
         # Populate dynamic fields
-        self._populate_dynamic_fields()
+        self._populate_dynamic_fields(banks, token_list)
 
-    def _populate_dynamic_fields(self):
+    def _populate_dynamic_fields(self, banks, token_list):
 
         dynamic_field_choices = {
-            "funding_method": self.registry_manager.get_banks(),
-            "deposit_method": self.registry_manager.get_banks(),
-            "funding_token_symbol": self.config_manager.get_token_list(),
-            "deposit_token_symbol": self.config_manager.get_token_list(),
-            "contract_type": self.registry_manager.get_contract_types()
+            "funding_method": banks,
+            "deposit_method": banks,
+            "funding_token_symbol": token_list,
+            "deposit_token_symbol": token_list
         }
 
         for field, choices in dynamic_field_choices.items():
             if field in self.fields:
-                self.fields[field].choices = [(value, value.capitalize()) for value in choices]
-
-        for field, choices in dynamic_field_choices.items():
-            if field in self.fields:
-                if field in ["funding_token_symbol", "deposit_token_symbol"]:  # Only modify token symbols
-                    self.fields[field].choices = [(value.upper(), value.upper()) for value in choices]
+                if field in ["funding_token_symbol", "deposit_token_symbol"]:  # Token dropdowns
+                    self.fields[field].choices = [
+                        (value, f"{value.split(':')[1].upper()} ({value.split(':')[0].lower()})")
+                        for value in choices
+                    ]
                 else:
                     self.fields[field].choices = [(value, value) for value in choices]
 
@@ -69,6 +61,19 @@ class BaseContractForm(forms.Form):
 
         if cleaned_data.get("deposit_instr") == {"dummy": "value"}:
             cleaned_data["deposit_instr"] = {}
+
+        funding_token_combo = cleaned_data.get("funding_token_symbol", "")
+        deposit_token_combo = cleaned_data.get("deposit_token_symbol", "")
+
+        if ":" in funding_token_combo:
+            funding_network, funding_token = funding_token_combo.split(":")
+            cleaned_data["funding_token_network"] = funding_network
+            cleaned_data["funding_token_symbol"] = funding_token
+
+        if ":" in deposit_token_combo:
+            deposit_network, deposit_token = deposit_token_combo.split(":")
+            cleaned_data["deposit_token_network"] = deposit_network
+            cleaned_data["deposit_token_symbol"] = deposit_token
 
         return cleaned_data
 
@@ -136,8 +141,9 @@ class ContractForm(BaseContractForm):
 
     funding_token_symbol = forms.ChoiceField(
         required=False,
-        choices=[],  # Dynamically populated
+        choices=[],
         widget=forms.Select(attrs={"id": "id_funding_token_symbol"}),
+        label="Funding Token:"
     )
 
 # ==============================
@@ -184,8 +190,9 @@ class AdvanceContractForm(ContractForm):
 
     deposit_token_symbol = forms.ChoiceField(
         required=False,
-        choices=[],  # Dynamically populated
+        choices=[],
         widget=forms.Select(attrs={"id": "id_deposit_token_symbol"}),
+        label="Deposit Token:"
     )
 
 class SaleContractForm(ContractForm):

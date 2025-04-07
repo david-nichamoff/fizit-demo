@@ -1,27 +1,21 @@
 import logging
-
 from django import forms
 
-from api.config import ConfigManager
-from api.registry import RegistryManager
 from api.utilities.logging import log_info, log_error, log_warning
 
 class BasePartyForm(forms.Form):
-    def __init__(self, *args, **kwargs):
-        initial = kwargs.get("initial", {})
+    def __init__(self, *args, party_codes=None, party_types=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.logger = logging.getLogger(__name__)
-        self.config_manager = ConfigManager()
-        self.registry_manager = RegistryManager()
 
         # Populate dynamic fields
-        self._populate_dynamic_fields()
+        self._populate_dynamic_fields(party_codes, party_types)
 
-    def _populate_dynamic_fields(self):
+    def _populate_dynamic_fields(self, party_codes, party_types):
 
         dynamic_field_choices = {
-            "party_code": self.config_manager.get_party_codes(),
-            "party_type": self.registry_manager.get_party_types()
+            "party_code": party_codes,
+            "party_type": party_types
         }
 
         for field, choices in dynamic_field_choices.items():

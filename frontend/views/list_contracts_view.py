@@ -6,36 +6,30 @@ from rest_framework import status
 from django.shortcuts import render
 from django.contrib import messages
 
-from api.config import ConfigManager
-from api.secrets import SecretsManager
 from api.operations import ContractOperations, CsrfOperations
-from api.registry import RegistryManager
+from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
 
 logger = logging.getLogger(__name__)
 
 def list_contracts_view(request, extra_context=None):
-    """
-    Render the List Contracts page displaying all contracts in a grid.
-    """
+    context = build_app_context()
+
     try:
         # Initialize Config, Secrets, and Registry Managers
-        config_manager = ConfigManager()
-        secrets_manager = SecretsManager()
-        registry_manager = RegistryManager()
 
         headers = {
-            "Authorization": f"Api-Key {secrets_manager.get_master_key()}",
+            "Authorization": f"Api-Key {context.secrets_manager.get_master_key()}",
             "Content-Type": "application/json",
         }
 
-        csrf_ops = CsrfOperations(headers, config_manager.get_base_url())
+        csrf_ops = CsrfOperations(headers, context.config_manager.get_base_url())
         csrf_token = csrf_ops.get_csrf_token()
-        contract_ops = ContractOperations(headers, config_manager.get_base_url(), csrf_token)
+        contract_ops = ContractOperations(headers, context.config_manager.get_base_url(), csrf_token)
 
         # Get available contract types for filtering
-        contract_types = registry_manager.get_contract_types()
-        default_contract_type = registry_manager.get_default_contract_type()
+        contract_types = context.domain_manager.get_contract_types()
+        default_contract_type = context.domain_manager.get_default_contract_type()
         selected_contract_type = request.GET.get("contract_type", default_contract_type)  
 
         try:
@@ -70,8 +64,8 @@ def list_contracts_view(request, extra_context=None):
             "is_active": f"?ordering={'-' if ordering == 'is_active' else ''}is_active&contract_type={selected_contract_type}",
         }
 
-        # Prepare context
-        context = {
+        # Prepare form_context
+        form_context = {
             "contracts": contracts,
             "contract_types": contract_types,
             "selected_contract_type": selected_contract_type,
@@ -81,9 +75,9 @@ def list_contracts_view(request, extra_context=None):
 
         # Merge with extra_context if provided
         if extra_context:
-            context.update(extra_context)
+            form_context.update(extra_context)
 
-        return render(request, "admin/list_contracts.html", context)
+        return render(request, "admin/list_contracts.html", form_context)
 
     except Exception as e:
         error_message = "Error in list_contracts_view"

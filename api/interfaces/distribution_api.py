@@ -4,52 +4,37 @@ from decimal import Decimal
 
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from django.core.cache import cache
 
-from api.web3 import Web3Manager
-from api.config import ConfigManager
-from api.cache import CacheManager
-from api.interfaces import PartyAPI
+from api.managers.app_context import AppContext
 from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
 
 class BaseDistributionAPI(ResponseMixin):
-    _instance = None
+    def __init__(self, context: AppContext):
+        self.context = context
+        self.config_manager = context.config_manager
+        self.domain_manager = context.domain_manager
+        self.cache_manager = context.cache_manager
+        self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
+        self.logger = logging.getLogger(__name__)
 
-    def __new__(cls, *args, **kwargs):
-        """Ensure that the class is a singleton."""
-        if not cls._instance:
-            cls._instance = super(BaseDistributionAPI, cls).__new__(cls)
-        return cls._instance
-
-    def __init__(self, registry_manager=None):
-        """Initialize DistributionAPI with necessary dependencies."""
-        if not hasattr(self, "initialized"):
-            self.config_manager = ConfigManager()
-            self.w3_manager = Web3Manager()
-            self.cache_manager = CacheManager()
-            self.party_api = PartyAPI()
-            self.registry_manager = registry_manager
-            self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
-            self.logger = logging.getLogger(__name__)
-            self.initialized = True
-
-    def get_distributions(self, contract_type, contract_idx):
+    def get_distributions(self, contract, parties, settlements):
         """Retrieve distributions for a given contract."""
         try:
-            settlement_api = self.registry_manager.get_settlement_api(contract_type)
-            response = settlement_api.get_settlements(contract_type, contract_idx)
+            settlement_api = self.context.api_manager.get_settlement_api(contract["contract_type"])
+            response = settlement_api.get_settlements(contract["contract_type"], contract["contract_idx"])
             if response["status"] == status.HTTP_200_OK:
                 settlements = response["data"]
                 log_info(self.logger, f"Checking settlements for distributions: {settlements}")
 
-            response = self.party_api.get_parties(contract_type, contract_idx)
+            party_api = self.context.api_manager.get_party_api()
+            response = party_api.get_parties(contract["contract_type"], contract["contract_idx"])
             if response["status"] == status.HTTP_200_OK:
                 parties = response["data"]
                 log_info(self.logger, f"Checking parties for distributions: {parties}")
 
-            contract_api = self.registry_manager.get_contract_api(contract_type)
-            response = contract_api.get_contract(contract_type, contract_idx)
+            contract_api = self.context.api_manager.get_contract_api(contract["contract_type"])
+            response = contract_api.get_contract(contract["contract_type"], contract["contract_idx"])
             if response["status"] == status.HTTP_200_OK:
                 contract = response["data"]
                 log_info(self.logger, f"Contract for distributions: {contract}")
@@ -59,26 +44,24 @@ class BaseDistributionAPI(ResponseMixin):
             distributions = []
             for settle in settlements:
                 if Decimal(settle["dist_calc_amt"]) > Decimal(0.00) and settle["dist_pay_amt"] == "0.00":
-                    distribution = self._build_distribution_dict(contract_type, contract, settle, client_addr, funder_addr)
+                    distribution = self._build_distribution_dict(contract["contract_type"], contract, settle, client_addr, funder_addr)
                     distributions.append(distribution)
 
-            success_message = f"Retrieved {len(distributions)} distributions for {contract_type}:{contract_idx}"
+            success_message = f"Retrieved {len(distributions)} distributions for {contract["contract_type"]}:{contract["contract_idx"]}"
             return self._format_success(distributions, success_message, status.HTTP_200_OK)
 
         except ValidationError as e:
-            error_message = f"Validation error retrieving distributions for {contract_type}:{contract_idx}: {str(e)}"
+            error_message = f"Validation error retrieving distributions for {contract["contract_type"]}:{contract["contract_idx"]}: {str(e)}"
             return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            error_message = f"Error retrieving distributions for {contract_type}:{contract_idx}: {str(e)}"
+            error_message = f"Error retrieving distributions for {contract["contract_type"]}:{contract["contract_idx"]}: {str(e)}"
             return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def add_distributions(self, contract_type, contract_idx, distributions):
         """Add distribution payments for a contract."""
         try:
-            cache_key = self.cache_manager.get_transaction_cache_key(contract_type, contract_idx)
-            cache.delete(cache_key)
-            cache_key = self.cache_manager.get_settlement_cache_key(contract_type, contract_idx)
-            cache.delete(cache_key)
+            self.cache_manager.delete(self.cache_manager.get_transaction_cache_key(contract_type, contract_idx))
+            self.cache_manager.delete(self.cache_manager.get_settlement_cache_key(contract_type, contract_idx))
 
             processed_count = 0
             for distribution in distributions:
@@ -123,7 +106,7 @@ class BaseDistributionAPI(ResponseMixin):
                 "distribution_calc_amt": settle["dist_calc_amt"],
             }
 
-            optional_fields = ["account_id", "recipient_id", "token_symbol"]
+            optional_fields = ["account_id", "recipient_id", "token_symbol", "network"]
             for field in optional_fields:
                 if field in contract["funding_instr"]:
                     distribution_dict[field] = contract["funding_instr"][field]
@@ -138,17 +121,12 @@ class BaseDistributionAPI(ResponseMixin):
     def _process_distribution_payment(self, distribution, contract_type, contract_idx):
         """Process the distribution payment through the appropriate bank adapter."""
         try:
-            adapter = self.registry_manager.get_bank_adapter(distribution["bank"])
-            required_fields = self.registry_manager.get_bank_payment_fields(distribution["bank"])
+            adapter = self.context.adapter_manager.get_bank_adapter(distribution["bank"])
+            required_fields = self.domain_manager.get_bank_payment_fields(distribution["bank"])
 
-            mapped_distribution = self.registry_manager.map_payment_fields(distribution)
-            log_info(self.logger, f"Field mapping: {mapped_distribution}")
-
+            mapped_distribution = self.domain_manager.map_payment_fields(distribution)
             payment_params = {field: mapped_distribution[field] for field in required_fields}
-            log_info(self.logger, f"Payment params: {payment_params}")
-
             tx_hash = adapter.make_payment(**payment_params)
-            log_info(self.logger, f"Tx hash: {tx_hash}")
 
             return tx_hash
 
@@ -164,20 +142,21 @@ class BaseDistributionAPI(ResponseMixin):
     def _post_distribution_on_blockchain(self, distribution, contract_type, contract_idx, tx_hash):
         """Post the distribution payment to the blockchain."""
         try:
-            log_info(self.logger, f"Posting distribution to chain")
-
             current_time = int(datetime.datetime.now().timestamp())
             payment_amt = int(Decimal(distribution["distribution_calc_amt"]) * 100)
 
             log_info(self.logger, f"contract_idx:{contract_idx},settle_idx: {distribution["settle_idx"]}")
             log_info(self.logger, f"current_time:{current_time},payment_amt: {payment_amt}, tx_hash:{tx_hash}")
 
-            w3_contract = self.w3_manager.get_web3_contract(contract_type)
-            transaction = w3_contract.functions.payDistribution(
+            network = self.domain_manager.get_contract_network()
+            web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
+            transaction = web3_contract.functions.payDistribution(
                 contract_idx, distribution["settle_idx"], current_time, payment_amt, tx_hash
             ).build_transaction()
 
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, "fizit")
+            network = self.domain_manager.get_contract_network()
+            tx_receipt = self.context.web3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, network)
+
             if tx_receipt["status"] != 1:
                 raise RuntimeError
 

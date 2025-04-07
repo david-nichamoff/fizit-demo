@@ -3,15 +3,10 @@ from datetime import datetime, timezone
 
 from django import forms
 
-from api.config import ConfigManager
-
 class BaseSettlementForm(forms.Form):
     def __init__(self, *args, **kwargs):
-        initial = kwargs.get("initial", {})
         super().__init__(*args, **kwargs)
         self.logger = logging.getLogger(__name__)
-        self.config_manager = ConfigManager()
-
 
 class SettlementForm(BaseSettlementForm):
     settle_due_dt = forms.DateTimeField(
@@ -52,6 +47,6 @@ class SaleSettlementForm(SettlementForm):
         required=True,
         initial=0.00,
         widget=forms.NumberInput(attrs={"step": "0.01"}),
-        label="Expected settlement amount:",
+        label="Expected settlement:",
         help_text="The sale price of the commodity, for calculation of distribution amounts"
     )

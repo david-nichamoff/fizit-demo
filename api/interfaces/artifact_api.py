@@ -6,47 +6,34 @@ from datetime import datetime
 
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from django.core.cache import cache
 
-from api.web3 import Web3Manager
-from api.config import ConfigManager
-from api.cache import CacheManager
+from api.managers.app_context import AppContext
 from api.interfaces.mixins import ResponseMixin
-from api.utilities.logging import  log_error, log_info, log_warning
 from api.interfaces.encryption_api import get_encryptor, get_decryptor
 from api.utilities.formatting import from_timestamp
+from api.utilities.logging import  log_error, log_info, log_warning
 
 class ArtifactAPI(ResponseMixin):
-    _instance = None
 
-    def __new__(cls, *args, **kwargs):
-        """Ensure the class is a singleton."""
-        if not cls._instance:
-            cls._instance = super(ArtifactAPI, cls).__new__(cls)
-        return cls._instance
+    def __init__(self, context: AppContext):
+        self.context = context
+        self.config_manager = context.config_manager
+        self.domain_manager = context.domain_manager
+        self.cache_manager = context.cache_manager
 
-    def __init__(self, registry_manager=None):
-        """Initialize ArtifactAPI with necessary dependencies."""
-        if not hasattr(self, "initialized"):
-            self.config_manager = ConfigManager()
-            self.registry_manager = registry_manager
-            self.w3_manager = Web3Manager()
-            self.cache_manager = CacheManager()
-            self.s3_client = boto3.client('s3')
-            self.logger = logging.getLogger(__name__)
-            self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
-            self.initialized = True
-
-            self.expiration = self.config_manager.get_presigned_url_expiration()
+        self.s3_client = boto3.client('s3')
+        self.logger = logging.getLogger(__name__)
+        self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
+        self.expiration = self.config_manager.get_presigned_url_expiration()
 
     def get_artifacts(self, contract_type, contract_idx, api_key=None, parties=[]):
         """Retrieve all artifacts for a contract."""
         try:
             cache_key = self.cache_manager.get_artifact_cache_key(contract_type, contract_idx)
-            cached_artifacts = cache.get(cache_key)
+            cached_artifacts = self.cache_manager.get(cache_key)
             success_message = f"Successfully retrieved artifacts for {contract_type}:{contract_idx}"
 
-            contract_api = self.registry_manager.get_contract_api(contract_type)
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
             contract = contract_api.get_contract(contract_type, contract_idx).get("data")
 
             if cached_artifacts is not None:
@@ -57,9 +44,10 @@ class ArtifactAPI(ResponseMixin):
                 ]
                 return self._format_success(decrypted_artifacts, success_message, status.HTTP_200_OK)
 
-            w3_contract = self.w3_manager.get_web3_contract(contract_type)
-            raw_artifacts = w3_contract.functions.getArtifacts(contract['contract_idx']).call()
-            log_warning(self.logger, f"Raw artifacts for contract {contract_idx}: {raw_artifacts} retrieved from chain")
+            network = self.domain_manager.get_contract_network()
+            web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
+
+            raw_artifacts = web3_contract.functions.getArtifacts(contract['contract_idx']).call()
 
             # parse the response from chain and add an encrypted presigned url
             parsed_artifacts = [
@@ -69,7 +57,7 @@ class ArtifactAPI(ResponseMixin):
 
             # The cache should expire at the same time a presigned url expires
             # Also only load encrypted artifacts into cache
-            cache.set(cache_key, parsed_artifacts, timeout=self.expiration)
+            self.cache_manager.set(cache_key, parsed_artifacts, timeout=self.expiration)
 
             decrypted_artifacts = [
                 self._decrypt_artifact(artifact, api_key, parties)
@@ -107,7 +95,7 @@ class ArtifactAPI(ResponseMixin):
             time.sleep(self.config_manager.get_network_sleep_time())
 
             cache_key = self.cache_manager.get_artifact_cache_key(contract_type, contract_idx)
-            cache.delete(cache_key)
+            self.cache_manager.delete(cache_key)
 
             success_message = f"Added artifacts for {contract_type}:{contract_idx}"
             return self._format_success(data, success_message, status.HTTP_201_CREATED)
@@ -129,15 +117,19 @@ class ArtifactAPI(ResponseMixin):
                 self._delete_from_s3(artifact["s3_bucket"], artifact["s3_object_key"], artifact.get("s3_version_id"))
                 processed_count += 1
 
-            w3_contract = self.w3_manager.get_web3_contract(contract_type)
-            transaction = w3_contract.functions.deleteArtifacts(contract_idx).build_transaction()
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, "fizit")
+            network = self.domain_manager.get_contract_network()
+            web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
+
+            transaction = web3_contract.functions.deleteArtifacts(contract_idx).build_transaction()
+
+            network = self.domain_manager.get_contract_network()
+            tx_receipt = self.context.web3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, network)
 
             if tx_receipt["status"] != 1:
                 raise RuntimeError("Blockchain transaction to delete artifacts failed.")
 
             cache_key = self.cache_manager.get_artifact_cache_key(contract_type, contract_idx)
-            cache.delete(cache_key)
+            self.cache_manager.delete(cache_key)
 
             success_message = f"Artifacts delete for {contract_type}:{contract_idx}"
             return self._format_success({"count": processed_count}, success_message, status.HTTP_204_NO_CONTENT)
@@ -231,11 +223,15 @@ class ArtifactAPI(ResponseMixin):
     def _record_artifact_on_blockchain(self, contract_type, contract_idx, doc_title, doc_type, added_dt, bucket, object_key, version_id):
         """Record an artifact on the blockchain."""
         try:
-            w3_contract = self.w3_manager.get_web3_contract(contract_type)
-            transaction = w3_contract.functions.addArtifact(
+            network = self.domain_manager.get_contract_network()
+            web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
+
+            transaction = web3_contract.functions.addArtifact(
                 contract_idx, doc_title, doc_type, added_dt, bucket, object_key, version_id
             ).build_transaction()
-            tx_receipt = self.w3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, "fizit")
+
+            tx_receipt = self.context.web3_manager.send_signed_transaction(transaction, self.wallet_addr, contract_type, contract_idx, network)
+
             if tx_receipt["status"] != 1:
                 raise RuntimeError("Blockchain transaction failed.")
 

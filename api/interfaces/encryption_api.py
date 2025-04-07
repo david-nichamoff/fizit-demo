@@ -2,9 +2,9 @@ import json
 import logging
 from cryptography.fernet import Fernet
 
-from api.secrets import SecretsManager
 from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
+from api.managers.secrets_manager import SecretsManager
 
 class Encryptor(ResponseMixin):
     def __init__(self, encryption_key: bytes):
@@ -60,7 +60,7 @@ def get_aes_key_for_decryption(api_key: str, parties: list):
     """Retrieve the AES key for decryption using SecretsManager."""
     secrets_manager = SecretsManager()
 
-    # Check for the FIZIT_MASTER_KEY
+    # Check for the MASTER_KEY
     master_key = secrets_manager.get_master_key()
     if master_key and api_key == master_key:
         return secrets_manager.get_aes_key()
