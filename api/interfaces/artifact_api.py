@@ -210,7 +210,10 @@ class ArtifactAPI(ResponseMixin):
             response = requests.get(artifact_url)
             response.raise_for_status()
             object_key = f"{contract_type}_{contract_idx}/{artifact_filename}"
+
+            log_info(self.logger, f"uploading artifact url: {artifact_url} to {bucket} for {contract_type}:{contract_idx}" )
             self.s3_client.put_object(Body=response.content, Bucket=bucket, Key=object_key)
+
             head_response = self.s3_client.head_object(Bucket=bucket, Key=object_key)
             version_id = head_response.get("VersionId", "")
             return object_key, version_id
