@@ -170,7 +170,7 @@ class Web3Manager():
             raise ConnectionError("Web3 instance is not connected")
 
         try:
-            nonce = web3_instance.eth.get_transaction_count(wallet_addr)
+            nonce = web3_instance.eth.get_transaction_count(wallet_addr, "pending")
             
             # Set a manually high gas limit
             gas_limit = 10_000_000  # Reasonably high limit for large contracts
