@@ -56,6 +56,7 @@ class SecretsManager:
         try:
             response = self.client.get_secret_value(SecretId=secret_name)
             secret_string = response.get("SecretString")
+            log_info(self.logger, f"Secret string: {secret_string}")
             if not secret_string:
                 log_error(self.logger, f"No SecretString found for {secret_name}.")
                 return {}
@@ -98,8 +99,8 @@ class SecretsManager:
     # --- Public API Methods ---
 
     def get_master_key(self):
-        log_info(self.logger, f"Fetching master key")
         secret_name = f"{self.secret_prefix}/master-key"
+        log_info(self.logger, f"Fetching master key: {secret_name}")
         return self._fetch_secret(secret_name, key="api_key")
 
     def get_aes_key(self):

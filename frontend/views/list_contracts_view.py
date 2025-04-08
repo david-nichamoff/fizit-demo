@@ -26,11 +26,15 @@ def list_contracts_view(request, extra_context=None):
         csrf_ops = CsrfOperations(headers, context.config_manager.get_base_url())
         csrf_token = csrf_ops.get_csrf_token()
         contract_ops = ContractOperations(headers, context.config_manager.get_base_url(), csrf_token)
+        log_info(logger, f"Headers: {headers}")
+        log_info(logger, f"Baseurl: {context.config_manager.get_base_url()}")
+        log_info(logger, f"csrf: {csrf_token}")
 
         # Get available contract types for filtering
         contract_types = context.domain_manager.get_contract_types()
         default_contract_type = context.domain_manager.get_default_contract_type()
         selected_contract_type = request.GET.get("contract_type", default_contract_type)  
+        log_info(logger, f"Selected contract type: {selected_contract_type}")
 
         try:
             # Fetch all contracts at once
