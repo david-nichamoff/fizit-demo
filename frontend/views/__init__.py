@@ -1,5 +1,7 @@
-from .login_view import *
 from .format_fields import *
+
+from .get_user_view import get_user
+from .logout_user_view import oidc_logout
 
 from .event_admin_view import EventAdmin
 from .contract_admin_view import ContractAdmin

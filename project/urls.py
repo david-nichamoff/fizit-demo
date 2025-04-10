@@ -5,18 +5,22 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponsePermanentRedirect
+from django.shortcuts import redirect
 
 from rest_framework.permissions import AllowAny
 from api.authentication import NoAuthForSwagger
 
 from frontend.admin.custom_admin_site import custom_admin_site
 
+def redirect_to_oidc(request):
+    return redirect('/oidc/authenticate/')
+
 urlpatterns = [
     re_path(r'^admin$', lambda request: HttpResponsePermanentRedirect('/admin/')),
 
     path('admin/', custom_admin_site.urls),
     path('api/', include('api.urls')),
-    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    #path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
     path('api/schema/', csrf_exempt(SpectacularAPIView.as_view(
         authentication_classes=[NoAuthForSwagger],
@@ -34,6 +38,9 @@ urlpatterns = [
         authentication_classes=[NoAuthForSwagger],  # No authentication for Redoc as well
         permission_classes=[AllowAny]
     )), name='redoc'),
+
+    path('oidc/', include('mozilla_django_oidc.urls')),
+    path('accounts/login/', redirect_to_oidc),
 
     path("", include("frontend.urls")),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

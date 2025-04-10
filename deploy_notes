@@ -6,3 +6,7 @@ sudo supervisorctl update
 run migrations and delete everyting from smart_contract_history and event tables
 
 update config.json for networks (token_addr)
+
+
+pip install mozilla-django-oidc
+update settings.py to include oidc

@@ -4,6 +4,8 @@ from django.contrib.auth.models import User, Group
 from django.contrib.admin import AdminSite
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
+from django.contrib.auth.views import redirect_to_login
+from django.shortcuts import redirect
 
 from frontend.views import (
     erc20_balances_view, avax_balances_view, fizit_balances_view, mercury_balances_view,
@@ -115,7 +117,6 @@ class CustomAdminSite(AdminSite):
                     {'name': 'FIZIT Balances', 'url': reverse('custom_admin:fizit_balances')},
                     {'name': 'ERC20 Balances', 'url': reverse('custom_admin:erc20_balances')},
                     {'name': 'Mercury Balances', 'url': reverse('custom_admin:mercury_balances')},
-                    {'name': 'Approvals', 'url': reverse('custom_admin:mercury_balances')},
                 ],
             },
             {
@@ -141,6 +142,18 @@ class CustomAdminSite(AdminSite):
             **(extra_context or {}),
         }
         return TemplateResponse(request, 'admin/custom_index.html', context)
+
+    def login(self, request, extra_context=None):
+        if request.user.is_authenticated:
+            return self.index(request, extra_context=extra_context)
+
+        return redirect_to_login(
+            request.get_full_path(),  # original URL (e.g. /admin/list-contracts/)
+            login_url='/oidc/authenticate/'  # your Google OIDC login
+        )
+
+    def logout(self, request, extra_context=None):
+        return redirect('/logout/')
 
 # Create an instance of CustomAdminSite
 custom_admin_site = CustomAdminSite(name='custom_admin')
