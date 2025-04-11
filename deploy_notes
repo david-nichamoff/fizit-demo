@@ -10,3 +10,4 @@ update config.json for networks (token_addr)
 
 pip install mozilla-django-oidc
 update settings.py to include oidc
+update supervisor for environmetn variables, remove from /etc/environment

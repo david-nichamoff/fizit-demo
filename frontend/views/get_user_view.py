@@ -11,3 +11,10 @@ def get_user(request):
         'is_staff': user.is_staff,
         'is_superuser': user.is_superuser,
     })
+
+def whoami(request):
+    return JsonResponse({
+        "is_authenticated": request.user.is_authenticated,
+        "username": request.user.get_username(),
+        "email": getattr(request.user, "email", None),
+    })

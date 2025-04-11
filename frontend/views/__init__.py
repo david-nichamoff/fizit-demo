@@ -1,6 +1,6 @@
 from .format_fields import *
 
-from .get_user_view import get_user
+from .get_user_view import get_user, whoami
 from .logout_user_view import oidc_logout
 
 from .event_admin_view import EventAdmin
