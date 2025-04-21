@@ -132,6 +132,7 @@ class ArtifactViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
 
             artifact_api = self.context.api_manager.get_artifact_api()
             response = artifact_api.get_artifacts(contract_type, int(contract_idx), api_key, parties)
+            log_info(self.logger, f"Returned: {response}")
 
             if response["status"] == status.HTTP_200_OK:
                 serializer = ArtifactSerializer(response["data"], many=True)

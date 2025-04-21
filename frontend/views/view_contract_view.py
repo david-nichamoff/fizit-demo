@@ -1,9 +1,16 @@
 import logging
+import os
 from datetime import datetime
 from decimal import Decimal
+from weasyprint import HTML, CSS
+from pathlib import Path
+from dateutil.parser import isoparse
 
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.http import HttpResponse
+from django.conf import settings
+from django.template.loader import render_to_string
 
 from api.operations import ContractOperations, SettlementOperations, TransactionOperations
 from api.operations import CsrfOperations, PartyOperations, ArtifactOperations
@@ -64,9 +71,12 @@ def handle_post_request(request, context, contract_type, contract_idx, headers, 
         "parties": _update_parties,
         "settlements": _update_settlements,
         "artifacts": _update_artifacts,
+        "generate_report": _generate_report
     }
 
     handler = form_handlers.get(form_type)
+    log_info(logger, f"Calling {form_type} with contract {contract_idx} and contract_type {contract_type}")
+
     if handler:
         return handler(request, context, contract_type, contract_idx, headers, base_url, csrf_token)
 
@@ -314,3 +324,63 @@ def fetch_transactions(contract_type, contract_idx, headers, base_url):
 def fetch_artifacts(contract_type, contract_idx, headers, base_url):
     artifact_ops = ArtifactOperations(headers, base_url)
     return artifact_ops.get_artifacts(contract_type, contract_idx)
+
+def _generate_report(request, context, contract_type, contract_idx, headers, base_url, csrf_token):
+    try:
+        contract_ops = ContractOperations(headers, base_url, csrf_token)
+        party_ops = PartyOperations(headers, base_url, csrf_token)
+        transact_ops = TransactionOperations(headers, base_url, csrf_token)
+        artifact_ops = ArtifactOperations(headers, base_url, csrf_token)
+
+        contract = contract_ops.get_contract(contract_type, contract_idx)
+        parties = party_ops.get_parties(contract_type, contract_idx)
+        transactions = transact_ops.get_transactions(contract_type, contract_idx)
+        artifacts = artifact_ops.get_artifacts(contract_type, contract_idx)
+
+        settlements = {}
+        if context.api_manager.get_settlement_api(contract_type):
+            settlements = context.api_manager.get_settlement_api(contract_type).get_settlements(contract_type, contract_idx)
+
+        # Resolve file:// path to the logo for WeasyPrint
+        logo_file_path = os.path.join(settings.BASE_DIR, 'frontend/static/assets/logo/fizit_full_color.png')
+        logo_url = f'file://{logo_file_path}'
+
+        # Calculate display-friendly fields
+        if contract.get("service_fee_pct") is not None:
+            contract["service_fee_pct"] = round(float(contract["service_fee_pct"]) * 100, 4)
+
+        for transaction in transactions:
+            transaction["transact_dt"] = isoparse(transaction["transact_dt"])
+
+        for artifact in artifacts:
+            artifact["added_dt"] = isoparse(artifact["added_dt"])
+
+        # Render HTML using a simple template (you can improve this later)
+        html_string = render_to_string("reports/contract_report.html", {
+            "contract": contract,
+            "parties": parties,
+            "transactions": transactions,
+            "artifacts": artifacts,
+            "settlements": settlements,
+            "contract_idx": contract_idx,
+            "contract_type": contract_type,
+            "report_date": datetime.utcnow(),
+            "logo_url": logo_url
+        })
+
+        # Generate PDF from HTML
+        pdf = HTML(
+            string=html_string,
+            base_url=str(Path(settings.BASE_DIR) / "frontend/templates/reports/")
+        ).write_pdf()
+
+        # Return response as download
+        contract_name = contract.get("contract_name")
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{contract_name}.pdf"'
+        return response
+
+    except Exception as e:
+        log_error(logger, f"Failed to generate report for {contract_type}:{contract_idx}: {e}")
+        messages.error(request, "Failed to generate report.")
+        return redirect(f"/admin/view-contract/?contract_idx={contract_idx}&contract_type={contract_type}")

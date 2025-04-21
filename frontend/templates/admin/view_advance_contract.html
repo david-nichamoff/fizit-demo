@@ -334,6 +334,13 @@
                 </table>
             </div>
         </div>
+        <div class="submit-row">
+            <form method="post" action="?contract_idx={{ contract_idx }}&contract_type={{ contract_type }}">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="generate_report" />
+                <input type="submit" value="Generate Report" class="default" />
+            </form>
+        </div>
     {% endif %}
 </div>
 {% endblock %}

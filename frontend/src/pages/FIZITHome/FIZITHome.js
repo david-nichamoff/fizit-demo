@@ -80,7 +80,6 @@ const FIZITHome = () => {
       <h4 className="section-title">Partners</h4>
       <div className="partner-container">
         <img src={avalancheLogo} alt="Avalanche Logo" className="partner-logo" />
-        <img src={tetherLogo} alt="Tether Logo" className="partner-logo" />
         <img src={usBankLogo} alt="USBank Logo" className="partner-logo" />
       </div>
 
