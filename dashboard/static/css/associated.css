@@ -1,0 +1,72 @@
+html[data-theme="light"],
+:root {
+    --textinverse: rgba(255, 255, 255, 1);
+    --color-black: rgba(33, 36, 39, 1);
+    --color-gray-main: rgba(238, 240, 242, 1);
+    --color-gray-lighter: rgba(245, 246, 247, 1);
+    --color-pipeline-red: rgba(210, 51, 52, 1);  /* Associated Pipeline Red */
+    --color-pipeline-dark: rgba(0, 0, 0, 1);    /* Black from the logo */
+    --color-pipeline-gray: rgba(108, 108, 108, 1); /* Steel gray accent */
+    --color-white: rgba(255, 255, 255, 1);
+
+    /* Updated palette */
+    --primary: var(--color-pipeline-red);
+    --secondary: var(--color-pipeline-dark);
+    --accent: var(--color-pipeline-gray);
+
+    /* Body & Header */
+    --body-fg: var(--color-pipeline-dark);
+    --body-bg: var(--color-gray-main);
+    --header-bg: var(--color-gray-lighter);
+    --header-link-color: var(--color-white);
+
+    /* Links */
+    --link-fg: var(--primary);
+    --link-hover-color: var(--color-pipeline-gray);
+
+    /* Buttons */
+    --button-bg: var(--primary);
+    --button-hover-bg: rgba(186, 33, 33, 1); /* Darker red on hover */
+    --button-fg: var(--color-white);
+
+    /* Alerts & Messages */
+    --error-fg: rgba(186, 33, 33, 1);
+    --message-success-bg: rgba(243, 255, 243, 1); /* Soft green for success */
+    --message-warning-bg: rgba(255, 245, 200, 1);
+    --message-error-bg: rgba(255, 220, 220, 1);
+
+    /* Misc */
+    --hairline-color: var(--color-gray-lighter);
+    --selected-bg: rgba(255, 230, 230, 1); /* Light red highlight */
+}
+
+/* Tooltip unchanged */
+.help-tooltip {
+    position: relative; 
+    cursor: pointer;    
+    color: var(--link-fg);     
+}
+
+.help-tooltip::after {
+    content: attr(data-tooltip); 
+    position: absolute;
+    white-space: pre-line; 
+    background-color: var(--primary);
+    color: var(--button-fg);
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.9em;
+    line-height: 1.4;
+    display: none; 
+    top: 110%; 
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); 
+    text-align: left;
+    min-width: 300px;
+}
+
+.help-tooltip:hover::after {
+    display: block; 
+}

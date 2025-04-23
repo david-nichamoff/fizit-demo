@@ -11,3 +11,9 @@ update config.json for networks (token_addr)
 pip install mozilla-django-oidc
 update settings.py to include oidc
 update supervisor for environmetn variables, remove from /etc/environment
+
+python manage.py startapp associatedpipeline
+add associatedpipeline to settings.INSTALLED_APPS
+add party codes for Associated and DTM
+update webpack_config.js
+    

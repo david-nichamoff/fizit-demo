@@ -19,8 +19,8 @@ urlpatterns = [
     re_path(r'^admin$', lambda request: HttpResponsePermanentRedirect('/admin/')),
 
     path('admin/', custom_admin_site.urls),
+    path('dashboard/', include('dashboard.urls')),  
     path('api/', include('api.urls')),
-    #path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
     path('api/schema/', csrf_exempt(SpectacularAPIView.as_view(
         authentication_classes=[NoAuthForSwagger],

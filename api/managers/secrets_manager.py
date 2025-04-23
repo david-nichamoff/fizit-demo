@@ -56,7 +56,6 @@ class SecretsManager:
         try:
             response = self.client.get_secret_value(SecretId=secret_name)
             secret_string = response.get("SecretString")
-            log_info(self.logger, f"Secret string: {secret_string}")
             if not secret_string:
                 log_error(self.logger, f"No SecretString found for {secret_name}.")
                 return {}

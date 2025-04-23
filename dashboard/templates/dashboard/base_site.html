@@ -1,0 +1,33 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}
+    {% if customer|lower == "associated" %}
+        Associated Pipe Line Dashboard
+    {% else %}
+        FIZIT Dashboard
+    {% endif %}
+{% endblock %}
+
+{% block branding %}
+    <h1 id="site-name">
+        {% if customer|lower == "associated" %}
+            <img src="{% static 'logo/associated-pipe-line-3c.svg' %}" alt="Associated Pipe Line Logo" style="height:30px; vertical-align:middle; margin-right:10px;">
+            <a href="{% url 'list_contracts' customer=customer %}">Associated Pipe Line Dashboard</a>
+        {% else %}
+            <a href="{% url 'list_contracts' customer=customer %}">FIZIT Dashboard</a>
+        {% endif %}
+    </h1>
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/base.css' %}">
+<link rel="stylesheet" href="{% static 'admin/css/forms.css' %}">
+<link rel="stylesheet" href="{% static 'admin/css/widgets.css' %}">
+{% if customer|lower == "associated" %}
+    <link rel="stylesheet" href="{% static 'css/associated.css' %}">
+{% else %}
+    <link rel="stylesheet" href="{% static 'css/fizit.css' %}">
+{% endif %}
+{% endblock %}

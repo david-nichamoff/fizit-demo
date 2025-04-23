@@ -46,6 +46,7 @@ schema.yml
 # static files
 static/
 !/frontend/static/
+!/dashboard/static/
 
 # dev specific start and stop scripts
 start.sh

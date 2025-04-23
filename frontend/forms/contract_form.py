@@ -83,7 +83,7 @@ class BaseContractForm(forms.Form):
 class ContractForm(BaseContractForm):
     """Generic contract form with shared fields."""
     contract_name = forms.CharField(
-        max_length=50,
+        max_length=255,
         required=True,
         label="Contract name:",
         initial="New Contract"

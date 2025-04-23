@@ -1,0 +1,35 @@
+{% extends "dashboard/base_site.html" %}
+{% load static %}
+
+{% block content %}
+<h1>Associated Pipe Line Contracts</h1>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Contract Type</th>
+            <th>Contract Index</th>
+            <th>Contract Name</th>
+            <th>Is Active?</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for contract in contracts %}
+        <tr>
+            <td>{{ contract.contract_type|title }}</td>
+            <td>{{ contract.contract_idx }}</td>
+            <td>
+                <a href="{% url 'view_contract' customer=customer %}?contract_type={{ contract.contract_type }}&contract_idx={{ contract.contract_idx }}">
+                    {{ contract.contract_name }}
+                </a>
+            </td>
+            <td>{{ contract.is_active|yesno:"Yes,No" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="3">No contracts found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
