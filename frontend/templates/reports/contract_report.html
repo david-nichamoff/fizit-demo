@@ -149,8 +149,8 @@
                     <th>#</th>
                     <th>Date</th>
                     <th>Amount</th>
-                    <th>Advance</th>
-                    <th>Paid</th>
+                    <th>Advanced</th>
+                    <th>Advance Date</th>
                 </tr>
             </thead>
             <tbody>
@@ -160,7 +160,13 @@
                     <td>{{ t.transact_dt|date:"Y-m-d H:i" }}</td>
                     <td>${{ t.transact_amt }}</td>
                     <td>${{ t.advance_pay_amt }}</td>
-                    <td>${{ t.service_fee_amt }}</td>
+                    <td>
+                        {% if t.advance_pay_dt %}
+                            {{ t.advance_pay_dt|date:"Y-m-d H:i" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
                 </tr>
                 <tr class="transaction-detail">
                     <td colspan="5">

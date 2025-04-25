@@ -96,6 +96,7 @@ class SettlementViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
             self._validate_contract_idx(contract_idx, contract_type, contract_api)
 
             api_key = request.auth.get("api_key")
+
             party_api = self.context.api_manager.get_party_api()
             response = party_api.get_parties(contract_type, int(contract_idx))
 

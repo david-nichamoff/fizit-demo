@@ -16,6 +16,7 @@ from api.operations import ContractOperations, SettlementOperations, Transaction
 from api.operations import CsrfOperations, PartyOperations, ArtifactOperations
 from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
+from api.utilities.report import generate_contract_report
 
 from frontend.forms import PartyForm, ArtifactForm, AdvanceContractForm
 
@@ -113,28 +114,18 @@ def prepare_view_form_context(request, customer, context, contract_type, contrac
     # Fetch related data
     try:
         log_info(logger, "Fetching settlements")
+        
         settlements=[]
         if context.api_manager.get_settlement_api(contract_type):
             settlements = fetch_settlements(contract_type, contract_idx, headers, base_url)
-            log_info(logger, f"Retrieved settlements for {contract_type}:{contract_idx}: {settlements}")
 
         parties = fetch_parties(contract_type, contract_idx, headers, base_url)
         transactions = fetch_transactions(contract_type, contract_idx, headers, base_url)
         artifacts = fetch_artifacts(contract_type, contract_idx, headers, base_url)
-        log_info(logger, f"artifacts: {artifacts}")
 
     except Exception as e:
         log_error(logger, f"Failed to fetch related data for {contract_type}:{contract_idx}: {e}")
         messages.error(request, f"Failed to fetch related data.")
-
-    # Generate presigned URLs for artifacts
-    for artifact in artifacts:
-        try:
-            artifact['presigned_url'] = generate_presigned_url(artifact, context.api_manager)
-        except Exception as e:
-            log_error(logger, f"Failed to generate presigned URL for artifact {artifact['doc_title']}: {e}")
-            artifact['presigned_url'] = None
-            messages.error(request, f"Failed to generate presigned URL for {artifact['doc_title']}.")
 
     # Choose the correct contract form based on type
     banks = context.domain_manager.get_banks()
@@ -177,17 +168,6 @@ def prepare_view_form_context(request, customer, context, contract_type, contrac
         form_context.update(extra_context)
 
     return form_context
-
-# Generate presigned URL for artifacts
-def generate_presigned_url(artifact, api_manager):
-
-    artifact_api = api_manager.get_artifact_api()
-
-    return artifact_api.generate_presigned_url(
-        s3_bucket=artifact['s3_bucket'],
-        s3_object_key=artifact['s3_object_key'],
-        s3_version_id=artifact.get('s3_version_id')
-    )
 
 # Update artifacts
 def _update_artifacts(request, context, contract_type, contract_idx, headers, base_url, csrf_token):
@@ -237,48 +217,23 @@ def _generate_report(request, context, contract_type, contract_idx, headers, bas
         party_ops = PartyOperations(headers, base_url, csrf_token)
         transact_ops = TransactionOperations(headers, base_url, csrf_token)
         artifact_ops = ArtifactOperations(headers, base_url, csrf_token)
+        settlement_ops = SettlementOperations(headers, base_url, csrf_token)
 
         contract = contract_ops.get_contract(contract_type, contract_idx)
         parties = party_ops.get_parties(contract_type, contract_idx)
         transactions = transact_ops.get_transactions(contract_type, contract_idx)
         artifacts = artifact_ops.get_artifacts(contract_type, contract_idx)
 
-        settlements = {}
+        settlements = []
         if context.api_manager.get_settlement_api(contract_type):
-            settlements = context.api_manager.get_settlement_api(contract_type).get_settlements(contract_type, contract_idx)
+            settlements = settlement_ops(contract_type, contract_idx)
 
-        # Resolve file:// path to the logo for WeasyPrint
-        logo_file_path = os.path.join(settings.BASE_DIR, 'frontend/static/assets/logo/fizit_full_color.png')
-        logo_url = f'file://{logo_file_path}'
-
-        # Calculate display-friendly fields
-        if contract.get("service_fee_pct") is not None:
-            contract["service_fee_pct"] = round(float(contract["service_fee_pct"]) * 100, 4)
-
-        for transaction in transactions:
-            transaction["transact_dt"] = isoparse(transaction["transact_dt"])
-
-        for artifact in artifacts:
-            artifact["added_dt"] = isoparse(artifact["added_dt"])
-
-        # Render HTML using a simple template (you can improve this later)
-        html_string = render_to_string("reports/contract_report.html", {
-            "contract": contract,
-            "parties": parties,
-            "transactions": transactions,
-            "artifacts": artifacts,
-            "settlements": settlements,
-            "contract_idx": contract_idx,
-            "contract_type": contract_type,
-            "report_date": datetime.utcnow(),
-            "logo_url": logo_url
-        })
-
-        # Generate PDF from HTML
-        pdf = HTML(
-            string=html_string,
-            base_url=str(Path(settings.BASE_DIR) / "frontend/templates/reports/")
-        ).write_pdf()
+        pdf = generate_contract_report(
+            contract, parties, transactions, artifacts, settlements,
+            contract_idx, contract_type,
+            logo_relative_path='frontend/static/assets/logo/fizit_full_color.png',
+            template_name='reports/contract_report.html'
+        )
 
         # Return response as download
         contract_name = contract.get("contract_name")
