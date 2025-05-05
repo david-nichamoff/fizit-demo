@@ -2,11 +2,10 @@ import React, { useEffect, useState } from "react";
 import "./FIZITHome.css";
 
 // Static assets
-import fizitLogo from "../../../static/assets/logo/fizit_full_color.png"; 
-import avalancheLogo from "../../../static/assets/logo/PoweredbyAvalanche_RedWhite1.png"; 
-import tetherLogo from "../../../static/assets/logo/Tether_Logo.png"; 
-import usBankLogo from "../../../static/assets/logo/U.S._Bancorp_logo.png";
-import blizzardLogo from "../../../static/assets/logo/BlizzardLogo.jpeg";
+import fizitLogo from "../../assets/logo/fizit_full_color.png"; 
+import avalancheLogo from "../../assets/logo/PoweredbyAvalanche_RedWhite1.png"; 
+import usBankLogo from "../../assets/logo/U.S._Bancorp_logo.png";
+import blizzardLogo from "../../assets/logo/BlizzardLogo.jpeg";
 
 const API_URL = "/api/stats/";
 

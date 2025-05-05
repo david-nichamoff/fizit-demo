@@ -5,7 +5,7 @@ from api.utilities.logging import log_info, log_warning, log_error
 class DomainManager:
 
     CONTRACT_TYPES = ["purchase", "sale", "advance"]
-    DEFAULT_CONTRACT_TYPE = "advance"
+    DEFAULT_CONTRACT_TYPE = "purchase"
     DEFAULT_BANK = "manual"
     PARTY_TYPES = ["buyer", "funder", "seller", "client", "affiliate"]
     BANKS = ["token", "mercury", "manual"]

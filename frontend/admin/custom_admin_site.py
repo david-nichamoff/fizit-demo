@@ -7,7 +7,7 @@ from django.urls import path, reverse
 from django.contrib.auth.views import redirect_to_login
 from django.shortcuts import redirect
 
-from frontend.views import (
+from frontend.views.admin import (
     erc20_balances_view, avax_balances_view, fizit_balances_view, mercury_balances_view,
     view_contract_view, list_contracts_view, add_contract_view,
     add_transaction_view, add_advance_view, add_residual_view,

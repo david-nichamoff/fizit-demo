@@ -7,7 +7,7 @@
     const contractTypes = {{ contract_types|default:"[]"|safe }};
     let defaultContractType = "{{ default_contract_type|escapejs }}";
 </script>
-<script src="{% static 'js/add_transaction.js' %}?v1.6"></script>
+<script src="{% static 'admin/js/add_transaction.js' %}?v1.6"></script>
 {% endblock %}
 
 {% block content %}

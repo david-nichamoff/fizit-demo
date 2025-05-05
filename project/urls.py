@@ -6,6 +6,7 @@ from django.conf.urls.static import static
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponsePermanentRedirect
 from django.shortcuts import redirect
+from django.views.generic import TemplateView
 
 from rest_framework.permissions import AllowAny
 from api.authentication import NoAuthForSwagger
@@ -19,7 +20,6 @@ urlpatterns = [
     re_path(r'^admin$', lambda request: HttpResponsePermanentRedirect('/admin/')),
 
     path('admin/', custom_admin_site.urls),
-    path('dashboard/', include('dashboard.urls')),  
     path('api/', include('api.urls')),
 
     path('api/schema/', csrf_exempt(SpectacularAPIView.as_view(
@@ -42,5 +42,11 @@ urlpatterns = [
     path('oidc/', include('mozilla_django_oidc.urls')),
     path('accounts/login/', redirect_to_oidc),
 
-    path("", include("frontend.urls")),
+    path("dashboard/", include("frontend.urls")),
+
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+urlpatterns += [
+    re_path(r'^(?!api/|admin/|oidc/|dashboard/).*$',
+        TemplateView.as_view(template_name='index.html')),
+]
