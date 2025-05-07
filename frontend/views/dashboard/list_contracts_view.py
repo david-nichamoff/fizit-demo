@@ -3,12 +3,12 @@ from datetime import datetime
 
 from django.shortcuts import render
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from rest_framework import status
 
 from api.operations import ContractOperations, CsrfOperations, PartyOperations
 from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_error
-
 logger = logging.getLogger(__name__)
 
 def list_contracts_view(request, customer):

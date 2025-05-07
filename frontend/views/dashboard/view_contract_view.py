@@ -2,6 +2,7 @@ import logging
 import json
 from json_logic import jsonLogic
 
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.http import HttpResponse
@@ -13,6 +14,7 @@ from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
 from api.utilities.report import generate_contract_report
 from api.utilities.logic import extract_transaction_variables
+from api.models import ContractAuxiliary
 
 from frontend.forms.common import PartyForm, ArtifactForm
 
@@ -108,6 +110,19 @@ def prepare_view_form_context(request, customer, context, contract_type, contrac
             contract["deposit_token_symbol"] = f"{network}:{symbol}"
             contract["deposit_token_network"] = network
 
+
+    try:
+        contract_release = context.config_manager.get_contract_release(contract_type)
+        aux = ContractAuxiliary.objects.filter(
+            contract_idx=contract_idx,
+            contract_type=contract_type,
+            contract_release=contract_release
+        ).first()
+        contract["transact_logic_natural"] = aux.logic_natural if aux else "No translation available."
+    except Exception as e:
+        log_warning(logger, f"Failed to load natural language translation: {e}")
+        contract["transact_logic_natural"] = "No translation available."
+
     transact_logic = contract.get("transact_logic")
     logic_variables = []
 
@@ -117,6 +132,12 @@ def prepare_view_form_context(request, customer, context, contract_type, contrac
         logic_variables = sorted(extract_transaction_variables(transact_logic))
     except Exception as e:
         log_warning(logger, f"Failed to parse transact_logic or extract vars: {e}")
+
+    # Prepopulate previous POST values if any
+    logic_input_values = {
+        key: value for key, value in request.POST.items()
+        if key.startswith("var_")
+    }
 
     # Fetch related data
     try:
@@ -175,7 +196,7 @@ def prepare_view_form_context(request, customer, context, contract_type, contrac
         'transactions': transactions,
         'artifacts': artifacts,
         'customer': customer,
-        'logic_variables': logic_variables
+        'logic_variables': logic_variables,
     }
 
     if extra_context:
@@ -269,16 +290,37 @@ def _execute_transact_logic(request, context, contract_type, contract_idx, heade
         if isinstance(transact_logic, str):
             transact_logic = json.loads(transact_logic)
 
-        input_data = {
-            k.replace("var_", ""): try_cast(request.POST.get(k))
-            for k in request.POST
-            if k.startswith("var_")
-        }
+        input_data = {}
+        logic_input_values = {}
+
+        for k, v in request.POST.items():
+            if k.startswith("var_"):
+                logic_input_values[k] = v
+                input_data[k.replace("var_", "")] = try_cast(v)
 
         result = jsonLogic(transact_logic, input_data)
+        log_info(logger, f"Logic_input_values: {logic_input_values}")
 
-        messages.success(request, f"Logic result: {result}")
-        return redirect(f"/dashboard/{request.resolver_match.kwargs['customer']}/view-contract/?contract_idx={contract_idx}&contract_type={contract_type}")
+        extra_context = {
+            "logic_input_values": logic_input_values,
+            "logic_result": format_logic_result(input_data, result)
+        }
+
+        return render(
+            request,
+            f"dashboard/view_{contract_type}_contract.html",
+            prepare_view_form_context(
+                request,
+                request.resolver_match.kwargs["customer"],
+                context,
+                contract_type,
+                contract_idx,
+                headers,
+                base_url,
+                csrf_token,
+                extra_context=extra_context,
+            )
+        )
 
     except Exception as e:
         log_error(logger, f"Error executing transaction logic: {e}")
@@ -290,3 +332,8 @@ def try_cast(value):
         return float(value)
     except:
         return value
+
+def format_logic_result(input_data, result):
+    lines = [f"{key}: {value}" for key, value in input_data.items()]
+    lines.append(f"\nResult: {result}")
+    return "\n".join(lines)

@@ -16,8 +16,6 @@ function copyToClipboard(elementId) {
         const successful = document.execCommand('copy');
         if (successful) {
             console.log("Copied to clipboard");
-            // Optionally, show feedback
-            alert("Copied!");
         } else {
             console.error("Copy failed");
         }

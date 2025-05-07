@@ -125,3 +125,7 @@ class SecretsManager:
     def get_all_partner_keys(self):
         """Retrieve all partner API keys."""
         return self._load_secrets(extra="partner_keys").get("partner_keys", {})
+
+    def get_openai_key(self):
+        """Retrieve OpenAI API key (same for all environments)."""
+        return self._fetch_secret("openai", key="api_key")

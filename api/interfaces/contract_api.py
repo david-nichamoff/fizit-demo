@@ -9,6 +9,8 @@ from rest_framework.exceptions import ValidationError
 from api.interfaces.mixins import ResponseMixin
 from api.managers.app_context import AppContext
 from api.interfaces.encryption_api import get_encryptor, get_decryptor
+from api.utilities.logic import translate_transact_logic_to_natural
+from api.utilities.auxiliary import save_natural_language
 from api.utilities.logging import  log_error, log_info, log_warning
 
 class BaseContractAPI(ResponseMixin):
@@ -17,6 +19,7 @@ class BaseContractAPI(ResponseMixin):
         self.config_manager = context.config_manager
         self.domain_manager = context.domain_manager
         self.cache_manager = context.cache_manager
+        self.secrets_manager = context.secrets_manager
         self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
         self.logger = logging.getLogger(__name__)
 
@@ -93,9 +96,10 @@ class BaseContractAPI(ResponseMixin):
             if tx_receipt["status"] == 1:
                 # Sleep to give time for transaction to complete
                 time.sleep(self.config_manager.get_network_sleep_time())
-
                 cache_key = self.cache_manager.get_contract_count_cache_key(contract_type)
                 self.cache_manager.delete(cache_key)
+
+                self._generate_natural_language(contract_type, contract_idx, contract_dict)
                 return self._format_success({"contract_idx": contract_idx}, f"Contract {contract_type}:{contract_idx} created", status.HTTP_201_CREATED)
             else:
                 raise RuntimeError("Error adding contract")
@@ -121,6 +125,8 @@ class BaseContractAPI(ResponseMixin):
 
                 cache_key = self.cache_manager.get_contract_cache_key(contract_type, contract_idx)
                 self.cache_manager.delete(cache_key)
+
+                self._generate_natural_language(contract_type, contract_idx, contract_dict)
                 return self._format_success({"contract_idx": contract_idx}, f"Contract {contract_type}:{contract_idx} updated", status.HTTP_200_OK)
             else:
                 raise RuntimeError("Error updating contract")
@@ -152,6 +158,18 @@ class BaseContractAPI(ResponseMixin):
             return self._format_error(f"Contract data error {contract_type}:{contract_idx}: {str(e)}", status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return self._format_error(f"Error deleting {contract_type}:{contract_idx}: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def _generate_natural_language(self, contract_type, contract_idx, contract_dict):
+        # Update natural language for transaction logic
+        contract_release = self.config_manager.get_contract_release(contract_type)
+        logic = contract_dict.get("transact_logic")  
+        logic_natural = translate_transact_logic_to_natural(self.secrets_manager, logic)
+        save_natural_language(
+            contract_idx=contract_idx,
+            contract_type=contract_type,
+            contract_release=contract_release,
+            logic_natural=logic_natural
+        )
 
 ### **Subclass for Purchase Contracts**
 class PurchaseContractAPI(BaseContractAPI):

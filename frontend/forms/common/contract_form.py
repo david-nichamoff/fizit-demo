@@ -150,6 +150,13 @@ class ContractForm(BaseContractForm):
         help_text="The logic used to price each transaction"
     )
 
+    transact_logic_natural = forms.CharField(
+        widget=forms.Textarea(attrs={"id": "id_transact_logic_natural"}),
+        required=False,
+        label="Natural language logic:",
+        help_text="This is a plain English explanation of the transaction logic above"
+    )
+
     funding_method = forms.ChoiceField(
         required=False,
         choices=[],

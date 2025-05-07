@@ -15,6 +15,7 @@
             <p>{{ error }}</p>
         </div>
     {% else %}
+
         <!-- Contract Form Section -->
         <div class="module">
             <form method="post" action="#">
@@ -46,6 +47,7 @@
                         </div>
                         <div class="help">{{ contract_form.service_fee_amt.help_text }}</div>
                     </div>
+
                     <div class="form-row">
                         <div class="flex-container">
                             <label for="{{ contract_form.transact_logic.id_for_label }}">{{ contract_form.transact_logic.label }}</label>
@@ -61,6 +63,23 @@
                         </div>
                         <div class="help">{{ contract_form.transact_logic.help_text }}</div>
                     </div>
+
+                    <div class="form-row">
+                        <div class="flex-container">
+                            <label for="{{ contract_form.transact_logic_natural.id_for_label }}">{{ contract_form.transact_logic_natural.label }}</label>
+                            <div class="field" style="display: flex; align-items: center; gap: 8px;">
+                                {{ contract_form.transact_logic_natural }}
+                                <button type="button"
+                                        class="w3-button s3-transparent icon-button"
+                                        onclick="copyToClipboard('id_transact_logic_natural')"
+                                        title="Copy transact_logic">
+                                    <i class="fas fa-clipboard"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="help">{{ contract_form.transact_logic_natural.help_text }}</div>
+                    </div>
+
                 </fieldset>
             </form>
         </div>
@@ -75,18 +94,38 @@
                     {% for var in logic_variables %}
                     <div class="form-row">
                         <div class="flex-container">
-                            <label for="var_{{ var }}">{{ var|title }}</label>
-                            <input type="text" name="var_{{ var }}" id="var_{{ var }}" class="vTextField wide-text-input" />
+                            <label for="var_{{ var }}">{{ var|title }}:</label>
+                            <input type="text"
+                                   name="var_{{ var }}"
+                                   id="var_{{ var }}"
+                                   class="vTextField"
+                                   style="width: 100px;" />
                         </div>
                     </div>
                     {% endfor %}
+
+                    {% if logic_result %}
+                    <div class="form-row">
+                        <div class="flex-container">
+                            <label for="logic_result_display">Logic Result:</label>
+                            <textarea id="logic_result_display"
+                                      class="vTextField"
+                                      readonly
+                                      rows="6"
+                                      style="width: 325px;">{{ logic_result }}</textarea>
+                        </div>
+                        <div class="help">Enter variables and select 'TEST LOGIC' to test the smart contract logic</div>
+                    </div>
+                    {% endif %}
+
                 </fieldset>
                 <div class="submit-row">
-                    <input type="submit" value="Submit Data" class="default" />
+                    <input type="submit" value="Test Logic" class="default" />
                 </div>
             </form>
         </div>
         {% endif %}
+
 
         <!-- Parties Section -->
         <div class="module">
