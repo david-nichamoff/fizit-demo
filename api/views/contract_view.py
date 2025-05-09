@@ -40,25 +40,12 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
             for contract_type in contract_types:
                 contract_api = self.context.api_manager.get_contract_api(contract_type)
 
-                response = contract_api.get_contract_count(contract_type)
-                if response["status"] != status.HTTP_200_OK:
-                    log_error(self.logger, f"Failed to retrieve contract count for {contract_type}")
-                    continue
-
-                contract_count = self._get_contract_count(contract_type)
-                for contract_idx in range(contract_count):
-                    response = contract_api.get_contract(contract_type, contract_idx, request.auth.get("api_key"))
-
-                    if response["status"] == status.HTTP_200_OK:
-                        contract = {
-                            "contract_type": contract_type,
-                            "contract_idx": contract_idx,
-                            "contract_name": response["data"].get("contract_name"),
-                            "is_active": response["data"].get("is_active", True),
-                            "is_quote": response["data"].get("is_quote", False),
-                            "transact_logic": response["data"].get("transact_logic", {}),
-                        }
-                        contracts.append(contract)
+                response = contract_api.list_contracts(contract_type, request.auth.get("api_key"))
+                
+                if response["status"] == status.HTTP_200_OK:
+                    contracts.extend(response["data"])
+                else:
+                    log_warning(self.logger, f"Skipped {contract_type} due to failed fetch.")
 
             return Response(contracts, status=status.HTTP_200_OK)
 

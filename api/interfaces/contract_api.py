@@ -46,6 +46,47 @@ class BaseContractAPI(ResponseMixin):
         except Exception as e:
             return self._format_error(f"Error retrieving contract count: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    def list_contracts(self, contract_type, api_key):
+        contracts = []
+        
+        try:
+            cache_key = self.cache_manager.get_contract_list_cache_key(contract_type)
+            cached_contract_list = self.cache_manager.get(cache_key)
+
+            if cached_contract_list:
+                log_info(self.logger, f"Loaded contract list {contract_type} from cache")
+                return self._format_success(cached_contract_list, f"Retrieved {contract_type} list (cached)", status.HTTP_200_OK)
+
+            count_response = self.get_contract_count(contract_type)
+            if count_response["status"] != status.HTTP_200_OK:
+                return self._format_error(f"Could not retrieve contract count for {contract_type}", status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            contract_count = count_response["data"]["count"]
+
+            for contract_idx in range(contract_count):
+                response = self.get_contract(contract_type, contract_idx, api_key)
+
+                if response["status"] == status.HTTP_200_OK:
+                    contract = {
+                        "contract_type": contract_type,
+                        "contract_idx": contract_idx,
+                        "contract_name": response["data"].get("contract_name"),
+                        "is_active": response["data"].get("is_active", True),
+                        "is_quote": response["data"].get("is_quote", False),
+                        "transact_logic": response["data"].get("transact_logic", {}),
+                    }
+
+                    contracts.append(contract)
+
+            self.cache_manager.set(cache_key, contracts, timeout=None)
+            log_info(self.logger, f"Cached contract list for {contract_type}: {len(contracts)} items")
+
+            return self._format_success(contracts, f"Retrieved contract_list {contract_type}", status.HTTP_200_OK)
+
+        except Exception as e:
+            return self._format_error(f"Unexpected error retrieving list of {contract_type} contracts", status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
     def get_contract(self, contract_type, contract_idx, api_key=None, parties=[]):
         """Retrieve a specific contract."""
         try:
@@ -99,6 +140,9 @@ class BaseContractAPI(ResponseMixin):
                 cache_key = self.cache_manager.get_contract_count_cache_key(contract_type)
                 self.cache_manager.delete(cache_key)
 
+                cache_key = self.cache_manager.get_contract_list_cache_key(contract_type)
+                self.cache_manager.delete(cache_key)
+
                 self._generate_natural_language(contract_type, contract_idx, contract_dict)
                 return self._format_success({"contract_idx": contract_idx}, f"Contract {contract_type}:{contract_idx} created", status.HTTP_201_CREATED)
             else:
@@ -126,6 +170,9 @@ class BaseContractAPI(ResponseMixin):
                 cache_key = self.cache_manager.get_contract_cache_key(contract_type, contract_idx)
                 self.cache_manager.delete(cache_key)
 
+                cache_key = self.cache_manager.get_contract_list_cache_key(contract_type)
+                self.cache_manager.delete(cache_key)
+
                 self._generate_natural_language(contract_type, contract_idx, contract_dict)
                 return self._format_success({"contract_idx": contract_idx}, f"Contract {contract_type}:{contract_idx} updated", status.HTTP_200_OK)
             else:
@@ -150,6 +197,10 @@ class BaseContractAPI(ResponseMixin):
 
                 cache_key = self.cache_manager.get_contract_cache_key(contract_type, contract_idx)
                 self.cache_manager.delete(cache_key)
+
+                cache_key = self.cache_manager.get_contract_list_cache_key(contract_type)
+                self.cache_manager.delete(cache_key)
+
                 return self._format_success( {"contract_idx":contract_idx}, f"Contract {contract_type}:{contract_idx} deleted", status.HTTP_204_NO_CONTENT)
             else:
                 raise RuntimeError(f"Transaction failed for {contract_type}:{contract_idx}.")

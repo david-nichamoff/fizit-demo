@@ -81,6 +81,10 @@ class CacheManager:
         return f"contract_{contract_type}_{contract_idx}"
 
     @staticmethod
+    def get_contract_list_cache_key(contract_type):
+        return f"contract_list_{contract_type}"
+
+    @staticmethod
     def get_transaction_cache_key(contract_type, contract_idx):
         return f"transaction_{contract_type}_{contract_idx}"
 
