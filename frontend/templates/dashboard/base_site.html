@@ -1,5 +1,6 @@
 {% extends "admin/base.html" %}
 {% load static %}
+{% load i18n %}
 
 {% block title %}
     {% if customer|lower == "associated" %}
@@ -9,29 +10,63 @@
     {% endif %}
 {% endblock %}
 
-{% block header %}
-  <div id="header">
-    <div id="branding">
-      <h1 id="site-name">
-        {% if customer|lower == "associated" %}
-          <img src="{% static 'dashboard/logo/associated-pipe-line-3c.svg' %}" alt="Associated Pipe Line Logo" style="height:30px; vertical-align:middle; margin-right:10px;">
-          <a href="{% url 'list_contracts' customer=customer %}">Associated Pipe Line Dashboard</a>
-        {% else %}
-          <a href="{% url 'list_contracts' customer=customer %}">FIZIT Dashboard</a>
-        {% endif %}
-      </h1>
-    </div>
-
-    <div id="user-tools">
-      <a href="{% url 'list_contracts' customer=customer %}">Home</a>
-      {% if user.is_authenticated %}
-        <span class="user-info">Welcome, {{ user.get_username }}</span>
-        <a href="{% url 'logout' %}">Log out</a>
-      {% endif %}
-    </div>
-  </div>
+{% block branding %}
+  <h1 id="site-name">
+    {% if customer|lower == "associated" %}
+      <img src="{% static 'dashboard/logo/associated-pipe-line-3c.svg' %}" alt="Associated Pipe Line Logo" style="height:30px; vertical-align:middle; margin-right:10px;">
+      <a href="{% url 'list_contracts' customer=customer %}">Associated Pipe Line Dashboard</a>
+    {% else %}
+      <a href="{% url 'list_contracts' customer=customer %}">FIZIT Dashboard</a>
+    {% endif %}
+  </h1>
 {% endblock %}
 
+{% block usertools %}
+  <div id="user-tools">
+    {% if user.is_authenticated %}
+      {% trans 'Welcome,' %} <strong>{{ user.get_username }}</strong>.&nbsp;/&nbsp; 
+      <a href="{% url 'dashboard_logout' %}">Log out</a>
+    {% else %}
+      <a href="{% url 'dashboard_login' %}">{% trans 'Log in' %}</a>
+    {% endif %}
+
+    <button class="theme-toggle" title="Toggle theme">
+      <span class="visually-hidden theme-label-when-auto">Toggle theme (current theme: auto)</span>
+      <span class="visually-hidden theme-label-when-light">Toggle theme (current theme: light)</span>
+      <span class="visually-hidden theme-label-when-dark">Toggle theme (current theme: dark)</span>
+      <svg aria-hidden="true" class="theme-icon-when-auto">
+        <use xlink:href="#icon-auto"></use>
+      </svg>
+      <svg aria-hidden="true" class="theme-icon-when-dark">
+        <use xlink:href="#icon-moon"></use>
+      </svg>
+      <svg aria-hidden="true" class="theme-icon-when-light">
+        <use xlink:href="#icon-sun"></use>
+      </svg>
+    </button>
+    
+  </div>
+
+  <script>
+(function() {
+  const button = document.getElementById('theme-toggle');
+  const currentTheme = localStorage.getItem('theme') || 'light';
+
+  const setTheme = (theme) => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  };
+
+  // Initialize with stored theme (or default to light)
+  setTheme(currentTheme);
+
+  button.addEventListener('click', function () {
+    const newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+  });
+})();
+  </script>
+{% endblock %}
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
@@ -48,6 +83,6 @@
 {% if customer|lower == "associated" %}
     <link rel="stylesheet" href="{% static 'dashboard/css/associated.css' %}">
 {% else %}
-    <link rel="stylesheet" href="{% static 'css/fizit.css' %}">
+    <link rel="stylesheet" href="{% static 'admin/css/custom_admin.css' %}">
 {% endif %}
 {% endblock %}

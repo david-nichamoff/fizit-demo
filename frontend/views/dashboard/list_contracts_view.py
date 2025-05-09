@@ -11,6 +11,7 @@ from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_error
 logger = logging.getLogger(__name__)
 
+@login_required(login_url='/dashboard/login/')
 def list_contracts_view(request, customer):
     context = build_app_context()
     log_info(logger, f"Launching dashboard for {customer}")

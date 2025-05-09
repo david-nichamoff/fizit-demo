@@ -35,6 +35,7 @@ def initialize_backend_services():
     return headers, context, csrf_token
 
 # Main view
+@login_required(login_url='/dashboard/login/')
 def view_contract_view(request, customer, extra_context=None):
     headers, context, csrf_token = initialize_backend_services()
     contract_idx = request.GET.get("contract_idx")

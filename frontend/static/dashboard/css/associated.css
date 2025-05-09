@@ -12,13 +12,14 @@ html[data-theme="light"],
     /* Updated palette */
     --primary: var(--color-pipeline-red);
     --secondary: var(--color-pipeline-dark);
-    --accent: var(--color-pipeline-gray);
+    --accent: var(--color-gray-main);
 
     /* Body & Header */
     --body-fg: var(--color-pipeline-dark);
     --body-bg: var(--color-gray-main);
-    --header-bg: var(--color-gray-lighter);
+    --header-bg: var(--color-pipeline-gray);
     --header-link-color: var(--color-white);
+    --header-color: var(--color-pipeline-red);
 
     /* Links */
     --link-fg: var(--primary);
@@ -71,3 +72,25 @@ html[data-theme="light"],
     display: block; 
 }
 
+
+html[data-theme="dark"],
+:root {
+    --textinverse: rgba(255, 255, 255, 1);
+    --color-black: rgba(33, 36, 39, 1);
+    --color-gray-main: rgba(238, 240, 242, 1);
+    --color-gray-lighter: rgba(245, 246, 247, 1);
+    --color-pipeline-red: rgba(210, 51, 52, 1);  /* Associated Pipeline Red */
+    --color-pipeline-dark: rgba(0, 0, 0, 1);    /* Black from the logo */
+    --color-pipeline-gray: rgba(108, 108, 108, 1); /* Steel gray accent */
+    --color-white: rgba(255, 255, 255, 1);
+
+    /* Updated palette */
+    --primary: var(--color-pipeline-red);
+    --secondary: var(--color-pipeline-dark);
+    --accent: var(--color-gray-main);
+}
+
+/* Fallback to light for auto theme */
+html[data-theme="auto"] {
+    color-scheme: light;
+}

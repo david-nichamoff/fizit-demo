@@ -12,6 +12,7 @@ from rest_framework.permissions import AllowAny
 from api.authentication import NoAuthForSwagger
 
 from frontend.admin.custom_admin_site import custom_admin_site
+from frontend.views.common import oidc_logout 
 
 def redirect_to_oidc(request):
     return redirect('/oidc/authenticate/')
@@ -41,6 +42,7 @@ urlpatterns = [
 
     path('oidc/', include('mozilla_django_oidc.urls')),
     path('accounts/login/', redirect_to_oidc),
+    path("logout/", oidc_logout, name="logout"), 
 
     path("dashboard/", include("frontend.urls")),
 
