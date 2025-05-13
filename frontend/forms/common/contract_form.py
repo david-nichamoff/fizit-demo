@@ -48,7 +48,11 @@ class BaseContractForm(forms.Form):
         if self.percent_display:
             for field_name in self.fields:
                 if field_name.endswith('_pct') and field_name in self.initial:
-                    self.initial[field_name] = float(self.initial[field_name]) * 100
+                    try:
+                        raw_value = float(self.initial[field_name]) * 100
+                        self.initial[field_name] = round(raw_value, 2)
+                    except (TypeError, ValueError):
+                        self.initial[field_name] = ""
 
         self._populate_dynamic_fields(banks, token_list)
 
