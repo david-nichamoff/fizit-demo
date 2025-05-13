@@ -67,3 +67,11 @@ class ContractOperations:
             headers=headers_with_csrf
         )
         return self._process_response(response)
+
+    def list_contracts_by_party_code(self, party_code):
+        headers_with_csrf = self._add_csrf_token(self.headers.copy())
+        response = requests.get(
+            f"{self.base_url}/api/contracts/{party_code}/",
+            headers=headers_with_csrf
+        )
+        return self._process_response(response)

@@ -4,7 +4,7 @@
 {% block extrahead %}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="{% static 'dashboard/css/view_contract.css' %}">
-    <script src="{% static 'dashboard/js/view_contract.js' %}?v1.1"></script>
+    <script src="{% static 'dashboard/js/view_contract.js' %}?v1.2"></script>
     <script src="{% static 'common/js/copy_clipboard.js' %}?v=1.3"></script>
 {% endblock %}
 
@@ -126,33 +126,65 @@
         </div>
         {% endif %}
 
-
-        <!-- Parties Section -->
         <div class="module">
-            <div class="inline-group">
-                <!-- Existing Parties Table -->
-                <h3 class="subhead">Parties</h3>
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th scope="col">Party Code</th>
-                            <th scope="col">Party Type</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for party in parties %}
-                        <tr>
-                            <td>{{ party.party_code }}</td>
-                            <td>{{ party.party_type|title }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="2" class="empty-result">No parties available.</td>
-                        </tr>
+            <h3 class="subhead">Payment Settings</h3>
+            <form method="post" action="#">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="advance_settings" />
+        
+                <fieldset class="module aligned">
+                    <div class="form-row">
+                        <div class="flex-container">
+                            <label for="{{ contract_form.funding_method.id_for_label }}">{{ contract_form.funding_method.label }}</label>
+                            {{ contract_form.funding_method }}
+                        </div>
+                        <div class="help">{{ contract_form.funding_method.help_text }}</div>
+                    </div>
+                    <div class="form-row">
+                        <div class="flex-container">
+                            <label for="{{ contract_form.funding_account.id_for_label }}">{{ contract_form.funding_account.label }}</label>
+                            {{ contract_form.funding_account }}
+                        </div>
+                        <div class="help">{{ contract_form.funding_account.help_text }}</div>
+                    </div>
+                    <div class="form-row">
+                        <div class="flex-container">
+                            <label for="{{ contract_form.funding_recipient.id_for_label }}">{{ contract_form.funding_recipient.label }}</label>
+                            {{ contract_form.funding_recipient }}
+                        </div>
+                        <div class="help">{{ contract_form.funding_recipient.help_text }}</div>
+                    </div>
+                    {% if contract_form.initial.funding_token_symbol %}
+                    <div class="form-row">
+                        <div class="flex-container">
+                            <label for="{{ contract_form.funding_token_symbol.id_for_label }}">{{ contract_form.funding_token_symbol.label }}</label>
+                            {{ contract_form.funding_token_symbol }}
+                        </div>
+                        <div class="help">{{ contract_form.funding_token_symbol.help_text }}</div>
+                    </div>
+                    {% endif %}
+                    <div class="form-row">
+                        <a href="javascript:void(0);" onclick="toggleRecipientDetails()" class="toggle-link">
+                            Show Recipient Details <i class="fas fa-chevron-down"></i>
+                        </a>
+                    </div>
+                    <div id="recipient-details" style="display: none; margin-top: 10px;">
+                        {% for field in contract_form %}
+                            {% if field.name|slice:":10" == "recipient_" %}
+                                <div class="form-row">
+                                    <div class="flex-container">
+                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {{ field }}
+                                    </div>
+                                    {% if field.help_text %}
+                                        <div class="help">{{ field.help_text }}</div>
+                                    {% endif %}
+                                    </div>
+                            {% endif %}
                         {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                    </div>
+                </fieldset>
+            </form>
         </div>
 
         <!-- Artifacts Section -->

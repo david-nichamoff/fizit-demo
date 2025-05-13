@@ -8,7 +8,7 @@ from django.contrib import messages
 from django.http import HttpResponse
 from django.conf import settings
 
-from api.operations import ContractOperations, SettlementOperations, TransactionOperations
+from api.operations import ContractOperations, SettlementOperations, TransactionOperations, BankOperations
 from api.operations import CsrfOperations, PartyOperations, ArtifactOperations
 from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
@@ -84,6 +84,7 @@ def handle_post_request(request, customer, context, contract_type, contract_idx,
 # Prepare form_context for rendering the view
 def prepare_view_form_context(request, customer, context, contract_type, contract_idx, headers, base_url, csrf_token, extra_context=None):
     contract_ops = ContractOperations(headers, base_url, csrf_token)
+    bank_ops = BankOperations(headers, base_url, csrf_token)
 
     try:
         contract = contract_ops.get_contract(contract_type, contract_idx)
@@ -95,22 +96,50 @@ def prepare_view_form_context(request, customer, context, contract_type, contrac
 
     # Extract fields from funding_instr
     funding_instr = contract.get("funding_instr", {})
-    if funding_instr.get("bank") == "token":
-        symbol = funding_instr.get("token_symbol")
-        network = funding_instr.get("network")
-        if symbol and network:
-            contract["funding_token_symbol"] = f"{network}:{symbol}"
-            contract["funding_token_network"] = network
-
-    # Extract fields from deposit_instr
     deposit_instr = contract.get("deposit_instr", {})
-    if deposit_instr.get("bank") == "token":
-        symbol = deposit_instr.get("token_symbol")
-        network = deposit_instr.get("network")
-        if symbol and network:
-            contract["deposit_token_symbol"] = f"{network}:{symbol}"
-            contract["deposit_token_network"] = network
 
+    banks = context.domain_manager.get_banks()
+    contract["funding_method"] = funding_instr["bank"].capitalize()
+    funding_method = funding_instr.get("bank", "")
+
+    try:
+        accounts = bank_ops.get_accounts(funding_method)
+    except Exception as e:
+        log_warning(logger, f"Error retrieving accounts for bank '{funding_method}': {e}")
+        accounts = []
+
+    # Gracefully map account name
+    account_id = funding_instr.get("account_id")
+
+    for account in accounts:
+        if isinstance(account, dict) and account.get("account_id") == account_id:
+            contract["funding_account"] = account.get("account_name")
+            break
+
+    try:
+        recipients = bank_ops.get_recipients(funding_method)
+    except Exception as e:
+        log_warning(logger, f"Error retrieving recipients for bank '{funding_method}': {e}")
+        recipients = []
+
+    recipient_id = funding_instr.get("recipient_id")
+
+    log_info(logger, f"Recipients: {recipients}, recipient id: {recipient_id}")
+
+    for recipient in recipients:
+        if isinstance(recipient, dict) and recipient.get("recipient_id") == recipient_id:
+            contract["funding_recipient"] = recipient.get("recipient_name")
+            contract["recipient_payment_method"] = recipient.get("payment_method")
+            contract["recipient_account_number"] = recipient.get("account_number")
+            contract["recipient_routing_number"] = recipient.get("routing_number")
+            contract["recipient_bank_name"] = recipient.get("bank_name")
+            contract["recipient_address_1"] = recipient.get("address_1")
+            contract["recipient_address_2"] = recipient.get("address_2")
+            contract["recipient_city"] = recipient.get("city")
+            contract["recipient_region"] = recipient.get("region")
+            contract["recipient_postal_code"] = recipient.get("postal_code")
+            contract["recipient_country"] = recipient.get("country")
+            break
 
     try:
         contract_release = context.config_manager.get_contract_release(contract_type)
@@ -134,12 +163,6 @@ def prepare_view_form_context(request, customer, context, contract_type, contrac
     except Exception as e:
         log_warning(logger, f"Failed to parse transact_logic or extract vars: {e}")
 
-    # Prepopulate previous POST values if any
-    logic_input_values = {
-        key: value for key, value in request.POST.items()
-        if key.startswith("var_")
-    }
-
     # Fetch related data
     try:
         log_info(logger, "Fetching settlements")
@@ -156,9 +179,6 @@ def prepare_view_form_context(request, customer, context, contract_type, contrac
         log_error(logger, f"Failed to fetch related data for {contract_type}:{contract_idx}: {e}")
         messages.error(request, f"Failed to fetch related data.")
 
-    # Choose the correct contract form based on type
-    banks = context.domain_manager.get_banks()
-
     token_list = []
     token_config = context.config_manager.get_all_token_addresses()
     for entry in token_config:
@@ -172,7 +192,12 @@ def prepare_view_form_context(request, customer, context, contract_type, contrac
         initial=contract, 
         banks=banks, 
         token_list=token_list,
-        readonly_fields = ["transact_logic", "service_fee_pct", "service_fee_amt"],
+        
+        readonly_fields = [
+            "transact_logic", "service_fee_pct", "service_fee_amt", 
+            "funding_method", "funding_account", "funding_recipient", "funding_token_symbol"
+        ],
+        
         hidden_fields = [],
         percent_display=True)
 

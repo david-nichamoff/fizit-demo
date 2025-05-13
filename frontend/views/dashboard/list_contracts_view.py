@@ -29,16 +29,7 @@ def list_contracts_view(request, customer):
         party_ops = PartyOperations(headers, context.config_manager.get_base_url(), csrf_token)
 
         # Fetch contracts
-        all_contracts, contracts = contract_ops.list_contracts(), []
-
-        for contract in all_contracts:
-            if "last_updated" in contract and contract["last_updated"]:
-                contract["last_updated"] = datetime.fromisoformat(contract["last_updated"].rstrip("Z")).strftime("%Y-%m-%d %I:%M %p")
-
-            parties = party_ops.get_parties(contract["contract_type"], contract["contract_idx"])
-            for party in parties:
-                if party["party_code"].lower() == customer.lower():
-                    contracts.append(contract)
+        contracts = contract_ops.list_contracts_by_party_code(customer)
 
         # Handle sorting
         ordering = request.GET.get("ordering", "contract_idx")

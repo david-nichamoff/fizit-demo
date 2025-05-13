@@ -40,14 +40,47 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
             for contract_type in contract_types:
                 contract_api = self.context.api_manager.get_contract_api(contract_type)
 
-                response = contract_api.list_contracts(contract_type, request.auth.get("api_key"))
-                
-                if response["status"] == status.HTTP_200_OK:
-                    contracts.extend(response["data"])
+                contract_response = contract_api.list_contracts(contract_type, request.auth.get("api_key"))
+                if contract_response["status"] == status.HTTP_200_OK:
+                    contracts.extend(contract_response["data"])
                 else:
                     log_warning(self.logger, f"Skipped {contract_type} due to failed fetch.")
 
             return Response(contracts, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            log_error(self.logger, f"Error retrieving contract list: {e}")
+            return Response({"error": f"Unexpected error {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @extend_schema(
+        tags=["Contracts"],
+        parameters=[],
+        responses={status.HTTP_200_OK: ListContractSerializer(many=True)},
+        summary="List Contracts by Party",
+        description="Retrieve a list of all contracts by party code.",
+    )
+    def list_contracts_by_party_code(self, request, party_code=None):
+        """Retrieve a list of contracts from the underlying contract API, filtering by party_code"""
+        log_info(self.logger, "Fetching contract list filter by party_code.")
+
+        try:
+            contract_types = self.context.domain_manager.get_contract_types()
+            contracts = []
+
+            for contract_type in contract_types:
+                contract_api = self.context.api_manager.get_contract_api(contract_type)
+                contract_response = contract_api.list_contracts(contract_type, request.auth.get("api_key"))
+                
+                if contract_response["status"] == status.HTTP_200_OK:
+                    contracts.extend(contract_response["data"])
+                else:
+                    log_warning(self.logger, f"Skipped {contract_type} due to failed fetch.")
+
+            party_response = self.context.api_manager.get_party_api().get_party_list(contracts, party_code) 
+            if party_response["status"] != status.HTTP_200_OK:
+                raise RuntimeError
+
+            return Response(party_response["data"], status=status.HTTP_200_OK)
 
         except Exception as e:
             log_error(self.logger, f"Error retrieving contract list: {e}")
@@ -72,7 +105,6 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         description="Retrieve details of a specific purchase contract"
     )
     def retrieve_purchase_contract(self, request, contract_idx=None):
-        log_info(self.logger, "test")
         return self._retrieve_contract(request, contract_type="purchase", contract_idx=contract_idx)
 
     @extend_schema(

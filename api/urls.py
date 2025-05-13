@@ -46,6 +46,7 @@ urlpatterns = [
     path('recipients/', RecipientViewSet.as_view({'get': 'list'}), name='recipient-list'),
     path('events/', EventViewSet.as_view({'get': 'list'}), name='event-list'),
     path('contracts/', ContractViewSet.as_view({'get': 'list_contracts'}), name='list-contracts'),
+    path('contracts/<str:party_code>/', ContractViewSet.as_view({'get': 'list_contracts_by_party_code'}), name='list-contracts-by-party-code'),
     path('get-csrf-token/', get_csrf_token, name='get_csrf_token'),
     path('stats/', StatsView.as_view(), name='stats'),
 

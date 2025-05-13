@@ -7,9 +7,8 @@ class BaseContractForm(forms.Form):
     """Base form for contracts with shared fields and dynamic configurations."""
 
     def __init__(self, *args, banks=None, token_list=None, 
-                 readonly_fields=None, hidden_fields=None, 
-                 percent_display=False,
-                 **kwargs):
+                readonly_fields=None, hidden_fields=None, 
+                percent_display=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.logger = logging.getLogger(__name__)
         self.percent_display = percent_display
@@ -19,14 +18,28 @@ class BaseContractForm(forms.Form):
 
         for field_name in readonly_fields:
             if field_name in self.fields:
-                # Override NumberInput to TextInput to avoid spinners
-                if isinstance(self.fields[field_name].widget, forms.NumberInput):
-                    self.fields[field_name].widget = forms.TextInput(attrs={
+                field = self.fields[field_name]
+                value = self.initial.get(field_name, "")
+
+                # Convert NumberInput to readonly TextInput
+                if isinstance(field.widget, forms.NumberInput):
+                    field.widget = forms.TextInput(attrs={
                         "readonly": "readonly", 
                         "class": "vTextField",
-                        "style": "width: 75px"})
+                        "style": "width: 75px"
+                    })
+
+                # Convert Select (dropdown) to readonly TextInput
+                elif isinstance(field.widget, forms.Select):
+                    field.widget = forms.TextInput(attrs={
+                        "readonly": "readonly", 
+                        "class": "vTextField",
+                        "style": "width: 200px"
+                    })
+                    field.initial = value
+
                 else:
-                    self.fields[field_name].widget.attrs["readonly"] = "readonly"
+                    field.widget.attrs["readonly"] = "readonly"
 
         for field_name in hidden_fields:
             if field_name in self.fields:
@@ -37,7 +50,6 @@ class BaseContractForm(forms.Form):
                 if field_name.endswith('_pct') and field_name in self.initial:
                     self.initial[field_name] = float(self.initial[field_name]) * 100
 
-        # Populate dynamic fields
         self._populate_dynamic_fields(banks, token_list)
 
     def _populate_dynamic_fields(self, banks, token_list):
@@ -161,18 +173,21 @@ class ContractForm(BaseContractForm):
         required=False,
         choices=[],
         widget=forms.Select(attrs={"id": "id_funding_method"}),
+        label="Funding method:",
         help_text="The method of payment for advances and residuals"
     )
 
     funding_account = forms.ChoiceField(
         required=False,
         choices=[],  # Dynamically populated via API
+        label="Funding account:",
         widget=forms.Select(attrs={"id": "id_funding_account"}),
     )
 
     funding_recipient = forms.ChoiceField(
         required=False,
         choices=[],  # Dynamically populated via API
+        label="Funding recipient:",
         widget=forms.Select(attrs={"id": "id_funding_recipient"}),
     )
 
@@ -180,7 +195,67 @@ class ContractForm(BaseContractForm):
         required=False,
         choices=[],
         widget=forms.Select(attrs={"id": "id_funding_token_symbol"}),
-        label="Funding Token:"
+        label="Funding token:"
+    )
+
+    recipient_payment_method = forms.CharField(
+        required=False,
+        label="Payment method:",
+        widget=forms.TextInput(attrs={"class": "vTextField", "style": "width: 200px", "readonly": "readonly"})
+    )
+
+    recipient_account_number = forms.CharField(
+        required=False,
+        label="Account number:",
+        widget=forms.TextInput(attrs={"class": "vTextField", "style": "width: 200px", "readonly": "readonly"})
+    )
+
+    recipient_routing_number = forms.CharField(
+        required=False,
+        label="Routing number:",
+        widget=forms.TextInput(attrs={"class": "vTextField", "style": "width: 200px", "readonly": "readonly"})
+    )
+
+    recipient_bank_name = forms.CharField(
+        required=False,
+        label="Bank name:",
+        widget=forms.TextInput(attrs={"class": "vTextField", "style": "width: 200px", "readonly": "readonly"})
+    )
+
+    recipient_address_1 = forms.CharField(
+        required=False,
+        label="Address 1:",
+        widget=forms.TextInput(attrs={"class": "vTextField", "style": "width: 200px", "readonly": "readonly"})
+    )
+
+    recipient_address_2 = forms.CharField(
+        required=False,
+        label="Address 2:",
+        widget=forms.TextInput(attrs={"class": "vTextField", "style": "width: 200px", "readonly": "readonly"})
+    )
+
+    recipient_city = forms.CharField(
+        required=False,
+        label="City:",
+        widget=forms.TextInput(attrs={"class": "vTextField", "style": "width: 200px", "readonly": "readonly"})
+    )
+
+    recipient_region = forms.CharField(
+        required=False,
+        label="Region:",
+        widget=forms.TextInput(attrs={"class": "vTextField", "style": "width: 200px", "readonly": "readonly"})
+    )
+
+    recipient_postal_code = forms.CharField(
+        required=False,
+        label="Postal code:",
+        widget=forms.TextInput(attrs={"class": "vTextField", "style": "width: 200px", "readonly": "readonly"})
+    )
+
+    recipient_country = forms.CharField(
+        required=False,
+        label="Country:",
+        widget=forms.TextInput(attrs={"class": "vTextField", "style": "width: 200px", "readonly": "readonly"})
     )
 
 # ==============================

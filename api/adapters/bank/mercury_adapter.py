@@ -87,13 +87,30 @@ class MercuryAdapter(ResponseMixin):
             data = self._send_request('get', url, headers=self._build_headers())
             recipients = data.get('recipients', [])
 
-            recipient_list = [
-                {
+            recipient_list = []
+
+            for recipient in recipients:
+                routing_info = recipient.get("electronicRoutingInfo") or {}
+                address_info = routing_info.get("address") or {}
+
+                log_info(self.logger, f"Routing info: {routing_info}")
+                log_info(self.logger, f"Address info: {address_info}")
+
+                recipient_list.append({
                     'bank': 'mercury',
-                    'recipient_id': recipient['id'],
-                    'recipient_name': recipient['name']
-                } for recipient in recipients
-            ]
+                    'recipient_id': recipient.get('id'),
+                    'recipient_name': recipient.get('name'),
+                    'payment_method': recipient.get('defaultPaymentMethod'),
+                    'account_number': routing_info.get('accountNumber'),
+                    'routing_number': routing_info.get('routingNumber'),
+                    'bank_name': routing_info.get('bankName'),
+                    'address_1': address_info.get('address1'),
+                    'address_2': address_info.get('address2'),
+                    'city': address_info.get('city'),
+                    'region': address_info.get('region'),
+                    'postal_code': address_info.get('postalCode'),
+                    'country': address_info.get('country')
+                })
 
             self.cache_manager.set(self.recipient_cache_key, recipient_list, timeout=None)
             return recipient_list

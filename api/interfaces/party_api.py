@@ -49,6 +49,52 @@ class PartyAPI(ResponseMixin):
             error_message = f"Error retrieving parties for {contract_type}:{contract_idx}: {str(e)}"
             return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    def get_party_list(self, contracts, party_code):
+        """Filter contracts where the given party_code is listed as a party."""
+        try:
+            cache_key = self.cache_manager.get_party_list_cache_key(party_code)
+            cached_result = self.cache_manager.get(cache_key)
+
+            log_info(self.logger, f"Cache key: {cache_key}, returned {cached_result}")
+            log_info(self.logger, f"Contracts: {contracts}")
+
+            if cached_result is not None:
+                log_info(self.logger, f"Loaded filtered contract list for {party_code} from cache")
+                return self._format_success(cached_result, f"Retrieved contracts for {party_code} (cached)", status.HTTP_200_OK)
+
+            filtered_contracts = []
+            network = self.domain_manager.get_contract_network()
+
+            for contract in contracts:
+                contract_type = contract.get("contract_type")
+                contract_idx = contract.get("contract_idx")
+
+                cache_key_parties = self.cache_manager.get_party_cache_key(contract_type, contract_idx)
+                cached_parties = self.cache_manager.get(cache_key_parties)
+
+                log_info(self.logger, f"Cached parties for {contract_type}:{contract_idx}: {cached_parties}")
+
+                if cached_parties is None:
+                    web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
+                    raw_parties = web3_contract.functions.getParties(contract_idx).call()
+                    parties = [
+                        self._build_party_dict(raw_party, idx, contract_type, contract_idx)
+                        for idx, raw_party in enumerate(raw_parties)
+                    ]
+                    self.cache_manager.set(cache_key_parties, parties, timeout=None)
+                else:
+                    parties = cached_parties
+
+                if any(p["party_code"].lower() == party_code.lower() for p in parties):
+                    filtered_contracts.append(contract)
+
+            self.cache_manager.set(cache_key, filtered_contracts, timeout=None)
+            return self._format_success(filtered_contracts, f"Retrieved filtered contracts for {party_code}", status.HTTP_200_OK)
+
+        except Exception as e:
+            error_message = f"Error filtering contracts for {party_code}: {str(e)}"
+            return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     def add_parties(self, contract_type, contract_idx, parties):
         """Add parties to a given contract."""
         try:
@@ -61,6 +107,9 @@ class PartyAPI(ResponseMixin):
                     contract_idx, [party["party_code"], party_addr, party["party_type"]]
                 )
                 self._send_transaction(function_call, contract_type, contract_idx, f"Failed to add party {party['party_code']}")
+
+                cache_key = self.cache_manager.get_party_list_cache_key(party["party_code"])
+                self.cache_manager.delete(cache_key)
 
             # Sleep to give time for transaction to complete
             time.sleep(self.config_manager.get_network_sleep_time())
@@ -81,6 +130,22 @@ class PartyAPI(ResponseMixin):
     def delete_parties(self, contract_type, contract_idx):
         """Delete all parties from a given contract."""
         try:
+            cache_key = self.cache_manager.get_party_cache_key(contract_type, contract_idx)
+            cached_parties = self.cache_manager.get(cache_key)
+
+            if cached_parties is None:
+                network = self.domain_manager.get_contract_network()
+                web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
+                raw_parties = web3_contract.functions.getParties(contract_idx).call()
+                cached_parties = [
+                    self._build_party_dict(raw_party, idx, contract_type, contract_idx)
+                    for idx, raw_party in enumerate(raw_parties)
+                ]
+
+            for party in cached_parties:
+                cache_key = self.cache_manager.get_party_list_cache_key(party["party_code"])
+                self.cache_manager.delete(cache_key)
+
             network = self.domain_manager.get_contract_network()
             web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
             function_call = web3_contract.functions.deleteParties(contract_idx)

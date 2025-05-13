@@ -26,3 +26,14 @@ function initializeViewContractFormatting() {
 
 // Run the script when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', initializeViewContractFormatting);
+
+function toggleRecipientDetails() {
+    const section = document.getElementById('recipient-details');
+    const toggleLink = document.querySelector('.toggle-link');
+    const isVisible = section.style.display === 'block';
+
+    section.style.display = isVisible ? 'none' : 'block';
+    toggleLink.innerHTML = isVisible 
+        ? 'Show Recipient Details <i class="fas fa-chevron-down"></i>'
+        : 'Hide Recipient Details <i class="fas fa-chevron-up"></i>';
+}

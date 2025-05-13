@@ -64,16 +64,16 @@ class BaseContractAPI(ResponseMixin):
             contract_count = count_response["data"]["count"]
 
             for contract_idx in range(contract_count):
-                response = self.get_contract(contract_type, contract_idx, api_key)
+                contract_response = self.get_contract(contract_type, contract_idx, api_key)
+                if contract_response["status"] == status.HTTP_200_OK:
 
-                if response["status"] == status.HTTP_200_OK:
                     contract = {
                         "contract_type": contract_type,
                         "contract_idx": contract_idx,
-                        "contract_name": response["data"].get("contract_name"),
-                        "is_active": response["data"].get("is_active", True),
-                        "is_quote": response["data"].get("is_quote", False),
-                        "transact_logic": response["data"].get("transact_logic", {}),
+                        "contract_name": contract_response["data"].get("contract_name"),
+                        "is_active": contract_response["data"].get("is_active", True),
+                        "is_quote": contract_response["data"].get("is_quote", False),
+                        "transact_logic": contract_response["data"].get("transact_logic", {}),
                     }
 
                     contracts.append(contract)
