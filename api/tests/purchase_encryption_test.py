@@ -24,7 +24,7 @@ class PurchaseEncryptionTest(TestCase):
             self.fixture_data = json.load(file)
 
         self.MASTER_KEY = self.context.secrets_manager.get_master_key()
-        self.affiliate_key = self.context.secrets_manager.get_partner_api_key("Affiliate")
+        self.affiliate_key = self.context.secrets_manager.get_partner_api_key("affiliate")
         self.base_url = self.context.config_manager.get_base_url()
 
         # Set up headers with Content-Type

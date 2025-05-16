@@ -50,7 +50,7 @@ class PurchaseAuthorizationTest(TestCase):
              "detail": 'Authorization header missing or empty'},
             {'key': 'XXXXXXX', 'post_status': "Unauthorized", 'get_status': 'Unauthorized',
              "detail": 'Invalid API key'},
-            {'key': self.context.secrets_manager.get_partner_api_key("Affiliate"), 'post_status': "Unauthorized",
+            {'key': self.context.secrets_manager.get_partner_api_key("affiliate"), 'post_status': "Unauthorized",
              'get_status': 'Authorized', "detail": 'You do not have permission to perform this action.'},
             {'key': self.context.secrets_manager.get_master_key(), 'post_status': "Authorized", 'get_status': 'Authorized',
              'message': f"MASTER_KEY should succeed."}
