@@ -75,7 +75,7 @@ class AdvanceContractEncryptionTest(TestCase):
 
         # 7. Add affiliate party to the contract using MASTER_KEY
         self._initialize_operations(self.fizit_headers)
-        affiliate_party = [{"party_code": "Affiliate", "party_type": "affiliate"}]
+        affiliate_party = [{"party_code": "affiliate", "party_type": "affiliate"}]
         self.party_ops.post_parties(contract_type, contract_idx, affiliate_party)
 
         time.sleep(self.context.config_manager.get_network_sleep_time())

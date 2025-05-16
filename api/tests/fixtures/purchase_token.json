@@ -12,8 +12,8 @@
         "is_quote": false
     },
     "parties": [
-        {"party_code": "Supplier_1", "party_type": "seller"},
-        {"party_code": "FIZIT", "party_type": "funder"}
+        {"party_code": "supplier_1", "party_type": "seller"},
+        {"party_code": "fizit", "party_type": "funder"}
     ],
     "transactions": [
         {

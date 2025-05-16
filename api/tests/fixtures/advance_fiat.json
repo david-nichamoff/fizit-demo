@@ -18,9 +18,9 @@
         "is_quote": false
     },
     "parties": [
-        {"party_code": "Supplier_1", "party_type": "seller"},
-        {"party_code": "Refiner", "party_type": "buyer"},
-        {"party_code": "FIZIT", "party_type": "funder"}
+        {"party_code": "supplier_1", "party_type": "seller"},
+        {"party_code": "refiner", "party_type": "buyer"},
+        {"party_code": "fizit", "party_type": "funder"}
     ],
     "settlements": [
         {
