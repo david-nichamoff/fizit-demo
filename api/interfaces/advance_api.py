@@ -19,7 +19,7 @@ class BaseAdvanceAPI(ResponseMixin):
         self.domain_manager = context.domain_manager
 
         # Other common items
-        self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
+        self.wallet_addr = self.config_manager.get_wallet_address("transactor")
         self.checksum_wallet_addr = self.context.web3_manager.get_checksum_address(self.wallet_addr)
 
         self.logger = logging.getLogger(__name__)

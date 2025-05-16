@@ -23,7 +23,7 @@ class ArtifactAPI(ResponseMixin):
 
         self.s3_client = boto3.client('s3')
         self.logger = logging.getLogger(__name__)
-        self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
+        self.wallet_addr = self.config_manager.get_wallet_address("transactor")
         self.expiration = self.config_manager.get_presigned_url_expiration()
 
     def get_artifacts(self, contract_type, contract_idx, api_key=None, parties=[]):

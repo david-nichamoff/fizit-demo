@@ -49,5 +49,4 @@ urlpatterns = [
     path('contracts/<str:party_code>/', ContractViewSet.as_view({'get': 'list_contracts_by_party_code'}), name='list-contracts-by-party-code'),
     path('get-csrf-token/', get_csrf_token, name='get_csrf_token'),
     path('stats/', StatsView.as_view(), name='stats'),
-
 ]

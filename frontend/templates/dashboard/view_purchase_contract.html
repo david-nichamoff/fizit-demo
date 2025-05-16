@@ -230,7 +230,7 @@
                     <fieldset class="module aligned">
                         <div class="form-row">
                             <div class="flex-container">
-                                <label class="required" for="{{ artifact_form.artifact_url.id_for_label }}">{{ artifact_form.artifact_url.label }}</label>
+                                <label for="{{ artifact_form.artifact_url.id_for_label }}">{{ artifact_form.artifact_url.label }}</label>
                                 {{ artifact_form.artifact_url }}
                             </div>
                             <div class="help">Enter URLs, one per line.</div>
@@ -289,6 +289,48 @@
                 <input type="submit" value="Generate Report" class="default" />
             </form>
         </div>
+        <div class="module">
+            <h3 class="subhead">Approvals</h3>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Party</th>
+                        <th>Status</th>
+                        <th>Approved By</th>
+                        <th>Approved On</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for party in parties %}
+                    <tr>
+                        <td>{{ party.party_code }}</td>
+                        <td>
+                            {% if party.approved %}
+                                ✅ Approved
+                            {% else %}
+                                ❌ Not Approved
+                            {% endif %}
+                        </td>
+                        <td>{{ party.approved_by }}</td>
+                        <td>{{ party.approved_dt|date:"Y-m-d H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% for party in parties %}
+            {% if party.party_code == customer and not party.approved %}
+                <div class="module">
+                    <div class="submit-row">
+                        <form method="post" action="{% url 'approve_contract' customer contract_type contract_idx contract_release %}">
+                            {% csrf_token %}
+                            <input type="submit" value="Approve Contract" class="default" />
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
     {% endif %}
 </div>
 {% endblock %}

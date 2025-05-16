@@ -11,7 +11,7 @@ from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
 from api.utilities.logic import extract_transaction_variables
 
-from frontend.forms.common import TransactionForm
+from frontend.forms.admin import TransactionForm
 
 logger = logging.getLogger(__name__)
 

@@ -1,11 +1,10 @@
 import logging
-from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.cache import never_cache
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.contrib.auth.decorators import login_required
 
 from api.utilities.logging import log_debug, log_info, log_warning, log_error
 
@@ -14,7 +13,7 @@ logger = logging.getLogger(__name__)
 @method_decorator(csrf_protect, name='dispatch')
 @method_decorator(never_cache, name='dispatch')
 class DashboardLoginView(LoginView):
-    template_name = 'registration/login.html'
+    template_name = 'dashboard/login.html'
     redirect_authenticated_user = False
 
     def get(self, request, *args, **kwargs):
@@ -37,6 +36,3 @@ class DashboardLoginView(LoginView):
 
         log_warning(logger, f"⚠️ Ignoring suspicious or recursive next URL: {next_url}")
         return reverse_lazy('list_contracts', kwargs={'customer': 'associated'})
-
-class DashboardLogoutView(LogoutView):
-    next_page = reverse_lazy('dashboard_login')

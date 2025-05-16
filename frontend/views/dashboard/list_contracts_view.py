@@ -9,9 +9,12 @@ from rest_framework import status
 from api.operations import ContractOperations, CsrfOperations, PartyOperations
 from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_error
+
+from frontend.views.decorators.group import group_matches_customer
+
 logger = logging.getLogger(__name__)
 
-@login_required(login_url='/dashboard/login/')
+@group_matches_customer
 def list_contracts_view(request, customer):
     context = build_app_context()
     log_info(logger, f"Launching dashboard for {customer}")
@@ -31,27 +34,19 @@ def list_contracts_view(request, customer):
         # Fetch contracts
         contracts = contract_ops.list_contracts_by_party_code(customer)
 
-        # Handle sorting
-        ordering = request.GET.get("ordering", "contract_idx")
-        reverse = ordering.startswith("-")
-        ordering_field = ordering.lstrip("-")
-
-        if contracts and ordering_field in contracts[0]:
-            contracts.sort(key=lambda x: x.get(ordering_field, ""), reverse=reverse)
-
-        # Sorting links
-        sorting_links = {
-            "contract_idx": f"?ordering={'-' if ordering == 'contract_idx' else ''}contract_idx",
-            "contract_name": f"?ordering={'-' if ordering == 'contract_name' else ''}contract_name",
-            "is_quote": f"?ordering={'-' if ordering == 'is_quote' else ''}is_quote",
-            "is_active": f"?ordering={'-' if ordering == 'is_active' else ''}is_active",
-        }
+        # Sort by contract_type, then contract_idx (default)
+        contracts.sort(key=lambda x: (x.get("contract_type", ""), int(x.get("contract_idx", 0))))
+        
+        # Title
+        if customer == 'associated':
+            list_title = "Associated Pipe Line Contracts"
+        else:
+            list_title = "FIZIT Contracts"
 
         form_context = {
             "contracts": contracts,
-            "ordering": ordering,
-            "sorting_links": sorting_links,
-            "customer": customer
+            "customer": customer,
+            "list_title": list_title
         }
 
         log_info(logger, f"Form context: {form_context}")

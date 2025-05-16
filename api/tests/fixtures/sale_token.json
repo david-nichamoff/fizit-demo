@@ -3,8 +3,8 @@
     "contract": {
         "extended_data": {"Contract #": 100},
         "contract_name": "Sale Contract",
-        "funding_instr": {"bank": "token", "token_symbol": "USDC", "network": "avalanche" },
-        "deposit_instr": {"bank": "token", "token_symbol": "USDC", "network": "avalanche" },        
+        "funding_instr": {"bank": "token", "token_symbol": "usdc", "network": "avalanche" },
+        "deposit_instr": {"bank": "token", "token_symbol": "usdc", "network": "avalanche" },        
         "service_fee_pct": "0.0200",
         "service_fee_amt": "0.10",
         "late_fee_pct": "0.2200",

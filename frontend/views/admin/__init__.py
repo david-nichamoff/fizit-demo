@@ -13,3 +13,5 @@ from .add_distribution_view import add_distribution_view
 from .post_deposit_view import post_deposit_view
 from .find_deposits_view import find_deposits_view
 from .list_contracts_view import  list_contracts_view
+from .logout_user_view import oidc_logout_view
+from .get_user_view import whoami_view, get_user_view

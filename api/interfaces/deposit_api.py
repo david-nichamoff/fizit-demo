@@ -15,7 +15,7 @@ class BaseDepositAPI(ResponseMixin):
         self.config_manager = context.config_manager
         self.domain_manager = context.domain_manager
         self.cache_manager = context.cache_manager
-        self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
+        self.wallet_addr = self.config_manager.get_wallet_address("transactor")
         self.logger = logging.getLogger(__name__)
 
     def get_deposits(self, start_date, end_date, contract_type, contract_idx, parties):

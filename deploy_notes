@@ -1,19 +1,2 @@
-add presigned_url_expiration to config.json
-add listen_sleep_time to config.json
-update supervisorctl/conf.d to add collect_stats
-sudo supervisorctl reread
-sudo supervisorctl update
-run migrations and delete everyting from smart_contract_history and event tables
-
-update config.json for networks (token_addr)
-
-
-pip install mozilla-django-oidc
-update settings.py to include oidc
-update supervisor for environmetn variables, remove from /etc/environment
-
-python manage.py startapp associatedpipeline
-add associatedpipeline to settings.INSTALLED_APPS
-add party codes for Associated and DTM
-update webpack_config.js
-    
+change party and wallet_addr to lowercase
+lowercase usdc and usdt

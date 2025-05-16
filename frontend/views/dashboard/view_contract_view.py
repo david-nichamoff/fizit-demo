@@ -14,9 +14,10 @@ from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
 from api.utilities.report import generate_contract_report
 from api.utilities.logic import extract_transaction_variables
-from api.models import ContractAuxiliary
+from api.models import ContractAuxiliary, ContractApproval
 
-from frontend.forms.common import PartyForm, ArtifactForm
+from frontend.forms.admin import PartyForm, ArtifactForm
+from frontend.views.decorators.group import group_matches_customer
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ def initialize_backend_services():
     return headers, context, csrf_token
 
 # Main view
-@login_required(login_url='/dashboard/login/')
+@group_matches_customer
 def view_contract_view(request, customer, extra_context=None):
     headers, context, csrf_token = initialize_backend_services()
     contract_idx = request.GET.get("contract_idx")
@@ -163,15 +164,36 @@ def prepare_view_form_context(request, customer, context, contract_type, contrac
     except Exception as e:
         log_warning(logger, f"Failed to parse transact_logic or extract vars: {e}")
 
+    transactions, settlements, parties, artifacts = [], [], [], []
+
     # Fetch related data
     try:
         log_info(logger, "Fetching settlements")
-        
-        settlements=[]
         if context.api_manager.get_settlement_api(contract_type):
             settlements = fetch_settlements(contract_type, contract_idx, headers, base_url)
 
         parties = fetch_parties(contract_type, contract_idx, headers, base_url)
+
+        # Fetch approvals for this contract version
+        approvals = ContractApproval.objects.filter(
+            contract_type=contract_type,
+            contract_idx=contract_idx,
+            contract_release=contract_release
+        )
+
+        # Build a party → approval lookup
+        approval_map = {
+            approval.party_code: approval for approval in approvals
+        }
+
+        # Annotate each party with approval status
+        for party in parties:
+            party_code = party.get("party_code")
+            approval = approval_map.get(party_code)
+            party["approved"] = approval.approved if approval else False
+            party["approved_by"] = approval.approved_by.get_username() if approval and approval.approved_by else None
+            party["approved_dt"] = approval.approved_dt if approval else None
+
         transactions = fetch_transactions(contract_type, contract_idx, headers, base_url)
         artifacts = fetch_artifacts(contract_type, contract_idx, headers, base_url)
 
@@ -206,19 +228,19 @@ def prepare_view_form_context(request, customer, context, contract_type, contrac
         settlement_form_template = context.form_manager.get_settlement_form(contract_type)
         settlement_form = settlement_form_template(initial=contract)
 
-    party_codes = context.config_manager.get_party_codes()
-    party_types = context.domain_manager.get_party_types()
+    log_info(logger, f"customer: {customer}, parties: {parties}, approvals: {approvals}")
 
     # Prepare form_context
     form_context = {
         'contract_idx': contract_idx,
         'contract_type': contract_type,
+        'contract_release': contract_release,
         'contract_form': contract_form,
-        'party_form': PartyForm(party_codes=party_codes, party_types=party_types),
         'settlement_form': settlement_form,
         'artifact_form': ArtifactForm(),
         'settlements': settlements,
         'parties': parties,
+        "approvals": approvals,
         'transactions': transactions,
         'artifacts': artifacts,
         'customer': customer,

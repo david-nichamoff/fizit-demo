@@ -108,7 +108,7 @@ class SaleTokenTest(TestCase):
         self.assertGreater(response["count"], 0)
         log_info(self.logger, f"Deposit processed: {response}")
 
-        from_addr = self.context.config_manager.get_wallet_address("Transactor")
+        from_addr = self.context.config_manager.get_wallet_address("transactor")
         to_addr = self.context.config_manager.get_contract_address("sale")
         self._validate_event_log("SettlementPosted", contract_type, contract_idx, from_addr=from_addr, to_addr=to_addr)
 
@@ -121,7 +121,7 @@ class SaleTokenTest(TestCase):
         self.assertGreater(response["count"], 0)
         log_info(self.logger, f"Distributions processed: {response}")
 
-        from_addr = self.context.config_manager.get_wallet_address("Transactor")
+        from_addr = self.context.config_manager.get_wallet_address("transactor")
         to_addr = self.context.config_manager.get_contract_address("sale")
         self._validate_event_log("DistributionPaid", contract_type, contract_idx, from_addr=from_addr, to_addr=to_addr)
 

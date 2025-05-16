@@ -6,7 +6,7 @@ from api.utilities.logging import log_info
 
 logger = logging.getLogger(__name__)
 
-def oidc_logout(request):
+def oidc_logout_view(request):
     logger.info("📤 OIDC logout view called for user: %s", request.user)
 
     # End the Django session

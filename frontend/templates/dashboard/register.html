@@ -1,0 +1,35 @@
+{% extends "dashboard/base_site.html" %}
+{% load static %}
+
+{% block content %}
+<div id="content-main">
+    <div class="auth-container">
+        <div class="module aligned">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <fieldset class="module aligned">
+                    {% for field in form %}
+                        <div class="form-row">
+                            <div class="flex-container">
+                                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                            </div>
+                            {% if field.help_text %}
+                                <div class="help">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <div class="error">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                </fieldset>
+
+                <div class="submit-row">
+                    <input type="submit" value="Register" class="default">
+                </div>
+            </form>
+            <p style="margin-top: 16px;">Already have an account? <a href="{% url 'dashboard_login' %}">Login here</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

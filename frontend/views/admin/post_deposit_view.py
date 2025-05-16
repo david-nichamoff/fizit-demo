@@ -9,7 +9,7 @@ from api.operations import BankOperations, ContractOperations, SettlementOperati
 from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
 
-from frontend.forms.common import PostDepositForm
+from frontend.forms.admin import PostDepositForm
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 import logging
 
-from frontend.forms.common import (
+from frontend.forms.admin import (
     PurchaseContractForm, AdvanceContractForm, SaleContractForm,
     SaleSettlementForm, AdvanceSettlementForm
 )

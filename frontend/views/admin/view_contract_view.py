@@ -18,8 +18,8 @@ from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
 from api.utilities.report import generate_contract_report
 
-from frontend.forms.common import PartyForm, ArtifactForm
-from frontend.forms.common import AdvanceContractForm
+from frontend.forms.admin import PartyForm, ArtifactForm
+from frontend.forms.admin import AdvanceContractForm
 
 logger = logging.getLogger(__name__)
 

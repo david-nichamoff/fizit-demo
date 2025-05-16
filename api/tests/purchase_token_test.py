@@ -86,7 +86,7 @@ class PurchaseTokenTest(TestCase):
         self.assertGreater(response["count"], 0)
         log_info(self.logger, f"Advances processed: {response}")
         
-        from_addr = self.context.config_manager.get_wallet_address("Transactor")
+        from_addr = self.context.config_manager.get_wallet_address("transactor")
         to_addr = self.context.config_manager.get_contract_address("purchase")
         self._validate_event_log("AdvancePaid", contract_type, contract_idx, from_addr=from_addr, to_addr=to_addr)
 

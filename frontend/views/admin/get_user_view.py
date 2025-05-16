@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 
 @login_required
-def get_user(request):
+def get_user_view(request):
     user = request.user
     return JsonResponse({
         'username': user.username,
@@ -12,7 +12,7 @@ def get_user(request):
         'is_superuser': user.is_superuser,
     })
 
-def whoami(request):
+def whoami_view(request):
     return JsonResponse({
         "is_authenticated": request.user.is_authenticated,
         "username": request.user.get_username(),

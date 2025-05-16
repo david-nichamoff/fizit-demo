@@ -23,7 +23,7 @@ class BaseTransactionAPI(ResponseMixin):
         self.config_manager = context.config_manager
         self.domain_manager = context.domain_manager
         self.cache_manager = context.cache_manager
-        self.wallet_addr = self.config_manager.get_wallet_address("Transactor")
+        self.wallet_addr = self.config_manager.get_wallet_address("transactor")
         self.checksum_wallet_addr = self.context.web3_manager.get_checksum_address(self.wallet_addr)
         self.logger = logging.getLogger(__name__)
 
