@@ -44,7 +44,7 @@ class Command(BaseCommand):
 
         # Network and wallet configuration
         network = "fizit"
-        wallet_key = "Admin"
+        wallet_key = "admin"
 
         # Fetch wallet address associated with "Admin"
         wallet_address = self.context.config_manager.get_wallet_address(wallet_key)
