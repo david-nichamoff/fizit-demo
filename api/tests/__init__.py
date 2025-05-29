@@ -19,3 +19,4 @@ from .sale_fiat_test import *
 from .sale_lifecycle_test import *
 from .sale_token_test import *
 from .sale_validation_test import *
+from .contract_list_test import *

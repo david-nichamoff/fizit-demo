@@ -1,0 +1,42 @@
+
+{% if logic_variables %}
+<div class="module">
+    <h3 class="subhead">Test Smart Contract Logic</h4>
+    <form method="post" action="#">
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="execute_logic" />
+        <fieldset class="module aligned">
+            {% for var in logic_variables %}
+            <div class="form-row">
+                <div class="flex-container">
+                    <label for="var_{{ var }}">{{ var|title }}:</label>
+                    <input type="text"
+                            name="var_{{ var }}"
+                            id="var_{{ var }}"
+                            class="vTextField"
+                            style="width: 100px;" />
+                </div>
+            </div>
+            {% endfor %}
+
+            {% if logic_result %}
+            <div class="form-row">
+                <div class="flex-container">
+                    <label for="logic_result_display">Logic Result:</label>
+                    <textarea id="logic_result_display"
+                                class="vTextField"
+                                readonly
+                                rows="6"
+                                style="width: 325px;">{{ logic_result }}</textarea>
+                </div>
+                <div class="help">Enter variables and select 'TEST LOGIC' to test the smart contract logic</div>
+            </div>
+            {% endif %}
+
+        </fieldset>
+        <div class="submit-row">
+            <input type="submit" value="Test Logic" class="default" />
+        </div>
+    </form>
+</div>
+{% endif %}

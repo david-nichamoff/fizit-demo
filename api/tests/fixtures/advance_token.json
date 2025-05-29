@@ -13,9 +13,7 @@
         "transact_logic": {"var": "ticket_amt"},
         "min_threshold_amt": "-100.00",
         "max_threshold_amt": "1000.00",
-        "notes": "USDC Test",
-        "is_active": true,
-        "is_quote": false
+        "notes": "USDC Test"
     },
     "parties": [
         {"party_code": "supplier_1", "party_type": "seller"},  

@@ -9,8 +9,7 @@ class BaseContractSerializer(serializers.Serializer):
     service_fee_amt = serializers.CharField(max_length=10)
     transact_logic = serializers.JSONField()
     notes = serializers.CharField(required=False, allow_blank=True)
-    is_active = serializers.BooleanField(default=True)
-    is_quote = serializers.BooleanField(default=False)
+    is_active = serializers.BooleanField(default=False, read_only=True)
 
     def update(self, instance, validated_data):
         """Explicitly update each field for partial updates."""
@@ -21,8 +20,6 @@ class BaseContractSerializer(serializers.Serializer):
         instance["service_fee_amt"] = validated_data.get("service_fee_amt", instance["service_fee_amt"])
         instance["transact_logic"] = validated_data.get("transact_logic", instance["transact_logic"])
         instance["notes"] = validated_data.get("notes", instance["notes"])
-        instance["is_active"] = validated_data.get("is_active", instance["is_active"])
-        instance["is_quote"] = validated_data.get("is_quote", instance["is_quote"])
         return instance
 
 class ListContractSerializer(BaseContractSerializer):

@@ -51,7 +51,6 @@ class AccountViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
             log_info(self.logger, f"Getting accounts from bank {bank}")
             account_api = self.context.api_manager.get_account_api()
             response = account_api.get_accounts(bank)
-            log_info(self.logger, f"Response from api: {response}")
 
             if response["status"] == status.HTTP_200_OK:
                 # Serialize the data for the response

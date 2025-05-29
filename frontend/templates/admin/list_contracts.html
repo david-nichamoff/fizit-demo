@@ -61,11 +61,6 @@
                             </a>
                         </th>
                         <th scope="col">
-                            <a href="{{ sorting_links.is_quote }}">
-                                Is Quote?
-                            </a>
-                        </th>                        
-                        <th scope="col">
                             <a href="{{ sorting_links.is_active }}">
                                 Is Active?
                             </a>
@@ -81,13 +76,6 @@
                             </a>
                         </td>
                         <td>{{ contract.contract_name }}</td>
-                        <td>
-                            {% if contract.is_quote %}
-                                <img src="{% static 'admin/img/icon-yes.svg' %}" alt="True" class="icon-yes">
-                            {% else %}
-                                <img src="{% static 'admin/img/icon-no.svg' %}" alt="False" class="icon-no">
-                            {% endif %}
-                        </td>
                         <td>
                             {% if contract.is_active %}
                                 <img src="{% static 'admin/img/icon-yes.svg' %}" alt="True" class="icon-yes">

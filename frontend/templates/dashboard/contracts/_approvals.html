@@ -1,0 +1,45 @@
+<!-- Approvals Section -->
+<div class="module">
+    <h3 class="subhead">Approvals</h3>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Party</th>
+                <th>Status</th>
+                <th>Approved By</th>
+                <th>Approved On</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for party in parties %}
+            <tr>
+                <td>{{ party.party_code }}</td>
+                <td>
+                    {% if party.approved %}
+                        ✅ Approved
+                    {% else %}
+                        ❌ Not Approved
+                    {% endif %}
+                </td>
+                <td>{{ party.approved_user|default:"-" }}</td>
+                <td>{{ party.approved_dt|default:"-" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% for party in parties %}
+    {% if party.party_code == customer and not party.approved %}
+        <div class="module">
+            <div class="submit-row">
+                <form method="post" action="?contract_idx={{ contract_idx }}&contract_type={{ contract_type }}">
+                    {% csrf_token %}
+                    <input type="hidden" name="form_type" value="approve_party" />
+                    <input type="hidden" name="party_idx" value="{{ party.party_idx }}" />
+                    <input type="submit" value="Approve Contract" class="default" />
+                </form>
+            </div>
+        </div>
+    {% endif %}
+{% endfor %}

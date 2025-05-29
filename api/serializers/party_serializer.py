@@ -7,3 +7,5 @@ class PartySerializer(serializers.Serializer):
     party_code = serializers.CharField(max_length=20)
     party_type = serializers.CharField(max_length=10)
     party_addr = serializers.CharField(read_only=True,max_length=42)
+    approved_dt = serializers.DateTimeField(read_only=True)
+    approved_user = serializers.CharField(max_length=150, read_only=True)

@@ -130,7 +130,7 @@ class ContractForm(BaseContractForm):
     contract_name = forms.CharField(
         max_length=255,
         required=True,
-        label="Contract name:",
+        label="Contract Name:",
         initial="New Contract",
         widget=forms.TextInput(attrs={"class": "vTextField wide-text-input"})
     )
@@ -138,7 +138,7 @@ class ContractForm(BaseContractForm):
     funding_instr = forms.JSONField(
         widget=forms.Textarea(attrs={"id": "id_funding_instr"}),
         required=False,
-        label="Funding instructions:",
+        label="Funding Instructions:",
         initial={"dummy": "value"},
         help_text="Fields used to define the account that will be funded"
     )
@@ -147,7 +147,7 @@ class ContractForm(BaseContractForm):
         required=True,
         initial=0.025,
         widget=forms.NumberInput(attrs={"step": "0.001", "min": "0.0000", "max": "1.0000"}),
-        label="Service fee percentage:",
+        label="Service Fee Percentage:",
         help_text="Financing fee, as a percentage of the total value delivered"
     )
 
@@ -155,21 +155,21 @@ class ContractForm(BaseContractForm):
         required=True,
         initial=0.00,
         widget=forms.NumberInput(attrs={"step": "0.01"}),
-        label="Service fee amount:",
+        label="Service Fee Amount:",
         help_text="Financing fee, as a fixed dollar amount. The total fee can include both pct and fixed amounts"
     )
 
     transact_logic = forms.JSONField(
         widget=forms.Textarea(attrs={"id": "id_transact_logic"}),
         required=True,
-        label="Smart contract logic:",
+        label="Smart Contract Logic:",
         help_text="The logic used to price each transaction"
     )
 
     transact_logic_natural = forms.CharField(
         widget=forms.Textarea(attrs={"id": "id_transact_logic_natural"}),
         required=False,
-        label="Natural language logic:",
+        label="Natural Language Logic:",
         help_text="This is a plain English explanation of the transaction logic above"
     )
 
@@ -177,21 +177,21 @@ class ContractForm(BaseContractForm):
         required=False,
         choices=[],
         widget=forms.Select(attrs={"id": "id_funding_method"}),
-        label="Funding method:",
+        label="Funding Method:",
         help_text="The method of payment for advances and residuals"
     )
 
     funding_account = forms.ChoiceField(
         required=False,
         choices=[],  # Dynamically populated via API
-        label="Funding account:",
+        label="Funding Account:",
         widget=forms.Select(attrs={"id": "id_funding_account"}),
     )
 
     funding_recipient = forms.ChoiceField(
         required=False,
         choices=[],  # Dynamically populated via API
-        label="Funding recipient:",
+        label="Funding Recipient:",
         widget=forms.Select(attrs={"id": "id_funding_recipient"}),
     )
 
@@ -199,30 +199,36 @@ class ContractForm(BaseContractForm):
         required=False,
         choices=[],
         widget=forms.Select(attrs={"id": "id_funding_token_symbol"}),
-        label="Funding token:"
+        label="Funding Token Symbol:"
+    )
+
+    funding_network = forms.CharField(
+        required=False,
+        label="Funding Token Network:",
+        widget=forms.TextInput(attrs={"class": "vTextField", "style": "width: 200px", "readonly": "readonly"})
     )
 
     recipient_payment_method = forms.CharField(
         required=False,
-        label="Payment method:",
+        label="Payment Method:",
         widget=forms.TextInput(attrs={"class": "vTextField", "style": "width: 200px", "readonly": "readonly"})
     )
 
     recipient_account_number = forms.CharField(
         required=False,
-        label="Account number:",
+        label="Account Number:",
         widget=forms.TextInput(attrs={"class": "vTextField", "style": "width: 200px", "readonly": "readonly"})
     )
 
     recipient_routing_number = forms.CharField(
         required=False,
-        label="Routing number:",
+        label="Routing Number:",
         widget=forms.TextInput(attrs={"class": "vTextField", "style": "width: 200px", "readonly": "readonly"})
     )
 
     recipient_bank_name = forms.CharField(
         required=False,
-        label="Bank name:",
+        label="Bank Name:",
         widget=forms.TextInput(attrs={"class": "vTextField", "style": "width: 200px", "readonly": "readonly"})
     )
 
@@ -252,7 +258,7 @@ class ContractForm(BaseContractForm):
 
     recipient_postal_code = forms.CharField(
         required=False,
-        label="Postal code:",
+        label="Postal Code:",
         widget=forms.TextInput(attrs={"class": "vTextField", "style": "width: 200px", "readonly": "readonly"})
     )
 
@@ -270,7 +276,7 @@ class AdvanceContractForm(ContractForm):
     deposit_instr = forms.JSONField(
         widget=forms.Textarea(attrs={"id": "id_deposit_instr"}),
         required=False,
-        label="Deposit instructions:",
+        label="Deposit Instructions:",
         initial={"dummy": "value"},
         help_text="Fields used to define the account that will receive the deposit from the buyer"
     )
@@ -279,7 +285,7 @@ class AdvanceContractForm(ContractForm):
         required=True,
         initial=0.8500,
         widget=forms.NumberInput(attrs={"step": "0.01", "min": "0.0000", "max": "1.0000"}),
-        label="Advance pct:",
+        label="Advance Pct:",
         help_text="The percentage of total value delivered that will be advanced"
     )
 
@@ -287,19 +293,21 @@ class AdvanceContractForm(ContractForm):
         required=True,
         initial=0.2200,
         widget=forms.NumberInput(attrs={"step": "0.01", "min": "0.0000", "max": "1.0000"}),
-        label="Late fee pct:",
+        label="Late Fee Pct:",
         help_text="Entered as an annual rate, assessed daily"
     )
 
     deposit_method = forms.ChoiceField(
         required=False,
         choices=[],
+        label="Deposit Method:",
         widget=forms.Select(attrs={"id": "id_deposit_method"}),
         help_text="Method of payment for settlement deposits"
     )
 
     deposit_account = forms.ChoiceField(
         required=False,
+        label="Deposit Account:",
         choices=[],  # Dynamically populated via API
         widget=forms.Select(attrs={"id": "id_deposit_account"}),
     )
@@ -311,12 +319,18 @@ class AdvanceContractForm(ContractForm):
         label="Deposit Token:"
     )
 
+    deposit_network = forms.CharField(
+        required=False,
+        label="Deposit Token Network:",
+        widget=forms.TextInput(attrs={"class": "vTextField", "style": "width: 200px", "readonly": "readonly"})
+    )
+
 class SaleContractForm(ContractForm):
     """Form specific to Sale Contracts."""
     deposit_instr = forms.JSONField(
         widget=forms.Textarea(attrs={"id": "id_deposit_instr"}),
         required=False,
-        label="Deposit instructions:",
+        label="Deposit Instructions:",
         initial={"dummy": "value"},
         help_text="Fields used to define the account that will receive the deposit from the buyer"
     )
@@ -325,7 +339,7 @@ class SaleContractForm(ContractForm):
         required=True,
         initial=0.2200,
         widget=forms.NumberInput(attrs={"step": "0.01", "min": "0.0000", "max": "1.0000"}),
-        label="Late fee pct:",
+        label="Late Fee Pct:",
         help_text="Entered as an annual rate, assessed daily"
     )
 
@@ -346,6 +360,12 @@ class SaleContractForm(ContractForm):
         required=False,
         choices=[],  # Dynamically populated
         widget=forms.Select(attrs={"id": "id_deposit_token_symbol"}),
+    )
+
+    deposit_network = forms.CharField(
+        required=False,
+        label="Deposit Token Network:",
+        widget=forms.TextInput(attrs={"class": "vTextField", "style": "width: 200px", "readonly": "readonly"})
     )
 
 class PurchaseContractForm(ContractForm):

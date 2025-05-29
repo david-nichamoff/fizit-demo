@@ -24,99 +24,13 @@ class ArtifactViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         self.context = build_app_context()
         self.logger = logging.getLogger(__name__)
 
-### **Purchase Artifacts**
-
     @extend_schema(
-        tags=["Purchase Contracts"],
+        tags=["Contracts"],
         responses={status.HTTP_200_OK: ArtifactSerializer(many=True)},
-        summary="List Purchase Artifacts",
-        description="Retrieve a list of artifacts associated with a purchase contract.",
+        summary="List Artifacts",
+        description="Retrieve a list of artifacts associated with a contract.",
     )
-    def list_purchase_artifacts(self, request, contract_idx=None):
-        return self._list_artifacts(request, "purchase", contract_idx)
-
-    @extend_schema(
-        tags=["Purchase Contracts"],
-        request=ArtifactSerializer(many=True),
-        responses={status.HTTP_201_CREATED: dict},
-        summary="Add Purchase Artifacts",
-        description="Add artifacts to a purchase contract by providing a list of URLs.",
-    )
-    def create_purchase_artifacts(self, request, contract_idx=None):
-        return self._create_artifacts(request, "purchase", contract_idx)
-
-    @extend_schema(
-        tags=["Purchase Contracts"],
-        responses={status.HTTP_204_NO_CONTENT: None},
-        summary="Delete Purchase Artifacts",
-        description="Delete all artifacts from a purchase contract.",
-    )
-    def destroy_purchase_artifacts(self, request, contract_idx=None):
-        return self._destroy_artifacts(request, "purchase", contract_idx)
-
-### **Sale Artifacts**
-
-    @extend_schema(
-        tags=["Sale Contracts"],
-        responses={status.HTTP_200_OK: ArtifactSerializer(many=True)},
-        summary="List Sale Artifacts",
-        description="Retrieve a list of artifacts associated with a sale contract.",
-    )
-    def list_sale_artifacts(self, request, contract_idx=None):
-        return self._list_artifacts(request, "sale", contract_idx)
-
-    @extend_schema(
-        tags=["Sale Contracts"],
-        request=ArtifactSerializer(many=True),
-        responses={status.HTTP_201_CREATED: dict},
-        summary="Add Sale Artifacts",
-        description="Add artifacts to a sale contract by providing a list of URLs.",
-    )
-    def create_sale_artifacts(self, request, contract_idx=None):
-        return self._create_artifacts(request, "sale", contract_idx)
-
-    @extend_schema(
-        tags=["Sale Contracts"],
-        responses={status.HTTP_204_NO_CONTENT: None},
-        summary="Delete Sale Artifacts",
-        description="Delete all artifacts from a sale contract.",
-    )
-    def destroy_sale_artifacts(self, request, contract_idx=None):
-        return self._destroy_artifacts(request, "sale", contract_idx)
-
-### **Advance Artifacts**
-
-    @extend_schema(
-        tags=["Advance Contracts"],
-        responses={status.HTTP_200_OK: ArtifactSerializer(many=True)},
-        summary="List Advance Artifacts",
-        description="Retrieve a list of artifacts associated with an advance contract.",
-    )
-    def list_advance_artifacts(self, request, contract_idx=None):
-        return self._list_artifacts(request, "advance", contract_idx)
-
-    @extend_schema(
-        tags=["Advance Contracts"],
-        request=ArtifactSerializer(many=True),
-        responses={status.HTTP_201_CREATED: dict},
-        summary="Add Advance Artifacts",
-        description="Add artifacts to an advance contract by providing a list of URLs.",
-    )
-    def create_advance_artifacts(self, request, contract_idx=None):
-        return self._create_artifacts(request, "advance", contract_idx)
-
-    @extend_schema(
-        tags=["Advance Contracts"],
-        responses={status.HTTP_204_NO_CONTENT: None},
-        summary="Delete Advance Artifacts",
-        description="Delete all artifacts from an advance contract.",
-    )
-    def destroy_advance_artifacts(self, request, contract_idx=None):
-        return self._destroy_artifacts(request, "advance", contract_idx)
-
-### **Core Functions**
-
-    def _list_artifacts(self, request, contract_type, contract_idx):
+    def list_artifacts(self, request, contract_type=None, contract_idx=None):
         log_info(self.logger, f"Fetching artifacts for {contract_type} contract {contract_idx}")
         try:
             self._validate_contract_type(contract_type, self.context.domain_manager)
@@ -146,7 +60,15 @@ class ArtifactViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
             log_error(self.logger, f"Unexpected error: {str(e)}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def _create_artifacts(self, request, contract_type, contract_idx):
+
+    @extend_schema(
+        tags=["Contracts"],
+        request=ArtifactSerializer(many=True),
+        responses={status.HTTP_201_CREATED: dict},
+        summary="Add Artifacts",
+        description="Add artifacts to a contract by providing a list of URLs.",
+    )
+    def create_artifacts(self, request, contract_type=None, contract_idx=None):
         log_info(self.logger, f"Adding artifacts for {contract_type} contract {contract_idx}")
         try:
             self._validate_master_key(request.auth)
@@ -181,7 +103,14 @@ class ArtifactViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
             log_error(self.logger, f"Unexpected error: {str(e)}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def _destroy_artifacts(self, request, contract_type, contract_idx):
+
+    @extend_schema(
+        tags=["Contracts"],
+        responses={status.HTTP_204_NO_CONTENT: None},
+        summary="Delete Artifacts",
+        description="Delete all artifacts from a contract.",
+    )
+    def destroy_artifacts(self, request, contract_type=None, contract_idx=None):
         log_info(self.logger, f"Deleting artifacts for {contract_type} contract {contract_idx}")
         try:
             self._validate_master_key(request.auth)

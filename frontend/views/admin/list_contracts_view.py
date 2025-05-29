@@ -64,7 +64,6 @@ def list_contracts_view(request, extra_context=None):
         sorting_links = {
             "contract_idx": f"?ordering={'-' if ordering == 'contract_idx' else ''}contract_idx&contract_type={selected_contract_type}",
             "contract_name": f"?ordering={'-' if ordering == 'contract_name' else ''}contract_name&contract_type={selected_contract_type}",
-            "is_quote": f"?ordering={'-' if ordering == 'is_quote' else ''}is_quote&contract_type={selected_contract_type}",
             "is_active": f"?ordering={'-' if ordering == 'is_active' else ''}is_active&contract_type={selected_contract_type}",
         }
 

@@ -97,10 +97,6 @@ class CacheManager:
         return f"party_{contract_type}_{contract_idx}"
 
     @staticmethod
-    def get_party_list_cache_key(party_code):
-        return f"party_list_{party_code}"
-
-    @staticmethod
     def get_artifact_cache_key(contract_type, contract_idx):
         return f"artifact_{contract_type}_{contract_idx}"
 

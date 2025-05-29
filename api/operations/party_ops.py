@@ -41,6 +41,22 @@ class PartyOperations:
         )
         return self._process_response(response)
 
+    def approve_party(self, contract_type, contract_idx, party_idx, approved_user):
+        """
+        Add an approval to a contract
+        """
+        headers_with_csrf = self._add_csrf_token(self.headers.copy())
+        payload = {
+            "approved_user": approved_user
+        }
+
+        response = requests.post(
+            f"{self.base_url}/api/contracts/{contract_type}/{contract_idx}/{party_idx}/approve/",
+            json=payload,
+            headers=headers_with_csrf
+        )
+        return self._process_response(response)
+
     def get_parties(self, contract_type, contract_idx):
         """
         Retrieve all parties for a specific contract.

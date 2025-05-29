@@ -1,0 +1,70 @@
+<!-- Contract Form Section -->
+<div class="module">
+    <form method="post" action="#">
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="contract">
+
+        <fieldset class="module aligned">
+            <!-- Contract Name -->
+            <div class="form-row">
+                <div class="flex-container">
+                    <label for="{{ contract_form.contract_name.id_for_label }}">{{ contract_form.contract_name.label }}</label>
+                    {{ contract_form.contract_name }}
+                </div>
+                <div class="help">{{ contract_form.contract_name.help_text }}</div>
+            </div>
+
+            <!-- Service Fee % -->
+            <div class="form-row">
+                <div class="flex-container">
+                    <label for="{{ contract_form.service_fee_pct.id_for_label }}">{{ contract_form.service_fee_pct.label }}</label>
+                    {{ contract_form.service_fee_pct }}
+                </div>
+                <div class="help">{{ contract_form.service_fee_pct.help_text }}</div>
+            </div>
+
+            <!-- Service Fee Amount -->
+            <div class="form-row">
+                <div class="flex-container">
+                    <label for="{{ contract_form.service_fee_amt.id_for_label }}">{{ contract_form.service_fee_amt.label }}</label>
+                    {{ contract_form.service_fee_amt }}
+                </div>
+                <div class="help">{{ contract_form.service_fee_amt.help_text }}</div>
+            </div>
+
+            <!-- Transact Logic -->
+            <div class="form-row">
+                <div class="flex-container">
+                    <label for="{{ contract_form.transact_logic.id_for_label }}">{{ contract_form.transact_logic.label }}</label>
+                    <div class="field" style="display: flex; align-items: center; gap: 8px;">
+                        {{ contract_form.transact_logic }}
+                        <button type="button"
+                                class="w3-button s3-transparent icon-button"
+                                onclick="copyToClipboard('id_transact_logic')"
+                                title="Copy transact_logic">
+                            <i class="fas fa-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="help">{{ contract_form.transact_logic.help_text }}</div>
+            </div>
+
+            <!-- Transact Logic (Natural Language) -->
+            <div class="form-row">
+                <div class="flex-container">
+                    <label for="{{ contract_form.transact_logic_natural.id_for_label }}">{{ contract_form.transact_logic_natural.label }}</label>
+                    <div class="field" style="display: flex; align-items: center; gap: 8px;">
+                        {{ contract_form.transact_logic_natural }}
+                        <button type="button"
+                                class="w3-button s3-transparent icon-button"
+                                onclick="copyToClipboard('id_transact_logic_natural')"
+                                title="Copy transact_logic">
+                            <i class="fas fa-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="help">{{ contract_form.transact_logic_natural.help_text }}</div>
+            </div>
+        </fieldset>
+    </form>
+</div>

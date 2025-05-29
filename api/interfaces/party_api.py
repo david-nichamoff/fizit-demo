@@ -1,5 +1,6 @@
 import logging
 import time
+from datetime import datetime
 
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
@@ -8,6 +9,7 @@ from eth_utils import keccak, to_checksum_address
 from api.managers.app_context import AppContext
 from api.interfaces.mixins import ResponseMixin
 from api.utilities.logging import  log_error, log_info, log_warning
+from api.utilities.formatting import from_timestamp
 
 class PartyAPI(ResponseMixin):
 
@@ -52,16 +54,6 @@ class PartyAPI(ResponseMixin):
     def get_party_list(self, contracts, party_code):
         """Filter contracts where the given party_code is listed as a party."""
         try:
-            cache_key = self.cache_manager.get_party_list_cache_key(party_code)
-            cached_result = self.cache_manager.get(cache_key)
-
-            log_info(self.logger, f"Cache key: {cache_key}, returned {cached_result}")
-            log_info(self.logger, f"Contracts: {contracts}")
-
-            if cached_result is not None:
-                log_info(self.logger, f"Loaded filtered contract list for {party_code} from cache")
-                return self._format_success(cached_result, f"Retrieved contracts for {party_code} (cached)", status.HTTP_200_OK)
-
             filtered_contracts = []
             network = self.domain_manager.get_contract_network()
 
@@ -71,8 +63,6 @@ class PartyAPI(ResponseMixin):
 
                 cache_key_parties = self.cache_manager.get_party_cache_key(contract_type, contract_idx)
                 cached_parties = self.cache_manager.get(cache_key_parties)
-
-                log_info(self.logger, f"Cached parties for {contract_type}:{contract_idx}: {cached_parties}")
 
                 if cached_parties is None:
                     web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
@@ -88,7 +78,6 @@ class PartyAPI(ResponseMixin):
                 if any(p["party_code"].lower() == party_code.lower() for p in parties):
                     filtered_contracts.append(contract)
 
-            self.cache_manager.set(cache_key, filtered_contracts, timeout=None)
             return self._format_success(filtered_contracts, f"Retrieved filtered contracts for {party_code}", status.HTTP_200_OK)
 
         except Exception as e:
@@ -104,12 +93,9 @@ class PartyAPI(ResponseMixin):
                 web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)             
                 log_info(self.logger, f"Adding party: {party["party_code"]} {party_addr} {party["party_type"]}")
                 function_call = web3_contract.functions.addParty(
-                    contract_idx, [party["party_code"], party_addr, party["party_type"]]
+                    contract_idx, [party["party_code"], party_addr, party["party_type"], 0, ""]
                 )
                 self._send_transaction(function_call, contract_type, contract_idx, f"Failed to add party {party['party_code']}")
-
-                cache_key = self.cache_manager.get_party_list_cache_key(party["party_code"])
-                self.cache_manager.delete(cache_key)
 
             # Sleep to give time for transaction to complete
             time.sleep(self.config_manager.get_network_sleep_time())
@@ -127,6 +113,39 @@ class PartyAPI(ResponseMixin):
             error_message = f"Error adding parties to contract {contract_type}:{contract_idx}: {str(e)}"
             return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    def approve_party(self, contract_type, contract_idx, party_idx, approved_user):
+        """Approve a specific party for a contract."""
+        try:
+            network = self.domain_manager.get_contract_network()
+            web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
+            approved_dt = int(datetime.now().timestamp())
+
+            function_call = web3_contract.functions.approveParty(
+                contract_idx, party_idx, approved_dt, approved_user
+            )
+
+            self._send_transaction(function_call, contract_type, contract_idx,  f"Failed to approve party {party_idx} on {contract_type}:{contract_idx}")
+
+            # Wait for transaction and clear cache
+            time.sleep(self.config_manager.get_network_sleep_time())
+
+            party_cache_key = self.cache_manager.get_party_cache_key(contract_type, contract_idx)
+            self.cache_manager.delete(party_cache_key)
+
+            return self._format_success(
+                {"contract_idx": contract_idx, "party_idx": party_idx},
+                f"Approved party {party_idx} on {contract_type}:{contract_idx}",
+                status.HTTP_200_OK
+            )
+
+        except ValidationError as e:
+            error_message = f"Validation error approving party {party_idx} for {contract_type}:{contract_idx}: {str(e)}"
+            return self._format_error(error_message, status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            error_message = f"Error approving party {party_idx} for {contract_type}:{contract_idx}: {str(e)}"
+            return self._format_error(error_message, status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     def delete_parties(self, contract_type, contract_idx):
         """Delete all parties from a given contract."""
         try:
@@ -141,10 +160,6 @@ class PartyAPI(ResponseMixin):
                     self._build_party_dict(raw_party, idx, contract_type, contract_idx)
                     for idx, raw_party in enumerate(raw_parties)
                 ]
-
-            for party in cached_parties:
-                cache_key = self.cache_manager.get_party_list_cache_key(party["party_code"])
-                self.cache_manager.delete(cache_key)
 
             network = self.domain_manager.get_contract_network()
             web3_contract = self.context.web3_manager.get_web3_contract(contract_type, network)
@@ -188,6 +203,8 @@ class PartyAPI(ResponseMixin):
                 "party_code": raw_party[0],
                 "party_addr": raw_party[1],
                 "party_type": raw_party[2],
+                "approved_dt": from_timestamp(raw_party[3]),
+                "approved_user": raw_party[4],
                 "contract_type": contract_type, 
                 "contract_idx": contract_idx,
                 "party_idx": party_idx,

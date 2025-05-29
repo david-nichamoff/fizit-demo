@@ -25,6 +25,7 @@ class TransactionViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         self.context = build_app_context()
         self.logger = logging.getLogger(__name__)
 
+
 ### **Purchase Transactions**
 
     @extend_schema(
@@ -57,7 +58,7 @@ class TransactionViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         description="Delete all transactions from a purchase contract",
     )
     def destroy_purchase_transactions(self, request, contract_idx=None):
-        return self._destroy_transactions(request, "purchase", contract_idx)
+        return self._destroy_transactions(request, "purchase", contract_idx )
 
 ### **Sale Transactions**
 
@@ -88,10 +89,10 @@ class TransactionViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         tags=["Sale Contracts"],
         responses={status.HTTP_204_NO_CONTENT: None},
         summary="Delete Sale Contract Transactions",
-        description="Delete all transactions from a sale contract.",
+        description="Delete all transactions from a sale contract",
     )
     def destroy_sale_transactions(self, request, contract_idx=None):
-        return self._destroy_transactions(request, "sale", contract_idx)
+        return self._destroy_transactions(request, "sale", contract_idx )
 
 ### **Advance Transactions**
 
@@ -122,10 +123,10 @@ class TransactionViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         tags=["Advance Contracts"],
         responses={status.HTTP_204_NO_CONTENT: None},
         summary="Delete Advance Contract Transactions",
-        description="Delete all transactions from an advance contract.",
+        description="Delete all transactions from an advance contract",
     )
     def destroy_advance_transactions(self, request, contract_idx=None):
-        return self._destroy_transactions(request, "advance", contract_idx)
+        return self._destroy_transactions(request, "advance", contract_idx )
 
 ### **Core Functions**
 
@@ -205,7 +206,7 @@ class TransactionViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
             log_error(self.logger, f"Unexpected error: {str(e)}")
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def _destroy_transactions(self, request, contract_type, contract_idx):
+    def _destroy_transactions(self, request, contract_type=None, contract_idx=None):
         log_info(self.logger, f"Deleting transactions for {contract_type}:{contract_idx}.")
 
         try:

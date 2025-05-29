@@ -7,9 +7,7 @@
         "service_fee_pct": "0.0000",
         "service_fee_amt": "0.00",
         "transact_logic": { "*": [{ "var": "barrels" }, {"var": "price"}]},
-        "notes": "USDC Test",
-        "is_active": true,
-        "is_quote": false
+        "notes": "USDC Test"
     },
     "parties": [
         {"party_code": "supplier_1", "party_type": "seller"},

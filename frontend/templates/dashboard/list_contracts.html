@@ -23,7 +23,13 @@
                     {{ contract.contract_name }}
                 </a>
             </td>
-            <td>{{ contract.is_active|yesno:"Yes,No" }}</td>
+            <td>
+                {% if contract.is_active %}
+                    <img src="{% static 'admin/img/icon-yes.svg' %}" alt="True" class="icon-yes">
+                {% else %}
+                    <img src="{% static 'admin/img/icon-no.svg' %}" alt="False" class="icon-no">
+                {% endif %}
+            </td>
         </tr>
         {% empty %}
         <tr>

@@ -3,6 +3,7 @@ from .artifact_serializer import ArtifactSerializer
 from .deposit_serializer import DepositSerializer
 from .event_serializer import EventSerializer
 from .party_serializer import PartySerializer
+from .approval_serializer import ApprovalSerializer
 from .recipient_serializer import RecipientSerializer
 from .advance_serializer import AdvanceSerializer
 from .residual_serializer import ResidualSerializer

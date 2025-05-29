@@ -167,9 +167,7 @@ def handle_post_request(request, headers, context, contract_type, csrf_token, co
     # Add additional data for the contract
     contract_data.update({
         "service_fee_max": contract_data.get("service_fee_pct", 0.025),
-        "extended_data": {},
-        "is_active": True,
-        "is_quote": False,
+        "extended_data": {}
     })
 
     # Submit contract data

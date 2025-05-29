@@ -23,7 +23,6 @@ contract Purchase {
         string transact_logic;          // jsonlogic formula for calculating transaction amount
         string notes;                   // contract notes, can be used for additonal data requests
         bool is_active;                 // instead of deleting, clear this flag to False
-        bool is_quote;                  // true if still in the quote stage
     }
 
     struct Transaction {
@@ -51,6 +50,8 @@ contract Purchase {
         string party_code;              // code associated with a party
         address party_addr;             // wallet address
         string party_type;              // the type of party associated with contract
+        uint approved_dt;               // the date that the contract was approved
+        string approved_user;           // the user id of the user that made the approval
     }
 
     event ContractEvent(uint indexed contract_idx, string eventType, string details);
@@ -85,7 +86,6 @@ contract Purchase {
         logContractChange(contract_idx, "transact_logic", contracts[contract_idx].transact_logic, contract_.transact_logic);
         logContractChange(contract_idx, "notes", contracts[contract_idx].notes, contract_.notes);
         logContractChange(contract_idx, "is_active", boolToString(contracts[contract_idx].is_active), boolToString(contract_.is_active));
-        logContractChange(contract_idx, "is_quote", boolToString(contracts[contract_idx].is_quote), boolToString(contract_.is_quote));
         contracts[contract_idx] = contract_;
     }
 
@@ -94,6 +94,13 @@ contract Purchase {
         require(contract_idx < contracts.length, "Invalid contract index");
         contracts[contract_idx].is_active = false;
         emit ContractEvent(contract_idx, "ContractDeleted", uintToString(contract_idx));
+    }
+
+    // Mark a contract as active
+    function activateContract(uint contract_idx) public {
+        require(contract_idx < contracts.length, "Invalid contract index");
+        contracts[contract_idx].is_active = true;
+        emit ContractEvent(contract_idx, "ContractActivated", "true");
     }
 
     function getParties(uint contract_idx) public view returns (Party[] memory) {
@@ -105,6 +112,15 @@ contract Purchase {
         require(contract_idx < contracts.length, "Invalid contract index");
         parties[contract_idx].push(party);
         emit ContractEvent(contract_idx, "PartyAdded", party.party_code);
+    }
+
+    function approveParty(uint contract_idx, uint party_idx, uint approved_dt, string memory approved_user) public {
+        require(contract_idx < contracts.length, "Invalid contract index");
+        require(party_idx < parties[contract_idx].length, "Invalid party index");
+        parties[contract_idx][party_idx].approved_dt = approved_dt;
+        parties[contract_idx][party_idx].approved_user = approved_user;
+
+        emit ContractEvent(contract_idx, "PartyApproved", parties[contract_idx][party_idx].party_code);
     }
 
     function deleteParties(uint contract_idx) public {
@@ -166,6 +182,7 @@ contract Purchase {
 
     function payAdvance(uint contract_idx, uint transact_idx, uint advance_pay_dt, uint advance_pay_amt, string memory advance_tx_hash) public {
         require(contract_idx < contracts.length, "Invalid contract index");
+        require(transact_idx < transactions[contract_idx].length, "Invalid transaction index");
         transactions[contract_idx][transact_idx].advance_pay_dt = advance_pay_dt;
         transactions[contract_idx][transact_idx].advance_pay_amt = advance_pay_amt;
         transactions[contract_idx][transact_idx].advance_tx_hash = advance_tx_hash;

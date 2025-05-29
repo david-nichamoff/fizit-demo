@@ -1,0 +1,58 @@
+[
+  {
+    "contract_type": "advance",
+    "contract": {
+        "extended_data": {"Contract #": 100},
+        "contract_name": "Advance Contract List",
+        "funding_instr": {"bank": "mercury", "account_id": "61396d72-e780-11ee-b69b-137ed758771c", "recipient_id": "627ecace-e780-11ee-b69b-f311fd81fcb4"},
+        "deposit_instr": {"bank": "mercury", "account_id": "61396d72-e780-11ee-b69b-137ed758771c" },
+        "service_fee_pct": "0.0200",
+        "service_fee_max": "0.0500",
+        "service_fee_amt": "10.00",
+        "advance_pct": "0.8000",
+        "late_fee_pct": "0.0500",
+        "transact_logic": {"var": "ticket_amt"},
+        "min_threshold_amt": "50.00",
+        "max_threshold_amt": "10000.00",
+        "notes": "Valid advance contract"
+    },
+    "parties": [
+      {"party_code": "supplier_1", "party_type": "seller"},
+      {"party_code": "refiner", "party_type": "buyer"},
+      {"party_code": "fizit", "party_type": "funder"}
+    ]
+  },
+  {
+    "contract_type": "purchase",
+    "contract": {
+        "extended_data": {"Contract #": 100},
+        "contract_name": "Purchase Contract List",
+        "funding_instr": {"bank": "mercury", "account_id": "61396d72-e780-11ee-b69b-137ed758771c", "recipient_id": "627ecace-e780-11ee-b69b-f311fd81fcb4"},
+        "service_fee_pct": "0.0000",
+        "service_fee_amt": "0.00",
+        "transact_logic": { "*": [{ "var": "barrels" }, {"var": "price"}]},
+        "notes": "Valid purchase contract"
+    },
+    "parties": [
+      {"party_code": "fizit", "party_type": "buyer"}
+    ]
+  },
+  {
+    "contract_type": "sale",
+    "contract": {
+        "extended_data": {"Contract #": 100},
+        "contract_name": "Sale Contract",
+        "funding_instr": {"bank": "mercury", "account_id": "61396d72-e780-11ee-b69b-137ed758771c", "recipient_id": "627ecace-e780-11ee-b69b-f311fd81fcb4"},
+        "deposit_instr": {"bank": "mercury", "account_id": "61396d72-e780-11ee-b69b-137ed758771c" },
+        "service_fee_pct": "0.0200",
+        "service_fee_amt": "10.00",
+        "late_fee_pct": "0.2200",
+        "transact_logic": { "*": [{ "var": "barrels" }, {"var": "price"}]},
+        "notes": "Valid sale contract"
+    },
+    "parties": [
+      {"party_code": "fizit", "party_type": "seller"},
+      {"party_code": "refiner", "party_type": "buyer"}
+    ]
+  }
+]

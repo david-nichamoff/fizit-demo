@@ -35,4 +35,4 @@ class DashboardLoginView(LoginView):
             return next_url
 
         log_warning(logger, f"⚠️ Ignoring suspicious or recursive next URL: {next_url}")
-        return reverse_lazy('list_contracts', kwargs={'customer': 'associated'})
+        return reverse_lazy('list_contracts', kwargs={'customer': 'fizit'})

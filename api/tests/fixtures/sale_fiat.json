@@ -9,9 +9,7 @@
         "service_fee_amt": "10.00",
         "late_fee_pct": "0.2200",
         "transact_logic": { "*": [{ "var": "barrels" }, {"var": "price"}]},
-        "notes": "Valid sale contract",
-        "is_active": true,
-        "is_quote": false
+        "notes": "Valid sale contract"
     },
     "parties": [
         {"party_code": "refiner", "party_type": "buyer"},

@@ -24,6 +24,29 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
 
     @extend_schema(
         tags=["Contracts"],
+        summary="Count Contracts",
+        description="Retrieve the total number of contracts",
+        responses={status.HTTP_200_OK: int}
+    )
+    def count_contract(self, request, contract_type=None):
+        log_info(self.logger, f"Fetching contract count for {contract_type}")
+
+        try:
+            self._validate_contract_type(contract_type, self.context.domain_manager)
+
+            contract_api = self.context.api_manager.get_contract_api(contract_type)
+            response = contract_api.get_contract_count(contract_type)
+
+            if response["status"] == status.HTTP_200_OK:
+                contract_count = response["data"]["count"]
+                return Response({"count": contract_count}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            log_error(self.logger, f"Error retrieving contract count: {e}")
+            return Response({"error": f"Unexpected error {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @extend_schema(
+        tags=["Contracts"],
         parameters=[],
         responses={status.HTTP_200_OK: ListContractSerializer(many=True)},
         summary="List Contracts",
@@ -39,8 +62,8 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
 
             for contract_type in contract_types:
                 contract_api = self.context.api_manager.get_contract_api(contract_type)
-
                 contract_response = contract_api.list_contracts(contract_type, request.auth.get("api_key"))
+
                 if contract_response["status"] == status.HTTP_200_OK:
                     contracts.extend(contract_response["data"])
                 else:
@@ -121,21 +144,11 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         tags=["Purchase Contracts"],
         responses={status.HTTP_204_NO_CONTENT: None},
         summary="Delete Purchase Contract",
-        description="Delete a specific purchase contract"
+        description="Delete a purchase contract"
     )
     def destroy_purchase_contract(self, request, contract_idx=None):
-        return self._destroy_contract(request, contract_type="purchase", contract_idx=contract_idx)
+        return self._destroy_contract(request, "purchase", contract_idx)
 
-    @extend_schema(
-        tags=["Purchase Contracts"],
-        summary="Count Purchase Contracts",
-        description="retrieve the total number of purchase contracts",
-        responses={status.HTTP_200_OK: int}
-    )
-    def count_purchase_contract(self, request):
-        return self._count_contract(request, contract_type="purchase")
-
- 
 ### **Sale Contracts**
 
     @extend_schema(
@@ -171,19 +184,10 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         tags=["Sale Contracts"],
         responses={status.HTTP_204_NO_CONTENT: None},
         summary="Delete Sale Contract",
-        description="Delete a specific sale contract"
+        description="Delete a sale contract"
     )
     def destroy_sale_contract(self, request, contract_idx=None):
-        return self._destroy_contract(request, contract_type="sale", contract_idx=contract_idx)
-
-    @extend_schema(
-        tags=["Sale Contracts"],
-        summary="Count Sale Contracts",
-        description="Retrieve the total number of sales contracts",
-        responses={status.HTTP_200_OK: int}
-    )
-    def count_sale_contract(self, request):
-        return self._count_contract(request, contract_type="sale")
+        return self._destroy_contract(request, "sale", contract_idx)
 
 ### **Advance Contracts**
 
@@ -220,19 +224,10 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         tags=["Advance Contracts"],
         responses={status.HTTP_204_NO_CONTENT: None},
         summary="Delete Advance Contract",
-        description="Delete a specific advance contract"
+        description="Delete an advance contract"
     )
     def destroy_advance_contract(self, request, contract_idx=None):
-        return self._destroy_contract(request, contract_type="advance", contract_idx=contract_idx)
-
-    @extend_schema(
-        tags=["Advance Contracts"],
-        summary="Count Advance Contracts",
-        description="Retrieve the total number of advances contracts",
-        responses={status.HTTP_200_OK: int}
-    )
-    def count_advance_contract(self, request, contract_idx=None):
-        return self._count_contract(request, contract_type="advance")
+        return self._destroy_contract(request, "advance", contract_idx)
 
 ### **Core Functions**
 
@@ -337,12 +332,8 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
             log_error(self.logger, f"Unexpected error: {str(e)}")
             return Response({"error": f"Unexpected error {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @extend_schema(
-        tags=["Contracts"],
-        responses={status.HTTP_204_NO_CONTENT: None},
-        summary="Delete Contract",
-        description="Delete a specific contract."
-    )
+
+
     def _destroy_contract(self, request, contract_type=None, contract_idx=None):
         log_info(self.logger, f"Deleting {contract_type}:{contract_idx}.")
 
@@ -367,34 +358,6 @@ class ContractViewSet(viewsets.ViewSet, ValidationMixin, PermissionMixin):
         except Exception as e:
             log_error(self.logger, f"Unexpected error: {str(e)}")
             return Response({"error": f"Unexpected error {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    @extend_schema(
-        tags=["Contracts"],
-        summary="Contract Count",
-        description="Retrieve the total number of contracts.",
-        responses={status.HTTP_200_OK: int}
-    )
-    def _count_contract(self, request, contract_type=None):
-        log_info(self.logger, f"Fetching contract count for {contract_type}")
-
-        try:
-            self._validate_contract_type(contract_type, self.context.domain_manager)
-            contract_count = self._get_contract_count(contract_type)
-            return Response({"count": contract_count}, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            log_error(self.logger, f"Error retrieving contract count: {e}")
-            return Response({"error": f"Unexpected error {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    def _get_contract_count(self, contract_type):
-        contract_api = self.context.api_manager.get_contract_api(contract_type)
-        response = contract_api.get_contract_count(contract_type)
-
-        if response["status"] == status.HTTP_200_OK:
-            return response["data"]["count"]
-
-        log_error(self.logger, f"Failed to retrieve contract count for {contract_type}: {response.get('message')}")
-        raise RuntimeError(response.get("message"))
 
     def _get_parties(self, contract_type, contract_idx):
         response = self.context.api_manager.get_party_api().get_parties(contract_type, contract_idx)

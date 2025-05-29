@@ -14,7 +14,7 @@ from api.utilities.bootstrap import build_app_context
 from api.utilities.logging import log_info, log_warning, log_error
 from api.utilities.report import generate_contract_report
 from api.utilities.logic import extract_transaction_variables
-from api.models import ContractAuxiliary, ContractApproval
+from api.models import ContractAuxiliary
 
 from frontend.forms.admin import PartyForm, ArtifactForm
 from frontend.views.decorators.group import group_matches_customer
@@ -70,7 +70,8 @@ def handle_post_request(request, customer, context, contract_type, contract_idx,
     form_handlers = {
         "artifacts": _update_artifacts,
         "generate_report": _generate_report,
-        "execute_logic" : _execute_transact_logic
+        "execute_logic" : _execute_transact_logic,
+        "approve_party" : _handle_approve_party,
     }
 
     handler = form_handlers.get(form_type)
@@ -99,23 +100,50 @@ def prepare_view_form_context(request, customer, context, contract_type, contrac
     funding_instr = contract.get("funding_instr", {})
     deposit_instr = contract.get("deposit_instr", {})
 
-    banks = context.domain_manager.get_banks()
     contract["funding_method"] = funding_instr["bank"].capitalize()
     funding_method = funding_instr.get("bank", "")
+
+    if "bank" in deposit_instr:
+        contract["deposit_method"] = deposit_instr["bank"].capitalize()
+        funding_method = funding_instr.get("bank", "")
+
+    # Set funding_token_symbol if available
+    token_symbol = funding_instr.get("token_symbol")
+    network = funding_instr.get("network")
+    if token_symbol and network:
+        contract["funding_network"] = network.capitalize()
+        contract["funding_token_symbol"] = token_symbol.upper()
+
+    # Set deposit_token_symbol if available
+    token_symbol = deposit_instr.get("token_symbol")
+    network = deposit_instr.get("network")
+    log_info(logger, f"Deposit instructions: {deposit_instr}")
+    if token_symbol and network:
+        contract["deposit_network"] = network.capitalize()
+        contract["deposit_token_symbol"] = token_symbol.upper()
+    log_info(logger, f"Contract: {contract}")
+
+    try:
+        banks = context.domain_manager.get_banks()
+    except Exception as e:
+        log_error(logger, f"Error retrieving banks")
+        banks = []
 
     try:
         accounts = bank_ops.get_accounts(funding_method)
     except Exception as e:
-        log_warning(logger, f"Error retrieving accounts for bank '{funding_method}': {e}")
+        log_error(logger, f"Error retrieving accounts for bank '{funding_method}': {e}")
         accounts = []
 
-    # Gracefully map account name
-    account_id = funding_instr.get("account_id")
+    # Build a lookup dictionary for account_id -> account_name
+    account_lookup = {
+        account.get("account_id"): account.get("account_name")
+        for account in accounts if isinstance(account, dict)
+    }
 
-    for account in accounts:
-        if isinstance(account, dict) and account.get("account_id") == account_id:
-            contract["funding_account"] = account.get("account_name")
-            break
+    # Assign funding_account and deposit_account using lookup
+    contract["funding_account"] = account_lookup.get(funding_instr.get("account_id"))
+    contract["deposit_account"] = account_lookup.get(deposit_instr.get("account_id"))
 
     try:
         recipients = bank_ops.get_recipients(funding_method)
@@ -124,8 +152,6 @@ def prepare_view_form_context(request, customer, context, contract_type, contrac
         recipients = []
 
     recipient_id = funding_instr.get("recipient_id")
-
-    log_info(logger, f"Recipients: {recipients}, recipient id: {recipient_id}")
 
     for recipient in recipients:
         if isinstance(recipient, dict) and recipient.get("recipient_id") == recipient_id:
@@ -174,25 +200,8 @@ def prepare_view_form_context(request, customer, context, contract_type, contrac
 
         parties = fetch_parties(contract_type, contract_idx, headers, base_url)
 
-        # Fetch approvals for this contract version
-        approvals = ContractApproval.objects.filter(
-            contract_type=contract_type,
-            contract_idx=contract_idx,
-            contract_release=contract_release
-        )
-
-        # Build a party → approval lookup
-        approval_map = {
-            approval.party_code: approval for approval in approvals
-        }
-
-        # Annotate each party with approval status
         for party in parties:
-            party_code = party.get("party_code")
-            approval = approval_map.get(party_code)
-            party["approved"] = approval.approved if approval else False
-            party["approved_by"] = approval.approved_by.get_username() if approval and approval.approved_by else None
-            party["approved_dt"] = approval.approved_dt if approval else None
+            party["approved"] = bool(party.get("approved_dt"))
 
         transactions = fetch_transactions(contract_type, contract_idx, headers, base_url)
         artifacts = fetch_artifacts(contract_type, contract_idx, headers, base_url)
@@ -209,6 +218,8 @@ def prepare_view_form_context(request, customer, context, contract_type, contrac
             symbol = token["key"]
             token_list.append(f"{network}:{symbol}")
 
+    log_info(logger, f"Passing to contract form: {contract}")
+
     contract_form_template  = context.form_manager.get_contract_form(contract_type)
     contract_form = contract_form_template(
         initial=contract, 
@@ -217,7 +228,8 @@ def prepare_view_form_context(request, customer, context, contract_type, contrac
         
         readonly_fields = [
             "transact_logic", "service_fee_pct", "service_fee_amt", 
-            "funding_method", "funding_account", "funding_recipient", "funding_token_symbol"
+            "funding_method", "funding_account", "funding_recipient", "funding_token_symbol", "funding_network",
+            "deposit_method", "deposit_account", "deposit_token_symbol", "deposit_network"
         ],
         
         hidden_fields = [],
@@ -228,7 +240,8 @@ def prepare_view_form_context(request, customer, context, contract_type, contrac
         settlement_form_template = context.form_manager.get_settlement_form(contract_type)
         settlement_form = settlement_form_template(initial=contract)
 
-    log_info(logger, f"customer: {customer}, parties: {parties}, approvals: {approvals}")
+    for name, field in contract_form.fields.items():
+        log_info(logger, f"FIELD: {name} | VALUE: {contract_form.initial.get(name)}")
 
     # Prepare form_context
     form_context = {
@@ -240,7 +253,6 @@ def prepare_view_form_context(request, customer, context, contract_type, contrac
         'artifact_form': ArtifactForm(),
         'settlements': settlements,
         'parties': parties,
-        "approvals": approvals,
         'transactions': transactions,
         'artifacts': artifacts,
         'customer': customer,
@@ -374,6 +386,29 @@ def _execute_transact_logic(request, context, contract_type, contract_idx, heade
         log_error(logger, f"Error executing transaction logic: {e}")
         messages.error(request, "Failed to execute transaction logic.")
         return redirect(f"/dashboard/{request.resolver_match.kwargs['customer']}/view-contract/?contract_idx={contract_idx}&contract_type={contract_type}")
+
+def _handle_approve_party(request, context, contract_type, contract_idx, headers, base_url, csrf_token):
+    party_idx = request.POST.get("party_idx")
+    approved_user = request.user.username  # or request.user.get_full_name() if preferred
+
+    if not party_idx:
+        messages.error(request, "Missing party ID for approval.")
+        return redirect(f"/dashboard/{request.resolver_match.kwargs['customer']}/view-contract/?contract_idx={contract_idx}&contract_type={contract_type}")
+
+    party_ops = PartyOperations(headers, base_url, csrf_token)
+
+    try:
+        log_info(logger, f"Approving party {party_idx} on {contract_type}:{contract_idx} by {approved_user}")
+        result = party_ops.approve_party(contract_type, contract_idx, party_idx, approved_user)
+        if "contract_idx" in result and "party_idx" in result:
+            messages.success(request, f"Contract approved.")
+        else:
+            messages.error(request, f"Approval failed: {result.get('error', 'Unknown error')}")
+    except Exception as e:
+        log_error(logger, f"Approval error: {e}")
+        messages.error(request, f"Failed to approve party: {e}")
+
+    return redirect(f"/dashboard/{request.resolver_match.kwargs['customer']}/view-contract/?contract_idx={contract_idx}&contract_type={contract_type}")
 
 def try_cast(value):
     try:

@@ -29,7 +29,6 @@ def list_contracts_view(request, customer):
         csrf_ops = CsrfOperations(headers, context.config_manager.get_base_url())
         csrf_token = csrf_ops.get_csrf_token()
         contract_ops = ContractOperations(headers, context.config_manager.get_base_url(), csrf_token)
-        party_ops = PartyOperations(headers, context.config_manager.get_base_url(), csrf_token)
 
         # Fetch contracts
         contracts = contract_ops.list_contracts_by_party_code(customer)

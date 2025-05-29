@@ -13,9 +13,7 @@
         "transact_logic": {"var": "ticket_amt"},
         "min_threshold_amt": "50.00",
         "max_threshold_amt": "10000.00",
-        "notes": "Valid advance contract",
-        "is_active": true,
-        "is_quote": false
+        "notes": "Valid advance contract"
     },
     "parties": [
         {"party_code": "supplier_1", "party_type": "seller"},

@@ -73,6 +73,33 @@ class SaleLifecycleTest(TestCase):
         self.party_ops.post_parties(self.contract_type, contract_idx, parties)
         self._validate_event(contract_idx, "PartyAdded")
 
+       # 3a: Confirm contract is not active yet
+        contract = self.contract_ops.get_contract(self.contract_type, contract_idx)
+        self.assertFalse(contract["is_active"], "Contract should not be active before approvals")
+
+        # 3b: Approve each party
+        current_parties = self.party_ops.get_parties(self.contract_type, contract_idx)
+        for party in current_parties:
+            log_info(self.logger, f"Adding party approval for {party["party_code"]}, party_idx {party["party_idx"]}")
+            self.party_ops.approve_party(
+                contract_type=self.contract_type,
+                contract_idx=contract_idx,
+                party_idx=party["party_idx"],
+                approved_user="fizit"
+            )
+            self._validate_event(contract_idx, "PartyApproved")
+
+        # 3c: Confirm all parties are approved
+        updated_parties = self.party_ops.get_parties(self.contract_type, contract_idx)
+        log_info(self.logger, f"Confirm parties updates: {updated_parties}")
+        for party in updated_parties:
+            self.assertIsNotNone(party["approved_dt"], "approved_dt should not be None")
+            self.assertEqual(party["approved_user"], "fizit", "approved_user should be 'fizit'")
+
+        # 3d: Confirm contract is now active
+        updated_contract = self.contract_ops.get_contract(self.contract_type, contract_idx)
+        self.assertTrue(updated_contract["is_active"], "Contract should be active after all parties approved")
+
         # Step 4: Add settlements
         settlements = self.contract_data["settlements"]
         log_info(self.logger, f"Adding {settlements} to contract {contract_idx}")

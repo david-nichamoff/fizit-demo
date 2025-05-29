@@ -157,11 +157,6 @@ class ValidationMixin:
                 if not is_valid_json(contract[field]):
                     raise ValidationError(f"Invalid JSON for '{field}': '{contract[field]}'.")
 
-        # Validate Boolean fields
-        for field in ["is_active", "is_quote"]:
-            if not isinstance(contract[field], bool):
-                raise ValidationError(f"Invalid value for '{field}': '{contract[field]}'. Must be true or false.")
-
         # Validate contract_name and notes
         for field in ["contract_name"]:
             if field in contract:

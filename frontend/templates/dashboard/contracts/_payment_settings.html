@@ -1,0 +1,107 @@
+
+<div class="module">
+    <h3 class="subhead">Payment Settings</h3>
+    <form method="post" action="#">
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="advance_settings" />
+
+        <fieldset class="module aligned">
+            <div class="form-row">
+                <div class="flex-container">
+                    <label for="{{ contract_form.funding_method.id_for_label }}">{{ contract_form.funding_method.label }}</label>
+                    {{ contract_form.funding_method }}
+                </div>
+                <div class="help">{{ contract_form.funding_method.help_text }}</div>
+            </div>
+            {% if contract_form.funding_account.value %}
+                <div class="form-row">
+                    <div class="flex-container">
+                        <label for="{{ contract_form.funding_account.id_for_label }}">{{ contract_form.funding_account.label }}</label>
+                        {{ contract_form.funding_account }}
+                    </div>
+                    <div class="help">{{ contract_form.funding_account.help_text }}</div>
+                </div>
+                <div class="form-row">
+                    <div class="flex-container">
+                        <label for="{{ contract_form.funding_recipient.id_for_label }}">{{ contract_form.funding_recipient.label }}</label>
+                        {{ contract_form.funding_recipient }}
+                    </div>
+                    <div class="help">{{ contract_form.funding_recipient.help_text }}</div>
+                </div>
+                <div class="form-row">
+                    <a href="javascript:void(0);" onclick="toggleRecipientDetails()" class="toggle-link">
+                        Show Recipient Details <i class="fas fa-chevron-down"></i>
+                    </a>
+                </div>
+                <div id="recipient-details" style="display: none; margin-top: 10px;">
+                    {% for field in contract_form %}
+                        {% if field.name|slice:":10" == "recipient_" %}
+                            <div class="form-row">
+                                <div class="flex-container">
+                                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    {{ field }}
+                                </div>
+                                {% if field.help_text %}
+                                    <div class="help">{{ field.help_text }}</div>
+                                {% endif %}
+                                </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% if contract_form.funding_token_symbol.value %}
+                <div class="form-row">
+                    <div class="flex-container">
+                        <label for="{{ contract_form.funding_token_symbol.id_for_label }}">{{ contract_form.funding_token_symbol.label }}</label>
+                        {{ contract_form.funding_token_symbol }}
+                    </div>
+                    <div class="help">{{ contract_form.funding_token_symbol.help_text }}</div>
+                </div>
+                <div class="form-row">
+                    <div class="flex-container">
+                        <label for="{{ contract_form.funding_network.id_for_label }}">{{ contract_form.funding_network.label }}</label>
+                        {{ contract_form.funding_network }}
+                    </div>
+                    <div class="help">{{ contract_form.funding_network.help_text }}</div>
+                </div>
+            {% endif %}
+            {% if contract_form.deposit_method.value %}
+                <hr class="form-divider">
+                <h3 class="form-subhead">Deposit Settings</h3>
+                <div class="form-row">
+                    <div class="flex-container">
+                        <label for="{{ contract_form.deposit_method.id_for_label }}">{{ contract_form.deposit_method.label }}</label>
+                        {{ contract_form.deposit_method }}
+                    </div>
+                    <div class="help">{{ contract_form.deposit_method.help_text }}</div>
+                </div>
+                {% if contract_form.deposit_account.value %}
+                    <div class="form-row">
+                        <div class="flex-container">
+                            <label for="{{ contract_form.deposit_account.id_for_label }}">{{ contract_form.deposit_account.label }}</label>
+                            {{ contract_form.deposit_account }}
+                        </div>
+                        <div class="help">{{ contract_form.deposit_account.help_text }}</div>
+                    </div>
+                {% endif %}
+                {% if contract_form.deposit_token_symbol.value %}
+                    <div class="form-row">
+                        <div class="flex-container">
+                            <label for="{{ contract_form.deposit_token_symbol.id_for_label }}">{{ contract_form.deposit_token_symbol.label }}</label>
+                            {{ contract_form.deposit_token_symbol }}
+                        </div>
+                        <div class="help">{{ contract_form.deposit_token_symbol.help_text }}</div>
+                    </div>
+                    <div class="form-row">
+                        <div class="flex-container">
+                            <label for="{{ contract_form.deposit_network.id_for_label }}">{{ contract_form.deposit_network.label }}</label>
+                            {{ contract_form.deposit_network }}
+                        </div>
+                        <div class="help">{{ contract_form.deposit_network.help_text }}</div>
+                    </div>
+                {% endif %}
+
+            {% endif %}
+        </fieldset>
+    </form>
+</div>
