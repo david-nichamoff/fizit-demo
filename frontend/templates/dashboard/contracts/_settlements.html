@@ -1,48 +1,50 @@
-<div class="module">
-    <h3 class="subhead">Settlements</h3>
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th scope="col">Settlement Index</th>
-                <th scope="col">Transactions</th>
-                <th scope="col">Due Date</th>
-                <th scope="col">Paid Date</th>
-                <th scope="col">Paid Amount</th>
-                <th scope="col">Residual Paid</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for settlement in settlements %}
-            <tr>
-                <td>{{ settlement.settle_idx }}</td>
-                <td>
-                    <span class="help-tooltip" data-tooltip=
-                    "First transaction: {{ settlement.transact_min_dt }} 
-                    Last transaction {{ settlement.transact_max_dt }}">
-                        {{ settlement.transact_count }}
-                    </span>
-                </td>
-                <td>{{ settlement.settle_due_dt }}</td>
-                <td>{{ settlement.settle_pay_dt|default:"-" }}</td>
-                <td>
-                    <span class="help-tooltip" data-tooltip=
-                    "Expected settlement amount: {{ settlement.settle_exp_amt }}"> 
-                    {{ settlement.settle_pay_amt }}
-                    </span>
-                </td>
-                <td>
-                    <span class="help-tooltip" data-tooltip=
-                    "Expected residual amount: {{ settlement.residual_exp_amt }}
-                    Residual payment date: {{ settlement.residual_pay_dt }}"> 
-                    {{ settlement.residual_pay_amt }}
-                    </span>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" class="empty-result">No settlements available.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+{% if settlements %}
+    <div class="module">
+        <h3 class="subhead">Settlements</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th scope="col">Settlement Index</th>
+                    <th scope="col">Transactions</th>
+                    <th scope="col">Due Date</th>
+                    <th scope="col">Paid Date</th>
+                    <th scope="col">Paid Amount</th>
+                    <th scope="col">Residual Paid</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for settlement in settlements %}
+                <tr>
+                    <td>{{ settlement.settle_idx }}</td>
+                    <td>
+                        <span class="help-tooltip" data-tooltip=
+                        "First transaction: {{ settlement.transact_min_dt }} 
+                        Last transaction {{ settlement.transact_max_dt }}">
+                            {{ settlement.transact_count }}
+                        </span>
+                    </td>
+                    <td>{{ settlement.settle_due_dt }}</td>
+                    <td>{{ settlement.settle_pay_dt|default:"-" }}</td>
+                    <td>
+                        <span class="help-tooltip" data-tooltip=
+                        "Expected settlement amount: {{ settlement.settle_exp_amt }}"> 
+                        {{ settlement.settle_pay_amt }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="help-tooltip" data-tooltip=
+                        "Expected residual amount: {{ settlement.residual_exp_amt }}
+                        Residual payment date: {{ settlement.residual_pay_dt }}"> 
+                        {{ settlement.residual_pay_amt }}
+                        </span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="empty-result">No settlements available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
