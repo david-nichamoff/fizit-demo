@@ -66,15 +66,17 @@ const FIZITHome = () => {
         </p>
       </div>
 
-      <div className = "counter-container">
-        <p className="body">
-          FIZIT has funded {totalTransactions.toLocaleString()} transactions totaling:
-        </p>
-        <div className="counter">
-          ${transactionValue.toLocaleString()}
+      {totalTransactions > 0 && (
+        <div className="counter-container">
+          <p className="body">
+            FIZIT has funded {totalTransactions.toLocaleString()} transactions totaling:
+          </p>
+          <div className="counter">
+            ${transactionValue.toLocaleString()}
+          </div>
+          <p className="body">Get Paid Tomorrow for Value Delivered Today</p>
         </div>
-        <p className="body">Get Paid Tomorrow for Value Delivered Today</p>
-      </div>
+      )}
 
       <h4 className="section-title">Partners</h4>
       <div className="partner-container">
