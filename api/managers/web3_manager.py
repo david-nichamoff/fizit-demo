@@ -165,6 +165,8 @@ class Web3Manager():
         wallet_addr = to_checksum_address(wallet_addr)
         chain_id = self.context.config_manager.get_chain_id(network)
 
+        log_info(self.logger, f"Deploying to chain_id {chain_id} with wallet {wallet_addr}")
+
         if not web3_instance.is_connected():
             logging.error(f"Web3 instance is not connected to the {network} network.")
             raise ConnectionError("Web3 instance is not connected")
