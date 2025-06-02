@@ -248,13 +248,29 @@ class Web3Manager():
             "Authorization": self.context.secrets_manager.get_cs_role_session_token(),
         }
 
-        response = requests.post(api_url, json=tx_data, headers=headers)
+        try:
+            response = requests.post(api_url, json=tx_data, headers=headers)
+            response.raise_for_status()
+            json_data = response.json()
+            log_info(self.logger, f"Received JSON: {json_data}")
+            signed_tx = response.json().get("rlp_signed_tx")
+            error_code = response.json().get("error_code")
+            return signed_tx, error_code
 
-        response.raise_for_status()
-        signed_tx = response.json().get("rlp_signed_tx")
-        error_code = response.json().get("error_code")
+        except requests.HTTPError as e:
+            self.logger.error(f"HTTP error from signer: {e}")
+            self.logger.error(f"Response status: {response.status_code}")
+            self.logger.error(f"Response body: {response.text}")
+            raise
 
-        return signed_tx, error_code
+        except json.JSONDecodeError as e:
+            self.logger.error("Signer returned invalid JSON.")
+            self.logger.error(f"Response body: {response.text}")
+            raise
+
+        except Exception as e:
+            self.logger.error(f"Unexpected error while signing transaction: {str(e)}")
+            raise
 
     def _broadcast_transaction(self, web3_instance, signed_tx):
         """Broadcast the signed transaction to the network."""
