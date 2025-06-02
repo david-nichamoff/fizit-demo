@@ -252,7 +252,6 @@ class Web3Manager():
             response = requests.post(api_url, json=tx_data, headers=headers)
             response.raise_for_status()
             json_data = response.json()
-            log_info(self.logger, f"Received JSON: {json_data}")
             signed_tx = response.json().get("rlp_signed_tx")
             error_code = response.json().get("error_code")
             return signed_tx, error_code
