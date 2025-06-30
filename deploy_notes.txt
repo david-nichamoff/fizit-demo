@@ -1,0 +1,6 @@
+pip install django-two-factor-auth qrcode
+pip install phonenumbers
+
+
+python manage.py migrate
+update two_factor/urls.py in .venv

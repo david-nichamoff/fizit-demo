@@ -48,7 +48,6 @@ def list_contracts_view(request, customer):
             "list_title": list_title
         }
 
-        log_info(logger, f"Form context: {form_context}")
         return render(request, "dashboard/list_contracts.html", form_context)
 
     except Exception as e:

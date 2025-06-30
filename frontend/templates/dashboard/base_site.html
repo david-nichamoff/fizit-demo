@@ -28,6 +28,7 @@
 {% block usertools %}
   <div id="user-tools">
     {% if user.is_authenticated %}
+
       {% trans 'Welcome,' %} <strong>{{ user.first_name }}</strong>&nbsp;/&nbsp; 
       <a href="{% url 'change_password' %}">Change password</a>&nbsp;/&nbsp;
       <a href="{% url 'dashboard_logout' %}">Log out</a>

@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from django.http import HttpResponse
 
@@ -13,8 +13,10 @@ urlpatterns = [
     path("login/", DashboardLoginView.as_view(), name="dashboard_login"),
     path("logout/", DashboardLogoutView.as_view(), name="dashboard_logout"),
     path("register/", register_view, name="register"),
-    path('change_password/', change_password_view, name='change_password'),
-    path('password_change/done/', auth_views.PasswordChangeDoneView.as_view(template_name='dashboard/password_change_done.html'), name='password_change_done'),
-    path('<str:customer>/view-contract/', view_contract_view, name='view_contract'),
-    path('<str:customer>/', list_contracts_view, name='list_contracts'),
+    path("change_password/", change_password_view, name="change_password"),
+    path("password_change/done/", auth_views.PasswordChangeDoneView.as_view(
+        template_name='dashboard/password_change_done.html'
+    ), name="password_change_done"),
+    path("<str:customer>/view-contract/", view_contract_view, name="view_contract"),
+    path("<str:customer>/", list_contracts_view, name="list_contracts"),
 ]
