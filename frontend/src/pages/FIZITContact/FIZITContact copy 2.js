@@ -6,6 +6,19 @@ import fizitLogo from "../../assets/logo/fizit_full_color.png";
 const FIZITContact = () => {
   return (
     <div className="container">
+      {/* Logo */}
+      <div className="logo-container">
+        <img src={fizitLogo} alt="FIZIT Logo" className="logo" />
+      </div>
+
+      {/* Header */}
+      <div className="title-container">
+        <h1 className="title">Let’s Talk</h1>
+        <p className="subtitle">
+          Schedule a meeting with our team or send us a message below.
+        </p>
+      </div>
+
       {/* Calendly Embed */}
       <div className="calendly-container" style={{ minHeight: "700px" }}>
         <iframe
