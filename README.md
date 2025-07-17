@@ -1,82 +1,96 @@
-mportant Links:
-https://code.visualstudio.com/docs/python/tutorial-django
-https://www.w3schools.com/django/
-https://docs.djangoproject.com/en/5.0/
-https://www.django-rest-framework.org
-https://jsonlogic.com
+# FIZIT Demo
 
+FIZIT is a blockchain-based settlement platform designed for the industrial energy sector. It enables secure, auditable, and automated B2B payments using smart contracts, IoT integrations, and API-driven workflows.
 
-Development Environment Guide:
-1. Download latest version of Python from here:
-https://www.python.org/downloads/.  
+This repository contains a Django-based implementation of the FIZIT platform architecture, showcasing core components such as:
 
-2. Create a FIZIT_DEV project directory on your computer
+- Smart contract interaction via Avalanche C-Chain  
+- Encrypted data management and contract logic execution  
+- RESTful API with Swagger documentation  
+- Admin dashboard for contract management  
+- Modular Django app structure for scalability  
 
-3. Create a virtual environment within that FIZIT_DEV (note the period before .venv)
-python -m venv .venv 
+---
 
-4. Customize PYTHONPATH
-Edit ./FIZIT_DEV/.venv/bin/activate
-The file should look like this:
+## 🛠️ Getting Started
 
-  # This file must be used with "source bin/activate" *from bash*
+Follow these instructions to set up your local development environment.
 
-export PYTHONPATH=/Users/davidnichamoff/Projects/FIZIT_DEV/packages
+### 1. Set Up Python & Virtual Environment
 
-deactivate () {
-    # reset old environment variables
-    if [ -n "${_OLD_VIRTUAL_PATH:-}" ] ; then
-        PATH="${_OLD_VIRTUAL_PATH:-}"
-        export PATH
-        unset _OLD_VIRTUAL_PATH
+Install Python:  
+https://www.python.org/downloads/
 
-5. Activate the virtual environment
+```bash
+# Create and enter project directory
+mkdir FIZIT_DEV && cd FIZIT_DEV
+
+# Create and activate virtual environment
+python -m venv .venv
 source .venv/bin/activate
 
-6. Install Django
+# Edit the following file to include your PYTHONPATH
+nano .venv/bin/activate
+# Add this line (update path as needed):
+# export PYTHONPATH=/Users/yourname/Projects/FIZIT_DEV/packages
+```
+
+### 2. Install Dependencies
+
+```bash
 pip install django
 pip install -r requirements.txt
+```
 
-7. Create the project directory
-cd FIZIT_DEV
+### 3. Set Up the Project
+
+```bash
 django-admin startproject project .
-
-8. Create the apps
-cd FIZIT_DEV
 python manage.py startapp api
 python manage.py startapp frontend
+```
 
-You should now have the following directory structure:
+Project structure:
 
-FIZIT_DEV
-FIZIT_DEV/project
-FIZIT_DEV/api
-FIZIT_DEV/frontend
-FIZIT_DEV/.venv
+```
+FIZIT_DEV/
+├── .venv/
+├── project/
+├── api/
+└── frontend/
+```
 
-9. Edit Settings File
-Edit your FIZIT_DEV/project/settings.py file 
-Make your settings look like mine, edit paths as appropriate
+### 4. Run Migrations and Create Superuser
 
-10. Clone the GIT FIZIT_DEV repository
-git clone https://github.com/david-nichamoff/fizit-dev
-
-11.  Apply initial migrations
+```bash
 python manage.py makemigrations
 python manage.py migrate
-
-12. Create superuser account
 python manage.py createsuperuser
+```
 
-13. Start server to ensure everything installed
+### 5. Start the Server
+
+```bash
 python manage.py runserver
-visit your website at http://127.0.0.1:8000/
+```
 
-14. ./start.sh is a script to automatically start services
-./stop.sh is a script to stop services
+Access the app at:  
+http://127.0.0.1:8000/
 
+---
 
+## 🔍 Live Demo
 
+A live instance of the FIZIT Demo is available:
 
+- **API (Swagger UI)**  
+  https://sandbox.fizit.biz/api/schema/swagger-ui/#/  
+  _Read-only access is available without credentials. An API key is required for full access._
 
+- **Admin Dashboard**  
+  https://sandbox.fizit.biz/admin/
+  
+  _Login required._
 
+To request an API key or admin login for demo purposes, please contact:  
+📧 **david.nichamoff@gmail.com**
